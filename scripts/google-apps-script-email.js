@@ -24,8 +24,8 @@ const SHARED_SECRET = "conference_secret";
 const SENDER_NAME = "ESIT Conference Secretariat";
 const FOLDER_NAME = "ESIT_Manuscript_Submissions";
 
-// Set your specific Google Drive Folder ID if desired, or leave empty to auto-create
-const TARGET_FOLDER_ID = ""; 
+// Target Google Drive Folder ID for ESIT Manuscript Submissions
+const TARGET_FOLDER_ID = "1A7BPBWVm812p34MAwF06r5G-g-YRP9Od"; 
 
 /**
  * Run this function once in the Apps Script editor to authorize DriveApp and GmailApp permissions!

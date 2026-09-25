@@ -1,14 +1,15 @@
-'use client';
-
 import React, { useState, useEffect } from 'react';
 import {
   X, FileText, UploadCloud, CheckCircle2, Clock, AlertTriangle,
-  ExternalLink, Sparkles, RefreshCw, Plus, ShieldCheck, ChevronRight
+  ExternalLink, Sparkles, RefreshCw, Plus, ShieldCheck, Trash2,
+  Lock, AlertCircle, Folder
 } from 'lucide-react';
 import { useAuth } from '../../lib/context/AuthContext';
 import { useConferenceData } from '../../lib/context/ConferenceDataContext';
 import { ManuscriptSubmission } from '../../lib/types';
-import { getAllSubmissions } from '../../lib/submission/submissionService';
+import { getAllSubmissions, withdrawSubmission } from '../../lib/submission/submissionService';
+
+const ESIT_DRIVE_FOLDER_URL = 'https://drive.google.com/drive/folders/1A7BPBWVm812p34MAwF06r5G-g-YRP9Od';
 
 interface MySubmissionsModalProps {
   isOpen: boolean;
@@ -28,7 +29,9 @@ export default function MySubmissionsModal({
 
   const [mySubmissions, setMySubmissions] = useState<ManuscriptSubmission[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedSubmission, setSelectedSubmission] = useState<ManuscriptSubmission | null>(null);
+  const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
+  const [confirmWithdrawId, setConfirmWithdrawId] = useState<string | null>(null);
+  const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
 
   const fetchMyPapers = async () => {
     if (!currentUser) return;
@@ -40,6 +43,26 @@ export default function MySubmissionsModal({
     );
     setMySubmissions(mine);
     setLoading(false);
+  };
+
+  const handleWithdrawPaper = async (submissionId: string) => {
+    setWithdrawingId(submissionId);
+    try {
+      const result = await withdrawSubmission(submissionId);
+      if (result.success) {
+        setMySubmissions(prev => prev.filter(p => p.id !== submissionId));
+        setConfirmWithdrawId(null);
+        setActionSuccessMsg(`Manuscript ${submissionId} has been successfully withdrawn.`);
+        setTimeout(() => setActionSuccessMsg(null), 5000);
+      } else {
+        alert(result.error || 'Failed to withdraw submission.');
+      }
+    } catch (err) {
+      console.error('Withdraw error:', err);
+      alert('An error occurred while withdrawing your manuscript.');
+    } finally {
+      setWithdrawingId(null);
+    }
   };
 
   useEffect(() => {
@@ -263,6 +286,24 @@ export default function MySubmissionsModal({
 
         {/* Modal Body */}
         <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
+          {actionSuccessMsg && (
+            <div style={{
+              backgroundColor: '#ecfdf5',
+              border: '1px solid #a7f3d0',
+              color: '#065f46',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              marginBottom: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '0.88rem'
+            }}>
+              <CheckCircle2 size={18} color="#059669" />
+              <span>{actionSuccessMsg}</span>
+            </div>
+          )}
+
           {loading ? (
             <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
               <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 12px auto', color: '#0f3d3e' }} />
@@ -312,6 +353,10 @@ export default function MySubmissionsModal({
               {mySubmissions.map((paper) => {
                 const statusInfo = getStatusDisplay(paper.status);
                 const StatusIcon = statusInfo.icon;
+                const canWithdraw = paper.status !== 'under_review' && paper.status !== 'accepted';
+                const isConfirmingThis = confirmWithdrawId === paper.id;
+                const isWithdrawingThis = withdrawingId === paper.id;
+                const manuscriptUrl = paper.pdfUrl || ESIT_DRIVE_FOLDER_URL;
 
                 return (
                   <div
@@ -400,6 +445,7 @@ export default function MySubmissionsModal({
                       </p>
                     )}
 
+                    {/* Actions and Metadata Row */}
                     <div style={{
                       display: 'flex',
                       justifyContent: 'space-between',
@@ -416,36 +462,138 @@ export default function MySubmissionsModal({
                         {paper.fileName && <span style={{ marginLeft: '12px' }}>📄 {paper.fileName}</span>}
                       </div>
 
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        {paper.pdfUrl ? (
-                          <a
-                            href={paper.pdfUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        {/* Manuscript View Button */}
+                        <a
+                          href={manuscriptUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Open Manuscript in Google Drive"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '6px 12px',
+                            backgroundColor: '#f0fdf9',
+                            color: '#0f3d3e',
+                            border: '1px solid #99f6e4',
+                            borderRadius: '6px',
+                            fontSize: '0.82rem',
+                            fontWeight: 600,
+                            textDecoration: 'none'
+                          }}
+                        >
+                          <FileText size={14} />
+                          <span>Manuscript</span>
+                        </a>
+
+                        {/* Author Withdraw Submission Action */}
+                        {canWithdraw ? (
+                          <button
+                            type="button"
+                            onClick={() => setConfirmWithdrawId(isConfirmingThis ? null : paper.id)}
+                            disabled={isWithdrawingThis}
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '6px',
+                              gap: '5px',
                               padding: '6px 12px',
-                              backgroundColor: '#f0fdf9',
-                              color: '#0f3d3e',
-                              border: '1px solid #99f6e4',
+                              backgroundColor: '#fff1f2',
+                              color: '#e11d48',
+                              border: '1px solid #fecdd3',
                               borderRadius: '6px',
                               fontSize: '0.82rem',
                               fontWeight: 600,
-                              textDecoration: 'none'
+                              cursor: 'pointer'
                             }}
                           >
-                            <FileText size={14} />
-                            <span>Manuscript</span>
-                          </a>
+                            <Trash2 size={13} />
+                            <span>Withdraw</span>
+                          </button>
                         ) : (
-                          <span style={{ fontSize: '0.78rem', color: '#94a3b8', padding: '4px 8px' }}>
-                            No file attached
+                          <span
+                            title="Manuscripts currently under active peer review or accepted cannot be withdrawn."
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              padding: '6px 10px',
+                              backgroundColor: '#f8fafc',
+                              color: '#94a3b8',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '6px',
+                              fontSize: '0.78rem',
+                              fontWeight: 500,
+                              cursor: 'not-allowed'
+                            }}
+                          >
+                            <Lock size={12} />
+                            <span>In Review</span>
                           </span>
                         )}
                       </div>
                     </div>
+
+                    {/* Inline Withdrawal Confirmation Dialog */}
+                    {isConfirmingThis && (
+                      <div style={{
+                        marginTop: '12px',
+                        padding: '12px 16px',
+                        backgroundColor: '#fff1f2',
+                        borderRadius: '8px',
+                        border: '1px solid #fca5a5',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: '10px'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#991b1b', fontSize: '0.84rem' }}>
+                          <AlertTriangle size={18} color="#dc2626" />
+                          <span>
+                            Are you sure you want to withdraw <strong>{paper.id}</strong>? This will remove your submission from the conference.
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmWithdrawId(null)}
+                            disabled={isWithdrawingThis}
+                            className="btn btn-outline-primary btn-sm"
+                            style={{ padding: '4px 12px', fontSize: '0.8rem' }}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleWithdrawPaper(paper.id)}
+                            disabled={isWithdrawingThis}
+                            style={{
+                              padding: '4px 12px',
+                              fontSize: '0.8rem',
+                              backgroundColor: '#dc2626',
+                              color: '#ffffff',
+                              border: 'none',
+                              borderRadius: '6px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            {isWithdrawingThis ? (
+                              <>
+                                <RefreshCw size={12} className="animate-spin" />
+                                <span>Withdrawing...</span>
+                              </>
+                            ) : (
+                              <span>Yes, Withdraw Manuscript</span>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Status Info Callout */}
                     <div style={{

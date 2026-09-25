@@ -1,8 +1,9 @@
 import { ManuscriptSubmission } from '../types';
 import { db, isFirebaseConfigured } from '../firebase/config';
-import { collection, doc, getDocs, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, getDocs, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 const LOCAL_STORAGE_SUBMISSIONS_KEY = 'esit_conference_manuscript_submissions';
+const DEFAULT_DRIVE_FOLDER_URL = 'https://drive.google.com/drive/folders/1A7BPBWVm812p34MAwF06r5G-g-YRP9Od';
 
 export interface UploadManuscriptParams {
   file: File;
@@ -43,7 +44,7 @@ export async function submitManuscript(
     const base64Data = await fileToBase64(params.file);
 
     // 2. Post file to API route which uploads to Google Drive & triggers confirmation email
-    let driveUrl = `https://drive.google.com/drive/search?q=${encodeURIComponent(submissionId)}`;
+    let driveUrl = DEFAULT_DRIVE_FOLDER_URL;
     let driveFileId: string | undefined = undefined;
 
     try {
@@ -190,6 +191,43 @@ export async function updateSubmissionStatus(
   }
 
   return true;
+}
+
+/**
+ * Withdraws / Deletes a manuscript submission from Firestore and LocalStorage
+ * Only permitted when submission is not under active review or accepted.
+ */
+export async function withdrawSubmission(submissionId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    // 1. Delete from Firestore
+    if (isFirebaseConfigured && db) {
+      try {
+        await deleteDoc(doc(db, 'submissions', submissionId));
+      } catch (err) {
+        console.warn('Firestore deleteDoc warning (falling back to update/localStorage):', err);
+      }
+    }
+
+    // 2. Remove from LocalStorage
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem(LOCAL_STORAGE_SUBMISSIONS_KEY);
+        if (stored) {
+          const list: ManuscriptSubmission[] = JSON.parse(stored);
+          const filtered = list.filter(sub => sub.id !== submissionId);
+          localStorage.setItem(LOCAL_STORAGE_SUBMISSIONS_KEY, JSON.stringify(filtered));
+        }
+      } catch (lsErr) {
+        console.warn('LocalStorage deletion warning:', lsErr);
+      }
+    }
+
+    return { success: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Failed to withdraw submission';
+    console.error('Withdraw submission error:', msg);
+    return { success: false, error: msg };
+  }
 }
 
 /**

@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
       fileData: body.fileData
     };
 
-    let driveUrl = `https://drive.google.com/drive/search?q=${encodeURIComponent(body.submissionId || '')}`;
+    let driveUrl = 'https://drive.google.com/drive/folders/1A7BPBWVm812p34MAwF06r5G-g-YRP9Od';
     let fileId = '';
 
     if (webhookUrl) {

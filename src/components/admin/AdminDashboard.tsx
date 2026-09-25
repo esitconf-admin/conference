@@ -6,7 +6,7 @@ import {
   Trash2, Plus, RefreshCw, Send, Mail, AlertCircle, FileText,
   Sparkles, UserCheck, Eye, MessageSquare, LayoutTemplate, ArrowRight,
   Globe, Share2, Copy, CheckCheck, ExternalLink, BarChart3, Activity,
-  ArrowUpRight, CheckCircle, Clock
+  ArrowUpRight, CheckCircle, Clock, Folder
 } from 'lucide-react';
 import { useAuth } from '../../lib/context/AuthContext';
 import { useConferenceData } from '../../lib/context/ConferenceDataContext';
@@ -28,6 +28,7 @@ interface AdminDashboardProps {
 }
 
 const LOCAL_STORAGE_TEMPLATES_KEY = 'esit_conference_email_templates';
+const ESIT_DRIVE_FOLDER_URL = 'https://drive.google.com/drive/folders/1A7BPBWVm812p34MAwF06r5G-g-YRP9Od';
 
 export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: AdminDashboardProps) {
   const { currentUser, isAdmin, allUsers, toggleReviewerRole, fetchAllUsers } = useAuth();
@@ -882,29 +883,27 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                           </div>
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                            {sub.pdfUrl && (
-                              <a
-                                href={sub.pdfUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                title="Open Manuscript"
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  padding: '4px 8px',
-                                  backgroundColor: '#f0fdf9',
-                                  color: '#0f3d3e',
-                                  borderRadius: '6px',
-                                  fontSize: '0.74rem',
-                                  fontWeight: 600,
-                                  textDecoration: 'none',
-                                  border: '1px solid #a7f3d0'
-                                }}
-                              >
-                                <FileText size={12} style={{ marginRight: '3px' }} />
-                                Manuscript
-                              </a>
-                            )}
+                            <a
+                              href={sub.pdfUrl || ESIT_DRIVE_FOLDER_URL}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="Open Manuscript in Google Drive"
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                padding: '4px 8px',
+                                backgroundColor: '#f0fdf9',
+                                color: '#0f3d3e',
+                                borderRadius: '6px',
+                                fontSize: '0.74rem',
+                                fontWeight: 600,
+                                textDecoration: 'none',
+                                border: '1px solid #a7f3d0'
+                              }}
+                            >
+                              <FileText size={12} style={{ marginRight: '3px' }} />
+                              Manuscript
+                            </a>
                             <span style={{
                               fontSize: '0.72rem',
                               fontWeight: 700,
@@ -1022,6 +1021,29 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                         <Globe size={16} color="#f59e0b" />
                         <span>SEO & Social Preview</span>
                       </button>
+
+                      <a
+                        href={ESIT_DRIVE_FOLDER_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '12px',
+                          backgroundColor: '#f0fdf9',
+                          border: '1px solid #99f6e4',
+                          borderRadius: '8px',
+                          color: '#0f3d3e',
+                          fontWeight: 600,
+                          fontSize: '0.84rem',
+                          textDecoration: 'none',
+                          textAlign: 'left'
+                        }}
+                      >
+                        <Folder size={16} color="#059669" />
+                        <span>Drive Submissions Folder</span>
+                      </a>
                     </div>
                   </div>
 
@@ -1814,6 +1836,18 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <a
+                    href={ESIT_DRIVE_FOLDER_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-outline-primary btn-sm"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}
+                    title="Open ESIT_Manuscript_Submissions Google Drive Folder"
+                  >
+                    <Folder size={14} color="#0f3d3e" />
+                    <span>Drive Folder</span>
+                  </a>
+
                   <button
                     onClick={loadSubmissions}
                     disabled={loadingSubmissions}
@@ -1994,29 +2028,28 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
 
                             <td style={{ padding: '14px 16px', textAlign: 'right', verticalAlign: 'top' }}>
                               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                                {sub.pdfUrl && (
-                                  <a
-                                    href={sub.pdfUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    style={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '4px',
-                                      padding: '5px 10px',
-                                      backgroundColor: '#f0fdf9',
-                                      color: '#0f3d3e',
-                                      border: '1px solid #99f6e4',
-                                      borderRadius: '6px',
-                                      fontSize: '0.78rem',
-                                      fontWeight: 600,
-                                      textDecoration: 'none'
-                                    }}
-                                  >
-                                    <FileText size={13} />
-                                    <span>Manuscript</span>
-                                  </a>
-                                )}
+                                <a
+                                  href={sub.pdfUrl || ESIT_DRIVE_FOLDER_URL}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title="Open Manuscript in Google Drive"
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    padding: '5px 10px',
+                                    backgroundColor: '#f0fdf9',
+                                    color: '#0f3d3e',
+                                    border: '1px solid #99f6e4',
+                                    borderRadius: '6px',
+                                    fontSize: '0.78rem',
+                                    fontWeight: 600,
+                                    textDecoration: 'none'
+                                  }}
+                                >
+                                  <FileText size={13} />
+                                  <span>Manuscript</span>
+                                </a>
 
                                 <button
                                   type="button"
