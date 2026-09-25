@@ -4,23 +4,23 @@ export const initialConferenceData: ConferenceContent = {
   id: 'current_conference',
   updatedAt: new Date().toISOString(),
   seo: {
-    pageTitle: 'ESIT 2025 | International Conference on Engineering Science & Innovative Technology',
-    metaDescription: 'The 5th International Conference on Engineering Science and Innovative Technology (ESIT 2025), Pattaya, Thailand. Fostering Smart Innovation, Sustainable Green Energy & Industrial AI.',
-    keywords: 'ESIT 2025, Conference, Engineering Science, KMUTNB, Pattaya, Call for Papers, Scopus, IEEE',
+    pageTitle: 'ESIT 2027 | International Conference on Engineering Science & Innovative Technology',
+    metaDescription: 'The 6th International Conference on Engineering Science and Innovative Technology (ESIT 2027), Danang, Vietnam. Fostering Smart Innovation, Sustainable Green Energy & Industrial AI.',
+    keywords: 'ESIT 2027, Conference, Engineering Science, KMUTNB, Danang, Vietnam, Call for Papers, Scopus, IEEE',
     ogImageUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80',
     siteUrl: 'https://esit-conference.vercel.app',
-    siteName: 'ESIT 2025 International Conference'
+    siteName: 'ESIT 2027 International Conference'
   },
   hero: {
-    edition: 'ESIT 2025',
-    title: 'The 5th International Conference on Engineering Science and Innovative Technology',
+    edition: 'ESIT 2027',
+    title: 'The 6th International Conference on Engineering Science and Innovative Technology',
     fullTheme: 'Fostering Smart Innovation, Sustainable Green Energy & Industrial AI Technologies for the Global Future',
-    dateRange: 'February 18-21, 2025',
-    venueName: 'Amari Pattaya',
-    venueCityCountry: 'Pattaya, Thailand',
-    badgeText: 'ESIT 2025 · Pattaya, Thailand',
+    dateRange: 'February 18-21, 2027',
+    venueName: 'Furama Resort Danang',
+    venueCityCountry: 'Danang, Vietnam',
+    badgeText: 'ESIT 2027 · Danang, Vietnam',
     posterImageUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80',
-    submissionDeadlineBadge: 'Full Paper Submission Deadline: November 30 (Extended to Dec 20)',
+    submissionDeadlineBadge: 'Full Paper Submission Deadline: November 30 (Extended)',
     cfpDownloadUrl: '#'
   },
   dates: [

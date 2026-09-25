@@ -22,8 +22,20 @@ const ConferenceDataContext = createContext<ConferenceDataContextType | undefine
 const LOCAL_STORAGE_CMS_KEY = 'esit_conference_cms_content';
 
 export function ConferenceDataProvider({ children }: { children: React.ReactNode }) {
-  const [content, setContent] = useState<ConferenceContent>(initialConferenceData);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [content, setContent] = useState<ConferenceContent>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(LOCAL_STORAGE_CMS_KEY);
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch {
+          // fallback to initial
+        }
+      }
+    }
+    return initialConferenceData;
+  });
+  const [loading, setLoading] = useState<boolean>(false);
 
   // Initialize from LocalStorage or Firestore
   useEffect(() => {

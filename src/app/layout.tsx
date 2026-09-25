@@ -10,8 +10,8 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://esit-conference.vercel.app'),
-  title: 'ESIT 2025 | International Conference on Engineering Science & Innovative Technology',
-  description: 'The 5th International Conference on Engineering Science and Innovative Technology (ESIT 2025), Pattaya, Thailand. Fostering Smart Innovation, Sustainable Green Energy & Industrial AI.',
+  title: 'ESIT 2027 | International Conference on Engineering Science & Innovative Technology',
+  description: 'The 6th International Conference on Engineering Science and Innovative Technology (ESIT 2027), Danang, Vietnam. Fostering Smart Innovation, Sustainable Green Energy & Industrial AI.',
   icons: {
     icon: [
       { url: '/logo.png', sizes: 'any' },
@@ -22,20 +22,20 @@ export const metadata: Metadata = {
     ],
     shortcut: '/favicon.ico',
   },
-  keywords: ['ESIT 2025', 'Conference', 'Engineering Science', 'KMUTNB', 'Pattaya', 'Call for Papers', 'Scopus', 'IEEE'],
-  authors: [{ name: 'ESIT 2025 Organizing Committee' }],
+  keywords: ['ESIT 2027', 'Conference', 'Engineering Science', 'KMUTNB', 'Danang', 'Vietnam', 'Call for Papers', 'Scopus', 'IEEE'],
+  authors: [{ name: 'ESIT 2027 Organizing Committee' }],
   robots: 'index, follow',
   openGraph: {
-    title: 'ESIT 2025 | International Conference on Engineering Science & Innovative Technology',
-    description: 'The 5th International Conference on Engineering Science and Innovative Technology (ESIT 2025), Pattaya, Thailand. Fostering Smart Innovation, Sustainable Green Energy & Industrial AI.',
+    title: 'ESIT 2027 | International Conference on Engineering Science & Innovative Technology',
+    description: 'The 6th International Conference on Engineering Science and Innovative Technology (ESIT 2027), Danang, Vietnam. Fostering Smart Innovation, Sustainable Green Energy & Industrial AI.',
     url: 'https://esit-conference.vercel.app',
-    siteName: 'ESIT 2025 International Conference',
+    siteName: 'ESIT 2027 International Conference',
     images: [
       {
         url: '/logo.png',
         width: 1200,
         height: 630,
-        alt: 'ESIT 2025 Conference Official Logo',
+        alt: 'ESIT 2027 Conference Official Logo',
       },
     ],
     locale: 'en_US',
@@ -43,8 +43,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'ESIT 2025 | International Conference on Engineering Science & Innovative Technology',
-    description: 'The 5th International Conference on Engineering Science and Innovative Technology (ESIT 2025), Pattaya, Thailand.',
+    title: 'ESIT 2027 | International Conference on Engineering Science & Innovative Technology',
+    description: 'The 6th International Conference on Engineering Science and Innovative Technology (ESIT 2027), Danang, Vietnam.',
     images: ['/logo.png'],
   },
 };
