@@ -590,21 +590,43 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
             <form onSubmit={handleSaveHero} style={{ display: 'grid', gap: '18px', maxWidth: '800px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '14px' }}>
                 <div>
-                  <label style={labelStyle}>Conference Edition</label>
+                  <label style={labelStyle}>Conference Edition (e.g. ESIT 2027)</label>
                   <input
                     type="text"
                     value={heroForm.edition}
                     onChange={(e) => setHeroForm({ ...heroForm, edition: e.target.value })}
                     style={inputStyle}
+                    placeholder="e.g. ESIT 2027"
                   />
+                  <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
+                    Updates the Navbar Logo & Footer Badge
+                  </span>
                 </div>
                 <div>
-                  <label style={labelStyle}>Top Badge Highlight</label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <label style={{ ...labelStyle, marginBottom: 0 }}>Top Badge Highlight</label>
+                    <button
+                      type="button"
+                      onClick={() => setHeroForm({ ...heroForm, badgeText: `${heroForm.edition} · ${heroForm.venueCityCountry}` })}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#0f3d3e',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        textDecoration: 'underline'
+                      }}
+                    >
+                      ⚡ Auto-Sync with Edition & City
+                    </button>
+                  </div>
                   <input
                     type="text"
                     value={heroForm.badgeText}
                     onChange={(e) => setHeroForm({ ...heroForm, badgeText: e.target.value })}
                     style={inputStyle}
+                    placeholder="e.g. ESIT 2027 · Danang, Vietnam"
                   />
                 </div>
               </div>
@@ -637,15 +659,43 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                     value={heroForm.dateRange}
                     onChange={(e) => setHeroForm({ ...heroForm, dateRange: e.target.value })}
                     style={inputStyle}
+                    placeholder="e.g. February 18-21, 2027"
                   />
                 </div>
                 <div>
-                  <label style={labelStyle}>Venue Name & City</label>
+                  <label style={labelStyle}>Venue / Hotel Name</label>
                   <input
                     type="text"
-                    value={heroForm.venueName + ', ' + heroForm.venueCityCountry}
-                    onChange={(e) => setHeroForm({ ...heroForm, venueName: e.target.value.split(',')[0] || '', venueCityCountry: e.target.value.split(',')[1]?.trim() || '' })}
+                    value={heroForm.venueName}
+                    onChange={(e) => setHeroForm({ ...heroForm, venueName: e.target.value })}
                     style={inputStyle}
+                    placeholder="e.g. Furama Resort Danang"
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                <div>
+                  <label style={labelStyle}>Venue City & Country</label>
+                  <input
+                    type="text"
+                    value={heroForm.venueCityCountry}
+                    onChange={(e) => setHeroForm({ ...heroForm, venueCityCountry: e.target.value })}
+                    style={inputStyle}
+                    placeholder="e.g. Danang, Vietnam"
+                  />
+                  <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
+                    Displays in Navbar & Footer sub-location
+                  </span>
+                </div>
+                <div>
+                  <label style={labelStyle}>Deadline Highlight Alert</label>
+                  <input
+                    type="text"
+                    value={heroForm.submissionDeadlineBadge}
+                    onChange={(e) => setHeroForm({ ...heroForm, submissionDeadlineBadge: e.target.value })}
+                    style={inputStyle}
+                    placeholder="e.g. Full Paper Submission: Nov 30 (Extended)"
                   />
                 </div>
               </div>
@@ -659,18 +709,8 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                   style={inputStyle}
                 />
                 <span style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                  Image URL or Firebase Storage public URL for the main landing page poster.
+                  Image URL or public image link for the main landing page poster.
                 </span>
-              </div>
-
-              <div>
-                <label style={labelStyle}>Deadline Highlight Alert</label>
-                <input
-                  type="text"
-                  value={heroForm.submissionDeadlineBadge}
-                  onChange={(e) => setHeroForm({ ...heroForm, submissionDeadlineBadge: e.target.value })}
-                  style={inputStyle}
-                />
               </div>
 
               <button type="submit" className="btn btn-primary" style={{ justifySelf: 'start', marginTop: '8px' }}>

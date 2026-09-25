@@ -74,51 +74,61 @@ export default function Navbar({ onOpenAuth, onOpenSubmission, onOpenAdmin }: Na
           height: '76px'
         }}>
           {/* Brand Logo & Title */}
-          <a
-            href="#hero"
-            style={{
-              textDecoration: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px'
-            }}
-          >
-            <div style={{
-              width: '44px',
-              height: '44px',
-              backgroundColor: '#0f3d3e',
-              color: '#ffffff',
-              borderRadius: '10px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 800,
-              lineHeight: 1,
-              boxShadow: '0 4px 10px rgba(15, 61, 62, 0.25)'
-            }}>
-              <span style={{ fontSize: '0.95rem', letterSpacing: '-0.5px' }}>
-                {content.hero.edition.split(' ')[0] || 'ESIT'}
-              </span>
-              <span style={{ fontSize: '0.65rem', color: '#f59e0b' }}>
-                {content.hero.edition.split(' ')[1] || '2027'}
-              </span>
-            </div>
-            <div>
-              <div style={{
-                fontSize: '1.25rem',
-                fontWeight: 800,
-                color: '#0f3d3e',
-                letterSpacing: '-0.5px',
-                lineHeight: 1.1
-              }}>
-                {content.hero.edition}
-              </div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
-                {content.hero.venueCityCountry}
-              </div>
-            </div>
-          </a>
+          {(() => {
+            const text = (content.hero.edition || '').trim();
+            const match = text.match(/^([A-Za-z]+)\s*(.*)$/);
+            const brand = match && match[1] ? match[1] : 'ESIT';
+            const year = match && match[2] ? match[2] : '';
+            return (
+              <a
+                href="#hero"
+                style={{
+                  textDecoration: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}
+              >
+                <div style={{
+                  width: '44px',
+                  height: '44px',
+                  backgroundColor: '#0f3d3e',
+                  color: '#ffffff',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 800,
+                  lineHeight: 1,
+                  boxShadow: '0 4px 10px rgba(15, 61, 62, 0.25)'
+                }}>
+                  <span style={{ fontSize: '0.95rem', letterSpacing: '-0.5px' }}>
+                    {brand}
+                  </span>
+                  {year && (
+                    <span style={{ fontSize: '0.65rem', color: '#f59e0b' }}>
+                      {year}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <div style={{
+                    fontSize: '1.25rem',
+                    fontWeight: 800,
+                    color: '#0f3d3e',
+                    letterSpacing: '-0.5px',
+                    lineHeight: 1.1
+                  }}>
+                    {content.hero.edition}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
+                    {content.hero.venueCityCountry}
+                  </div>
+                </div>
+              </a>
+            );
+          })()}
 
           {/* Desktop Navigation Links */}
           <div style={{

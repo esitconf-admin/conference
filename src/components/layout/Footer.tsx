@@ -14,6 +14,16 @@ export default function Footer({ onOpenPDPA, onOpenAdmin, onOpenAuth }: FooterPr
   const { content } = useConferenceData();
   const { contactInfo, hero } = content;
 
+  // Dynamically parse brand name and edition year (e.g. "ESIT 2027" -> "ESIT", "2027")
+  const [brandName, editionYear] = (() => {
+    const text = (hero.edition || '').trim();
+    const match = text.match(/^([A-Za-z]+)\s*(.*)$/);
+    if (match && match[1]) {
+      return [match[1], match[2] || ''];
+    }
+    return ['ESIT', ''];
+  })();
+
   return (
     <footer id="contact" style={{
       backgroundColor: '#092c2c',
@@ -45,11 +55,13 @@ export default function Footer({ onOpenPDPA, onOpenAdmin, onOpenAuth }: FooterPr
                 lineHeight: 1
               }}>
                 <span style={{ fontSize: '0.95rem' }}>
-                  {hero.edition.split(' ')[0] || 'ESIT'}
+                  {brandName}
                 </span>
-                <span style={{ fontSize: '0.65rem', color: '#f59e0b' }}>
-                  {hero.edition.split(' ')[1] || '2027'}
-                </span>
+                {editionYear && (
+                  <span style={{ fontSize: '0.65rem', color: '#f59e0b' }}>
+                    {editionYear}
+                  </span>
+                )}
               </div>
               <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#ffffff' }}>
                 {hero.edition}
@@ -172,10 +184,10 @@ export default function Footer({ onOpenPDPA, onOpenAdmin, onOpenAuth }: FooterPr
           color: '#64748b'
         }}>
           <div>
-            © 2025 ESIT International Conference. All rights reserved. Encrypted via Google Firebase & Firestore.
+            © {editionYear || new Date().getFullYear()} {brandName || 'ESIT'} International Conference. All rights reserved. Encrypted via Google Firebase & Firestore.
           </div>
           <div>
-            Hosted in Pattaya, Thailand · King Mongkut&apos;s University of Technology North Bangkok
+            Hosted in {hero.venueCityCountry || 'Pattaya, Thailand'} · King Mongkut&apos;s University of Technology North Bangkok
           </div>
         </div>
       </div>

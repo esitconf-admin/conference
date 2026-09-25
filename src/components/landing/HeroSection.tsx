@@ -70,7 +70,7 @@ export default function HeroSection({ onOpenSubmission }: HeroSectionProps) {
               backdropFilter: 'blur(8px)'
             }}>
               <Sparkles size={16} color="#f59e0b" />
-              <span>{hero.badgeText || `${hero.edition} · Hybrid Event`}</span>
+              <span>{hero.badgeText || `${hero.edition} · ${hero.venueCityCountry || 'Hybrid Event'}`}</span>
             </div>
 
             <h1 style={{
