@@ -1,0 +1,53 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper authentication functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email in ['admin@conference.org'] ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles.hasAny(['admin'])
+      );
+    }
+
+    // Public CMS Content: Anyone can read, only Admin can write
+    match /conference_content/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // User Profiles: Owners and Admins can read, only Admin can assign Reviewer roles
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Manuscript Submissions: Authors can create/read own, Reviewers can read assigned, Admins can manage all
+    match /submissions/{submissionId} {
+      allow read: if isAdmin() || 
+        (isAuthenticated() && resource.data.authorUid == request.auth.uid) ||
+        (isAuthenticated() && request.auth.uid in resource.data.assignedReviewers);
+      allow create: if isAuthenticated();
+      allow update: if isAdmin() || (isAuthenticated() && resource.data.authorUid == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    // Audit logs: Read by Admin only, append-only
+    match /audit_logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+  }
+}

@@ -1,69 +1,91 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
 
-export default function Home() {
+import React, { useState } from 'react';
+import Navbar from '../components/layout/Navbar';
+import HeroSection from '../components/landing/HeroSection';
+import QuickInfoCards from '../components/landing/QuickInfoCards';
+import ImportantNewsSection from '../components/landing/ImportantNewsSection';
+import ImportantDatesSection from '../components/landing/ImportantDatesSection';
+import KeynoteSpeakersSection from '../components/landing/KeynoteSpeakersSection';
+import TracksTopicsSection from '../components/landing/TracksTopicsSection';
+import RegistrationPricingSection from '../components/landing/RegistrationPricingSection';
+import CommitteeSection from '../components/landing/CommitteeSection';
+import VenueSection from '../components/landing/VenueSection';
+import Footer from '../components/layout/Footer';
+import FloatingScrollTop from '../components/common/FloatingScrollTop';
+import AuthModal from '../components/modals/AuthModal';
+import SubmitManuscriptModal from '../components/modals/SubmitManuscriptModal';
+import PDPAPrivacyModal from '../components/modals/PDPAPrivacyModal';
+import AdminDashboard from '../components/admin/AdminDashboard';
+
+export default function HomePage() {
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authDefaultMode, setAuthDefaultMode] = useState<'login' | 'register'>('login');
+  const [submissionModalOpen, setSubmissionModalOpen] = useState(false);
+  const [pdpaModalOpen, setPdpaModalOpen] = useState(false);
+  const [adminDashboardOpen, setAdminDashboardOpen] = useState(false);
+
+  const handleOpenAuth = (mode: 'login' | 'register') => {
+    setAuthDefaultMode(mode);
+    setAuthModalOpen(true);
+  };
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>
-            To get started, edit the{" "}
-            <code className={styles.code}>page.tsx</code> file.
-          </h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* 1. Header & Sticky Nav */}
+      <Navbar
+        onOpenAuth={handleOpenAuth}
+        onOpenSubmission={() => setSubmissionModalOpen(true)}
+        onOpenAdmin={() => setAdminDashboardOpen(true)}
+      />
+
+      {/* 2. Main One-Page Conference Landing */}
+      <main style={{ flex: 1 }}>
+        <HeroSection onOpenSubmission={() => setSubmissionModalOpen(true)} />
+        <QuickInfoCards />
+        <ImportantNewsSection />
+        <ImportantDatesSection />
+        <KeynoteSpeakersSection />
+        <TracksTopicsSection />
+        <RegistrationPricingSection />
+        <CommitteeSection />
+        <VenueSection />
       </main>
+
+      {/* 3. Footer */}
+      <Footer
+        onOpenPDPA={() => setPdpaModalOpen(true)}
+        onOpenAdmin={() => setAdminDashboardOpen(true)}
+        onOpenAuth={handleOpenAuth}
+      />
+
+      {/* 4. Floating Elements */}
+      <FloatingScrollTop />
+
+      {/* 5. Modals & Dialogs */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        defaultMode={authDefaultMode}
+        onOpenPDPA={() => setPdpaModalOpen(true)}
+      />
+
+      <SubmitManuscriptModal
+        isOpen={submissionModalOpen}
+        onClose={() => setSubmissionModalOpen(false)}
+        onRequireAuth={() => handleOpenAuth('login')}
+      />
+
+      <PDPAPrivacyModal
+        isOpen={pdpaModalOpen}
+        onClose={() => setPdpaModalOpen(false)}
+      />
+
+      <AdminDashboard
+        isOpen={adminDashboardOpen}
+        onClose={() => setAdminDashboardOpen(false)}
+        onRequireAuth={() => handleOpenAuth('login')}
+      />
     </div>
   );
 }
