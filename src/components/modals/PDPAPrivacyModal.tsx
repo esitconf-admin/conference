@@ -124,7 +124,7 @@ export default function PDPAPrivacyModal({ isOpen, onClose }: PDPAPrivacyModalPr
 
             <div>
               <h4 style={{ color: '#0f3d3e', marginBottom: '8px' }}>4. Data Protection Officer (DPO) Contact</h4>
-              <p>For data privacy inquiries, email the secretariat at <strong>esit@cit.kmutnb.ac.th</strong> or visit the College of Industrial Technology, King Mongkut&apos;s University of Technology North Bangkok.</p>
+              <p>For data privacy inquiries, email the secretariat at <strong>esitconf@gmail.com</strong> or visit the College of Industrial Technology, King Mongkut&apos;s University of Technology North Bangkok.</p>
             </div>
           </div>
         </div>

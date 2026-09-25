@@ -122,17 +122,6 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onOp
     }
   };
 
-  const fillQuickDemo = (role: 'admin' | 'author') => {
-    if (role === 'admin') {
-      setEmail('admin@conference.org');
-      setPassword('Admin@Secure2025!');
-    } else {
-      setEmail('author.reviewer@university.edu');
-      setPassword('Author@Secure2025!');
-    }
-    setCaptchaInput(captchaChallenge.expectedAnswer.toString());
-  };
-
   if (!isOpen) return null;
 
   return (
@@ -392,53 +381,6 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onOp
               >
                 {loading ? 'Authenticating...' : 'Sign In'}
               </button>
-
-              {/* Demo Account Quick Access */}
-              <div style={{
-                marginTop: '10px',
-                paddingTop: '14px',
-                borderTop: '1px dashed #cbd5e1',
-                fontSize: '0.8rem',
-                color: '#64748b'
-              }}>
-                <span style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>⚡ Quick Demo Logins:</span>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    type="button"
-                    onClick={() => fillQuickDemo('admin')}
-                    style={{
-                      flex: 1,
-                      padding: '6px 10px',
-                      borderRadius: '6px',
-                      backgroundColor: '#f1f5f9',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '0.78rem',
-                      cursor: 'pointer',
-                      fontWeight: 600,
-                      color: '#0f3d3e'
-                    }}
-                  >
-                    👑 Admin Login
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => fillQuickDemo('author')}
-                    style={{
-                      flex: 1,
-                      padding: '6px 10px',
-                      borderRadius: '6px',
-                      backgroundColor: '#f1f5f9',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '0.78rem',
-                      cursor: 'pointer',
-                      fontWeight: 600,
-                      color: '#0f3d3e'
-                    }}
-                  >
-                    ✍️ Author & Reviewer
-                  </button>
-                </div>
-              </div>
             </form>
           ) : (
             /* REGISTRATION FORM */
