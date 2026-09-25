@@ -40,54 +40,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const LOCAL_STORAGE_USERS_KEY = 'esit_conference_registered_users';
 const LOCAL_STORAGE_CURRENT_KEY = 'esit_conference_current_user';
 
-// Mock initial users for instant preview and testing
-const defaultInitialUsers: UserProfile[] = [
-  {
-    uid: 'admin-001',
-    email: 'admin@conference.org',
-    title: 'Prof. Dr.',
-    firstName: 'Conference',
-    lastName: 'Admin',
-    organization: 'ESIT 2025 Secretariat & KMUTNB',
-    country: 'Thailand',
-    roles: ['admin', 'author', 'reviewer'],
-    pdpaConsent: true,
-    pdpaConsentDate: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    status: 'active'
-  },
-  {
-    uid: 'user-002',
-    email: 'author.reviewer@university.edu',
-    title: 'Dr.',
-    firstName: 'Somchai',
-    lastName: 'Prasert',
-    organization: 'Faculty of Engineering, KMUTNB',
-    country: 'Thailand',
-    roles: ['author', 'reviewer'],
-    pdpaConsent: true,
-    pdpaConsentDate: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    status: 'active'
-  },
-  {
-    uid: 'user-003',
-    email: 'john.author@mit.edu',
-    title: 'Dr.',
-    firstName: 'John',
-    lastName: 'Smith',
-    organization: 'MIT Research Lab',
-    country: 'United States',
-    roles: ['author'],
-    pdpaConsent: true,
-    pdpaConsentDate: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    status: 'active'
-  }
-];
+// Initial empty user list for clean production state
+const defaultInitialUsers: UserProfile[] = [];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
@@ -192,16 +146,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setCurrentUser(foundUser);
       if (typeof window !== 'undefined') {
         localStorage.setItem(LOCAL_STORAGE_CURRENT_KEY, JSON.stringify(foundUser));
-      }
-      return { success: true };
-    }
-
-    // Quick demo admin login convenience
-    if (trimmedEmail === 'admin@conference.org') {
-      const adminProfile = defaultInitialUsers[0];
-      setCurrentUser(adminProfile);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(LOCAL_STORAGE_CURRENT_KEY, JSON.stringify(adminProfile));
       }
       return { success: true };
     }
