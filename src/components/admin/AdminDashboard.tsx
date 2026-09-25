@@ -1,20 +1,26 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, Shield, Edit3, Calendar, Bell, Users, Save, CheckCircle2, 
-  Trash2, Plus, RefreshCw, Send, Mail, AlertCircle, FileText, Image as ImageIcon 
+  Trash2, Plus, RefreshCw, Send, Mail, AlertCircle, FileText, 
+  Sparkles, UserCheck, Eye, MessageSquare, LayoutTemplate, ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../../lib/context/AuthContext';
 import { useConferenceData } from '../../lib/context/ConferenceDataContext';
-import { ImportantDateItem, NewsItem, KeynoteSpeaker, UserProfile } from '../../lib/types';
+import { ImportantDateItem, NewsItem, KeynoteSpeaker, UserProfile, EmailTemplateConfig } from '../../lib/types';
 import { sendConferenceEmail } from '../../lib/email/emailService';
+import { defaultEmailTemplates } from '../../lib/data/initialEmailTemplates';
+import { db, isFirebaseConfigured } from '../../lib/firebase/config';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 interface AdminDashboardProps {
   isOpen: boolean;
   onClose: () => void;
   onRequireAuth: () => void;
 }
+
+const LOCAL_STORAGE_TEMPLATES_KEY = 'esit_conference_email_templates';
 
 export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: AdminDashboardProps) {
   const { currentUser, isAdmin, allUsers, toggleReviewerRole, fetchAllUsers } = useAuth();
@@ -27,7 +33,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     resetToDefault 
   } = useConferenceData();
 
-  const [activeTab, setActiveTab] = useState<'hero' | 'dates' | 'news' | 'keynotes' | 'users' | 'email'>('hero');
+  const [activeTab, setActiveTab] = useState<'hero' | 'dates' | 'news' | 'keynotes' | 'users' | 'templates' | 'email'>('hero');
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Local CMS editable copies
@@ -36,23 +42,69 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
   const [newsList, setNewsList] = useState<NewsItem[]>(content.news);
   const [keynotesList, setKeynotesList] = useState<KeynoteSpeaker[]>(content.keynotes);
 
+  // Email Templates State
+  const [emailTemplates, setEmailTemplates] = useState<EmailTemplateConfig[]>(defaultEmailTemplates);
+  const [selectedTemplateIndex, setSelectedTemplateIndex] = useState<number>(0);
+  const [templateTestEmail, setTemplateTestEmail] = useState<string>('');
+  const [templateSending, setTemplateSending] = useState<boolean>(false);
+
+  // Individual Email Modal state for Users tab
+  const [emailingUser, setEmailingUser] = useState<UserProfile | null>(null);
+  const [individualSubject, setIndividualSubject] = useState('');
+  const [individualMessage, setIndividualMessage] = useState('');
+  const [individualSending, setIndividualSending] = useState(false);
+  const [individualSelectedTemplate, setIndividualSelectedTemplate] = useState<string>('custom_message');
+
   // User search filter
   const [userSearch, setUserSearch] = useState('');
 
-  // Email test form
+  // Email test form in tester tab
   const [testEmailTo, setTestEmailTo] = useState('');
   const [testEmailSending, setTestEmailSending] = useState(false);
   const [testEmailStatus, setTestEmailStatus] = useState<string | null>(null);
 
   // Keep form synced when content loads
-  React.useEffect(() => {
+  useEffect(() => {
     setHeroForm(content.hero);
     setDatesList(content.dates);
     setNewsList(content.news);
     setKeynotesList(content.keynotes);
   }, [content]);
 
-  React.useEffect(() => {
+  // Load email templates
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(LOCAL_STORAGE_TEMPLATES_KEY);
+      if (stored) {
+        try {
+          setEmailTemplates(JSON.parse(stored));
+        } catch {
+          setEmailTemplates(defaultEmailTemplates);
+        }
+      } else {
+        localStorage.setItem(LOCAL_STORAGE_TEMPLATES_KEY, JSON.stringify(defaultEmailTemplates));
+      }
+    }
+
+    async function loadFirestoreTemplates() {
+      if (isFirebaseConfigured && db) {
+        try {
+          const snap = await getDoc(doc(db, 'conference_content', 'email_templates'));
+          if (snap.exists()) {
+            const data = snap.data();
+            if (data && data.templates) {
+              setEmailTemplates(data.templates);
+            }
+          }
+        } catch (e) {
+          console.warn('Could not load templates from Firestore:', e);
+        }
+      }
+    }
+    loadFirestoreTemplates();
+  }, []);
+
+  useEffect(() => {
     if (isOpen && isAdmin) {
       fetchAllUsers();
     }
@@ -60,7 +112,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
 
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);
-    setTimeout(() => setSuccessMsg(null), 3000);
+    setTimeout(() => setSuccessMsg(null), 3500);
   };
 
   if (!isOpen) return null;
@@ -115,7 +167,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
               onClick={() => { onClose(); onRequireAuth(); }}
               className="btn btn-primary btn-sm"
             >
-              Sign In as Admin (admin@conference.org)
+              Sign In as Admin
             </button>
           </div>
         </div>
@@ -207,7 +259,77 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     showSuccess(`Updated user role. Reviewer role is now ${isNowReviewer ? 'ASSIGNED' : 'REVOKED'}.`);
   };
 
-  // Email test trigger
+  // Save Email Templates
+  const handleSaveEmailTemplates = async () => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(LOCAL_STORAGE_TEMPLATES_KEY, JSON.stringify(emailTemplates));
+    }
+    if (isFirebaseConfigured && db) {
+      try {
+        await setDoc(doc(db, 'conference_content', 'email_templates'), {
+          templates: emailTemplates,
+          updatedAt: new Date().toISOString()
+        });
+      } catch (err) {
+        console.error('Error saving email templates to Firestore:', err);
+      }
+    }
+    showSuccess('Email template customized and saved successfully!');
+  };
+
+  // Send Test for Current Selected Template
+  const handleSendTemplateTest = async () => {
+    const tmpl = emailTemplates[selectedTemplateIndex];
+    if (!tmpl || !templateTestEmail.trim()) {
+      alert('Please enter a recipient email address to send test.');
+      return;
+    }
+    setTemplateSending(true);
+    const res = await sendConferenceEmail({
+      to: templateTestEmail.trim(),
+      recipientName: 'Test Recipient (Author/Reviewer)',
+      subject: tmpl.subject,
+      template: tmpl.templateKey,
+      data: {
+        message: tmpl.bodyText.replace('{name}', 'Dr. Test Recipient'),
+        portalUrl: 'https://conference.vercel.app'
+      }
+    });
+    setTemplateSending(false);
+    showSuccess(`Test of template "${tmpl.name}" dispatched to ${templateTestEmail}!`);
+  };
+
+  // Open Individual User Email Modal
+  const openEmailUserModal = (user: UserProfile) => {
+    setEmailingUser(user);
+    setIndividualSubject(`Important Notice from ESIT 2025 Secretariat`);
+    setIndividualMessage(`Dear ${user.firstName} ${user.lastName},\n\nWe would like to share an important update regarding your conference registration with ${user.organization}.\n\nPlease let us know if you require an official acceptance or invitation letter.\n\nBest regards,\nESIT 2025 Secretariat`);
+    setIndividualSelectedTemplate('custom_message');
+  };
+
+  // Send Individual User Email
+  const handleSendIndividualEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!emailingUser) return;
+    setIndividualSending(true);
+
+    const res = await sendConferenceEmail({
+      to: emailingUser.email,
+      recipientName: `${emailingUser.firstName} ${emailingUser.lastName}`,
+      subject: individualSubject,
+      template: individualSelectedTemplate as any,
+      data: {
+        message: individualMessage,
+        portalUrl: 'https://conference.vercel.app'
+      }
+    });
+
+    setIndividualSending(false);
+    setEmailingUser(null);
+    showSuccess(`Direct email successfully dispatched to ${emailingUser.email}!`);
+  };
+
+  // Email tester tab trigger
   const handleSendTestEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!testEmailTo) return;
@@ -235,6 +357,8 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     u.organization.toLowerCase().includes(userSearch.toLowerCase())
   );
 
+  const currentTemplate = emailTemplates[selectedTemplateIndex] || emailTemplates[0];
+
   return (
     <div style={{
       position: 'fixed',
@@ -251,7 +375,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',
-        maxWidth: '1050px',
+        maxWidth: '1180px',
         width: '100%',
         height: '92vh',
         display: 'flex',
@@ -264,7 +388,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
         <div style={{
           backgroundColor: '#0f3d3e',
           color: '#ffffff',
-          padding: '18px 24px',
+          padding: '16px 24px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -272,20 +396,20 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
-              padding: '6px',
+              padding: '8px',
               backgroundColor: '#f59e0b',
               color: '#ffffff',
-              borderRadius: '8px',
+              borderRadius: '10px',
               display: 'flex'
             }}>
-              <Shield size={20} />
+              <Shield size={22} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#ffffff' }}>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#ffffff' }}>
                 ESIT 2025 Admin CMS & Portal Control
               </h3>
-              <span style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>
-                Online Content Management, Reviewer Role Assignment & Firestore Sync
+              <span style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>
+                Online Content Management, Reviewer Roles, and Email Notification System
               </span>
             </div>
           </div>
@@ -331,49 +455,83 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
           </div>
         </div>
 
-        {/* Tab Navigation */}
+        {/* PROMINENT BUTTON-STYLE TAB NAVIGATION BAR */}
         <div style={{
           display: 'flex',
-          borderBottom: '1px solid #e2e8f0',
-          backgroundColor: '#f8fafc',
+          gap: '8px',
+          padding: '12px 20px',
+          backgroundColor: '#f1f5f9',
+          borderBottom: '1px solid #cbd5e1',
           overflowX: 'auto',
-          flexShrink: 0
+          flexShrink: 0,
+          flexWrap: 'wrap'
         }}>
           <button
             onClick={() => setActiveTab('hero')}
-            style={getTabStyle(activeTab === 'hero')}
+            style={getButtonTabStyle(activeTab === 'hero')}
           >
-            <Edit3 size={16} /> Hero & Poster
+            <Edit3 size={15} />
+            <span>Hero & Poster</span>
           </button>
+
           <button
             onClick={() => setActiveTab('dates')}
-            style={getTabStyle(activeTab === 'dates')}
+            style={getButtonTabStyle(activeTab === 'dates')}
           >
-            <Calendar size={16} /> Important Dates ({datesList.length})
+            <Calendar size={15} />
+            <span>Important Dates</span>
+            <span style={getTabBadgeStyle(activeTab === 'dates')}>{datesList.length}</span>
           </button>
+
           <button
             onClick={() => setActiveTab('news')}
-            style={getTabStyle(activeTab === 'news')}
+            style={getButtonTabStyle(activeTab === 'news')}
           >
-            <Bell size={16} /> News & Announcements ({newsList.length})
+            <Bell size={15} />
+            <span>News & Updates</span>
+            <span style={getTabBadgeStyle(activeTab === 'news')}>{newsList.length}</span>
           </button>
+
           <button
             onClick={() => setActiveTab('keynotes')}
-            style={getTabStyle(activeTab === 'keynotes')}
+            style={getButtonTabStyle(activeTab === 'keynotes')}
           >
-            <Users size={16} /> Keynotes ({keynotesList.length})
+            <Users size={15} />
+            <span>Keynotes</span>
+            <span style={getTabBadgeStyle(activeTab === 'keynotes')}>{keynotesList.length}</span>
           </button>
+
           <button
             onClick={() => setActiveTab('users')}
-            style={getTabStyle(activeTab === 'users')}
+            style={getButtonTabStyle(activeTab === 'users')}
           >
-            <Shield size={16} /> Users & Reviewer Roles ({allUsers.length})
+            <UserCheck size={15} />
+            <span>User & Reviewer Roles</span>
+            <span style={getTabBadgeStyle(activeTab === 'users')}>{allUsers.length}</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('templates')}
+            style={getButtonTabStyle(activeTab === 'templates', true)}
+          >
+            <LayoutTemplate size={15} />
+            <span>Email Templates</span>
+            <span style={{
+              backgroundColor: activeTab === 'templates' ? '#ffffff' : '#f59e0b',
+              color: activeTab === 'templates' ? '#b45309' : '#ffffff',
+              padding: '1px 6px',
+              borderRadius: '9999px',
+              fontSize: '0.72rem',
+              fontWeight: 800
+            }}>PRO</span>
+          </button>
+
           <button
             onClick={() => setActiveTab('email')}
-            style={getTabStyle(activeTab === 'email')}
+            style={getButtonTabStyle(activeTab === 'email')}
           >
-            <Mail size={16} /> Email API Tester
+            <Mail size={15} />
+            <span>Email API Tester</span>
           </button>
         </div>
 
@@ -466,14 +624,12 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
 
               <div>
                 <label style={labelStyle}>Conference Poster Image URL</label>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <input
-                    type="text"
-                    value={heroForm.posterImageUrl}
-                    onChange={(e) => setHeroForm({ ...heroForm, posterImageUrl: e.target.value })}
-                    style={inputStyle}
-                  />
-                </div>
+                <input
+                  type="text"
+                  value={heroForm.posterImageUrl}
+                  onChange={(e) => setHeroForm({ ...heroForm, posterImageUrl: e.target.value })}
+                  style={inputStyle}
+                />
                 <span style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
                   Image URL or Firebase Storage public URL for the main landing page poster.
                 </span>
@@ -837,7 +993,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
             </div>
           )}
 
-          {/* TAB 5: USER DIRECTORY & REVIEWER ROLE ASSIGNMENT */}
+          {/* TAB 5: USER DIRECTORY & REVIEWER ROLES + DIRECT EMAIL BUTTON */}
           {activeTab === 'users' && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
@@ -846,7 +1002,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                     User Directory & Role Governance
                   </h4>
                   <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>
-                    Registered users are Authors by default. Click the button to assign/revoke <strong>Reviewer</strong> role.
+                    Manage author registrations, appoint Reviewers with 1-click, and send direct individual emails.
                   </p>
                 </div>
 
@@ -878,7 +1034,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                       <th style={{ padding: '12px 16px' }}>Organization & Country</th>
                       <th style={{ padding: '12px 16px' }}>Current Roles</th>
                       <th style={{ padding: '12px 16px' }}>PDPA Consent</th>
-                      <th style={{ padding: '12px 16px', textAlign: 'right' }}>Reviewer Action</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions & Communication</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -931,27 +1087,51 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                           </td>
 
                           <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                            {isAdm ? (
-                              <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontStyle: 'italic' }}>
-                                System Admin
-                              </span>
-                            ) : (
+                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                              {/* Direct Email Button requested by user */}
                               <button
-                                onClick={() => handleRoleToggle(user.uid, user.roles)}
+                                onClick={() => openEmailUserModal(user)}
                                 style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '5px',
                                   padding: '6px 12px',
                                   borderRadius: '6px',
                                   fontSize: '0.8rem',
                                   fontWeight: 600,
                                   cursor: 'pointer',
-                                  border: isRev ? '1px solid #ef4444' : '1px solid #0f3d3e',
-                                  backgroundColor: isRev ? '#fef2f2' : '#0f3d3e',
-                                  color: isRev ? '#dc2626' : '#ffffff'
+                                  border: '1px solid #cbd5e1',
+                                  backgroundColor: '#ffffff',
+                                  color: '#0f3d3e'
                                 }}
+                                title={`Send Email to ${user.email}`}
                               >
-                                {isRev ? 'Revoke Reviewer' : 'Appoint Reviewer'}
+                                <Mail size={13} color="#f59e0b" />
+                                <span>Email User</span>
                               </button>
-                            )}
+
+                              {isAdm ? (
+                                <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                                  Admin
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => handleRoleToggle(user.uid, user.roles)}
+                                  style={{
+                                    padding: '6px 12px',
+                                    borderRadius: '6px',
+                                    fontSize: '0.8rem',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    border: isRev ? '1px solid #ef4444' : '1px solid #0f3d3e',
+                                    backgroundColor: isRev ? '#fef2f2' : '#0f3d3e',
+                                    color: isRev ? '#dc2626' : '#ffffff'
+                                  }}
+                                >
+                                  {isRev ? 'Revoke Reviewer' : 'Appoint Reviewer'}
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );
@@ -962,7 +1142,267 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
             </div>
           )}
 
-          {/* TAB 6: EMAIL SERVICE & APPS SCRIPT TESTER */}
+          {/* TAB 6: EMAIL TEMPLATES MANAGER (NEW REQUESTED MODULE) */}
+          {activeTab === 'templates' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+                <div>
+                  <h4 style={{ margin: 0, color: '#0f3d3e', fontSize: '1.15rem' }}>
+                    Email Notification Templates Manager
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>
+                    Customize email subjects, header titles, body text, and signatures sent automatically via Gmail API.
+                  </p>
+                </div>
+                <button onClick={handleSaveEmailTemplates} className="btn btn-primary btn-sm">
+                  <Save size={16} /> Save All Templates
+                </button>
+              </div>
+
+              {/* Template selector pills */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+                {emailTemplates.map((t, idx) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setSelectedTemplateIndex(idx)}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      fontSize: '0.85rem',
+                      fontWeight: selectedTemplateIndex === idx ? 700 : 500,
+                      cursor: 'pointer',
+                      border: selectedTemplateIndex === idx ? '2px solid #0f3d3e' : '1px solid #cbd5e1',
+                      backgroundColor: selectedTemplateIndex === idx ? '#0f3d3e' : '#ffffff',
+                      color: selectedTemplateIndex === idx ? '#ffffff' : '#334155',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <Mail size={14} color={selectedTemplateIndex === idx ? '#f59e0b' : '#64748b'} />
+                    <span>{t.name}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Dual Column: Editor on Left, Live HTML Email Preview on Right */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr',
+                gap: '24px'
+              }} className="template-grid">
+                
+                {/* Left: Editor Form */}
+                <div style={{
+                  backgroundColor: '#f8fafc',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  border: '1px solid #e2e8f0',
+                  display: 'grid',
+                  gap: '14px'
+                }}>
+                  <div>
+                    <label style={labelStyle}>Email Subject Line</label>
+                    <input
+                      type="text"
+                      value={currentTemplate.subject}
+                      onChange={(e) => {
+                        const updated = [...emailTemplates];
+                        updated[selectedTemplateIndex].subject = e.target.value;
+                        setEmailTemplates(updated);
+                      }}
+                      style={inputStyle}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>Header Banner Title (Inside Email)</label>
+                    <input
+                      type="text"
+                      value={currentTemplate.headerTitle}
+                      onChange={(e) => {
+                        const updated = [...emailTemplates];
+                        updated[selectedTemplateIndex].headerTitle = e.target.value;
+                        setEmailTemplates(updated);
+                      }}
+                      style={inputStyle}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>Email Body Message</label>
+                    <textarea
+                      rows={7}
+                      value={currentTemplate.bodyText}
+                      onChange={(e) => {
+                        const updated = [...emailTemplates];
+                        updated[selectedTemplateIndex].bodyText = e.target.value;
+                        setEmailTemplates(updated);
+                      }}
+                      style={{ ...inputStyle, fontFamily: 'inherit', lineHeight: '1.5' }}
+                    />
+                    <span style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', display: 'block' }}>
+                      💡 Use <code>{'{name}'}</code> to automatically insert the recipient&apos;s full name.
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={labelStyle}>Call-to-Action Button Label</label>
+                      <input
+                        type="text"
+                        value={currentTemplate.buttonLabel || ''}
+                        onChange={(e) => {
+                          const updated = [...emailTemplates];
+                          updated[selectedTemplateIndex].buttonLabel = e.target.value;
+                          setEmailTemplates(updated);
+                        }}
+                        style={inputStyle}
+                      />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Footer Note / Secretariat Signature</label>
+                      <input
+                        type="text"
+                        value={currentTemplate.footerNote || ''}
+                        onChange={(e) => {
+                          const updated = [...emailTemplates];
+                          updated[selectedTemplateIndex].footerNote = e.target.value;
+                          setEmailTemplates(updated);
+                        }}
+                        style={inputStyle}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Send Test of This Template */}
+                  <div style={{
+                    marginTop: '10px',
+                    paddingTop: '14px',
+                    borderTop: '1px dashed #cbd5e1',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px'
+                  }}>
+                    <input
+                      type="email"
+                      placeholder="Enter test recipient email..."
+                      value={templateTestEmail}
+                      onChange={(e) => setTemplateTestEmail(e.target.value)}
+                      style={{ ...inputStyle, flex: 1 }}
+                    />
+                    <button
+                      type="button"
+                      disabled={templateSending}
+                      onClick={handleSendTemplateTest}
+                      className="btn btn-secondary btn-sm"
+                      style={{ whiteSpace: 'nowrap' }}
+                    >
+                      <Send size={14} /> {templateSending ? 'Sending...' : 'Test This Template'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Right: Live HTML Email Client Mockup Preview */}
+                <div style={{
+                  backgroundColor: '#f1f5f9',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  border: '1px solid #cbd5e1'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    color: '#0f3d3e',
+                    marginBottom: '12px'
+                  }}>
+                    <Eye size={16} color="#f59e0b" />
+                    <span>Live Recipient Inbox Email Preview:</span>
+                  </div>
+
+                  {/* Mock Email Window */}
+                  <div style={{
+                    backgroundColor: '#ffffff',
+                    borderRadius: '10px',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)',
+                    overflow: 'hidden'
+                  }}>
+                    {/* Mock subject line header */}
+                    <div style={{
+                      padding: '12px 16px',
+                      backgroundColor: '#f8fafc',
+                      borderBottom: '1px solid #e2e8f0',
+                      fontSize: '0.85rem'
+                    }}>
+                      <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Subject:</div>
+                      <strong style={{ color: '#0f172a' }}>{currentTemplate.subject}</strong>
+                    </div>
+
+                    {/* Email Body */}
+                    <div style={{ padding: '24px' }}>
+                      {/* Email Brand Top */}
+                      <div style={{
+                        backgroundColor: '#0f3d3e',
+                        color: '#ffffff',
+                        padding: '16px',
+                        borderRadius: '6px',
+                        textAlign: 'center',
+                        marginBottom: '20px'
+                      }}>
+                        <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#ffffff' }}>
+                          {currentTemplate.headerTitle}
+                        </h3>
+                        <span style={{ fontSize: '0.75rem', color: '#fef3c7' }}>
+                          ESIT 2025 · Pattaya, Thailand
+                        </span>
+                      </div>
+
+                      {/* Text Body */}
+                      <div style={{
+                        fontSize: '0.9rem',
+                        color: '#334155',
+                        lineHeight: '1.6',
+                        whiteSpace: 'pre-line',
+                        marginBottom: '24px'
+                      }}>
+                        {currentTemplate.bodyText.replace('{name}', 'Dr. John Doe')}
+                      </div>
+
+                      {/* CTA Button */}
+                      {currentTemplate.buttonLabel && (
+                        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                          <span style={{
+                            display: 'inline-block',
+                            backgroundColor: '#f59e0b',
+                            color: '#ffffff',
+                            fontWeight: 'bold',
+                            fontSize: '0.9rem',
+                            padding: '10px 24px',
+                            borderRadius: '6px'
+                          }}>
+                            {currentTemplate.buttonLabel}
+                          </span>
+                        </div>
+                      )}
+
+                      <hr style={{ border: 'none', borderTop: '1px solid #e2e8f0', margin: '20px 0' }} />
+                      
+                      <div style={{ fontSize: '0.75rem', color: '#94a3b8', textAlign: 'center' }}>
+                        {currentTemplate.footerNote || 'ESIT 2025 Secretariat, KMUTNB & Amari Pattaya, Thailand.'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          )}
+
+          {/* TAB 7: EMAIL API TESTER */}
           {activeTab === 'email' && (
             <div style={{ maxWidth: '650px' }}>
               <h4 style={{ color: '#0f3d3e', marginBottom: '8px' }}>Google Email API / Apps Script Tester</h4>
@@ -991,7 +1431,10 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                   fontSize: '0.82rem',
                   color: '#475569'
                 }}>
-                  <strong>ℹ️ Configuration Status:</strong> If <code>GOOGLE_APPS_SCRIPT_EMAIL_URL</code> is not set in <code>.env</code>, dispatch is simulated and logged to the browser console. Full Google Apps Script deployment instructions are located in <code>scripts/google-apps-script-email.js</code>.
+                  <strong>ℹ️ Configuration Status:</strong> Webhook active at:
+                  <code style={{ display: 'block', wordBreak: 'break-all', marginTop: '4px', color: '#0f3d3e' }}>
+                    https://script.google.com/macros/s/AKfycbwa0aSvk0VBHls6RSAJ-G1aZfykaBDU8TzFDfnDo9A42Kk5nepBTjZ9GpdOvPGWxQ1P/exec
+                  </code>
                 </div>
 
                 {testEmailStatus && (
@@ -1020,6 +1463,127 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
 
         </div>
       </div>
+
+      {/* INDIVIDUAL SEND EMAIL MODAL (When clicking 'Email User') */}
+      {emailingUser && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 1100,
+          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(6px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          animation: 'fadeIn 0.2s ease'
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            maxWidth: '600px',
+            width: '100%',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            border: '1px solid #e2e8f0',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              padding: '18px 24px',
+              backgroundColor: '#0f3d3e',
+              color: '#ffffff',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Mail size={18} color="#f59e0b" />
+                <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#ffffff' }}>
+                  Send Email to {emailingUser.firstName} {emailingUser.lastName}
+                </h3>
+              </div>
+              <button
+                onClick={() => setEmailingUser(null)}
+                style={{ background: 'none', border: 'none', color: '#ffffff', cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSendIndividualEmail} style={{ padding: '24px', display: 'grid', gap: '14px' }}>
+              <div style={{
+                padding: '10px 14px',
+                backgroundColor: '#f8fafc',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                fontSize: '0.85rem'
+              }}>
+                <strong>Recipient:</strong> {emailingUser.email} ({emailingUser.organization})
+              </div>
+
+              <div>
+                <label style={labelStyle}>Choose Template Format</label>
+                <select
+                  value={individualSelectedTemplate}
+                  onChange={(e) => setIndividualSelectedTemplate(e.target.value)}
+                  style={inputStyle}
+                >
+                  <option value="custom_message">Custom Notification Message</option>
+                  <option value="welcome_author">Welcome & Registration Confirmation</option>
+                  <option value="reviewer_assigned">Reviewer Appointment Notice</option>
+                  <option value="manuscript_submitted">Manuscript Received Confirmation</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={labelStyle}>Email Subject *</label>
+                <input
+                  type="text"
+                  required
+                  value={individualSubject}
+                  onChange={(e) => setIndividualSubject(e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+
+              <div>
+                <label style={labelStyle}>Message Body *</label>
+                <textarea
+                  required
+                  rows={6}
+                  value={individualMessage}
+                  onChange={(e) => setIndividualMessage(e.target.value)}
+                  style={{ ...inputStyle, fontFamily: 'inherit', lineHeight: '1.5' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => setEmailingUser(null)}
+                  className="btn btn-outline-primary btn-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={individualSending}
+                  className="btn btn-primary btn-sm"
+                >
+                  <Send size={14} /> {individualSending ? 'Dispatching...' : 'Send Email Now'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        @media (min-width: 900px) {
+          .template-grid {
+            grid-template-columns: 1.1fr 0.9fr !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
@@ -1040,17 +1604,32 @@ const inputStyle: React.CSSProperties = {
   fontSize: '0.9rem'
 };
 
-const getTabStyle = (active: boolean): React.CSSProperties => ({
-  display: 'flex',
+const getButtonTabStyle = (active: boolean, highlight?: boolean): React.CSSProperties => ({
+  display: 'inline-flex',
   alignItems: 'center',
   gap: '8px',
-  padding: '14px 18px',
-  border: 'none',
-  borderBottom: active ? '3px solid #0f3d3e' : '3px solid transparent',
-  backgroundColor: active ? '#ffffff' : 'transparent',
-  fontWeight: active ? 700 : 500,
-  color: active ? '#0f3d3e' : '#64748b',
+  padding: '9px 16px',
+  borderRadius: '8px',
+  border: active 
+    ? '2px solid #0f3d3e' 
+    : highlight 
+      ? '1px solid #f59e0b' 
+      : '1px solid #cbd5e1',
+  backgroundColor: active ? '#0f3d3e' : '#ffffff',
+  color: active ? '#ffffff' : highlight ? '#b45309' : '#334155',
+  fontWeight: active ? 700 : 600,
   cursor: 'pointer',
   fontSize: '0.88rem',
-  whiteSpace: 'nowrap'
+  whiteSpace: 'nowrap',
+  transition: 'all 0.15s ease',
+  boxShadow: active ? '0 4px 10px rgba(15, 61, 62, 0.25)' : '0 1px 3px rgba(0,0,0,0.05)'
+});
+
+const getTabBadgeStyle = (active: boolean): React.CSSProperties => ({
+  backgroundColor: active ? '#f59e0b' : '#f1f5f9',
+  color: active ? '#ffffff' : '#64748b',
+  padding: '1px 6px',
+  borderRadius: '9999px',
+  fontSize: '0.72rem',
+  fontWeight: 700
 });

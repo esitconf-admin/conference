@@ -122,6 +122,17 @@ export interface ConferenceContent {
   };
 }
 
+export interface EmailTemplateConfig {
+  id: string;
+  name: string;
+  templateKey: 'welcome_author' | 'reviewer_assigned' | 'password_reset' | 'manuscript_submitted' | 'custom_message';
+  subject: string;
+  headerTitle: string;
+  bodyText: string;
+  buttonLabel?: string;
+  footerNote?: string;
+}
+
 export interface ManuscriptSubmission {
   id: string;
   title: string;
@@ -145,3 +156,4 @@ export interface ManuscriptSubmission {
     submittedAt: string;
   }[];
 }
+
