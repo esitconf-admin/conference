@@ -91,27 +91,23 @@ export default function Navbar({ onOpenAuth, onOpenSubmission, onOpenAdmin, onOp
                 }}
               >
                 <div style={{
-                  width: '44px',
-                  height: '44px',
-                  backgroundColor: '#0f3d3e',
-                  color: '#ffffff',
+                  width: '46px',
+                  height: '46px',
                   borderRadius: '10px',
+                  overflow: 'hidden',
                   display: 'flex',
-                  flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontWeight: 800,
-                  lineHeight: 1,
-                  boxShadow: '0 4px 10px rgba(15, 61, 62, 0.25)'
+                  backgroundColor: '#ffffff',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+                  border: '1px solid #e2e8f0',
+                  flexShrink: 0
                 }}>
-                  <span style={{ fontSize: '0.95rem', letterSpacing: '-0.5px' }}>
-                    {brand}
-                  </span>
-                  {year && (
-                    <span style={{ fontSize: '0.65rem', color: '#f59e0b' }}>
-                      {year}
-                    </span>
-                  )}
+                  <img
+                    src="/logo.png"
+                    alt={content.hero.edition}
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  />
                 </div>
                 <div>
                   <div style={{

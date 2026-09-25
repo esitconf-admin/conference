@@ -42,26 +42,23 @@ export default function Footer({ onOpenPDPA, onOpenAdmin, onOpenAuth }: FooterPr
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
               <div style={{
-                width: '44px',
-                height: '44px',
-                backgroundColor: '#ffffff',
-                color: '#0f3d3e',
+                width: '46px',
+                height: '46px',
                 borderRadius: '10px',
+                overflow: 'hidden',
                 display: 'flex',
-                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontWeight: 800,
-                lineHeight: 1
+                backgroundColor: '#ffffff',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                flexShrink: 0
               }}>
-                <span style={{ fontSize: '0.95rem' }}>
-                  {brandName}
-                </span>
-                {editionYear && (
-                  <span style={{ fontSize: '0.65rem', color: '#f59e0b' }}>
-                    {editionYear}
-                  </span>
-                )}
+                <img
+                  src="/logo.png"
+                  alt={hero.edition}
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                />
               </div>
               <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#ffffff' }}>
                 {hero.edition}

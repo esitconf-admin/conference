@@ -9,8 +9,19 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://esit-conference.vercel.app'),
   title: 'ESIT 2025 | International Conference on Engineering Science & Innovative Technology',
   description: 'The 5th International Conference on Engineering Science and Innovative Technology (ESIT 2025), Pattaya, Thailand. Fostering Smart Innovation, Sustainable Green Energy & Industrial AI.',
+  icons: {
+    icon: [
+      { url: '/logo.png', sizes: 'any' },
+      { url: '/icon.png', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+  },
   keywords: ['ESIT 2025', 'Conference', 'Engineering Science', 'KMUTNB', 'Pattaya', 'Call for Papers', 'Scopus', 'IEEE'],
   authors: [{ name: 'ESIT 2025 Organizing Committee' }],
   robots: 'index, follow',
@@ -21,10 +32,10 @@ export const metadata: Metadata = {
     siteName: 'ESIT 2025 International Conference',
     images: [
       {
-        url: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80',
+        url: '/logo.png',
         width: 1200,
         height: 630,
-        alt: 'ESIT 2025 Conference Official Poster',
+        alt: 'ESIT 2025 Conference Official Logo',
       },
     ],
     locale: 'en_US',
@@ -34,7 +45,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'ESIT 2025 | International Conference on Engineering Science & Innovative Technology',
     description: 'The 5th International Conference on Engineering Science and Innovative Technology (ESIT 2025), Pattaya, Thailand.',
-    images: ['https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80'],
+    images: ['/logo.png'],
   },
 };
 
@@ -46,6 +57,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <link rel="icon" href="/logo.png" />
+        <link rel="apple-touch-icon" href="/logo.png" />
+        <link rel="shortcut icon" href="/favicon.ico" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
