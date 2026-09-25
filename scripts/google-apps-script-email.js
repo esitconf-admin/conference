@@ -3,15 +3,21 @@
  * GOOGLE APPS SCRIPT - Conference Email & Google Drive Manuscript Storage
  * =========================================================================
  * 
- * Instructions:
+ * SETUP INSTRUCTIONS:
  * 1. Open Google Sheets -> Extensions -> Apps Script (or script.google.com)
- * 2. Paste this entire code into `Code.gs`
- * 3. (Optional) Set GOOGLE_DRIVE_FOLDER_ID if you have a specific folder ID,
- *    otherwise it will automatically create a folder named "ESIT_Manuscript_Submissions"
- * 4. Click 'Deploy' -> 'New Deployment' -> Select 'Web app'
- * 5. Set 'Execute as': 'Me'
- * 6. Set 'Who has access': 'Anyone'
- * 7. Copy the Web App URL into your .env.local as NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_EMAIL_URL
+ * 2. Paste this entire code into `Code.gs` and click Save (💾).
+ * 3. IMPORTANT (Authorize Permissions):
+ *    - In the toolbar dropdown at the top, select function: `testAuthorizationAndCreateFolder`
+ *    - Click 'Run' (▶️)
+ *    - A popup "Authorization required" will appear -> Click 'Review Permissions' -> Select your Google Account -> Click 'Advanced' -> Click 'Go to Conference (unsafe)' -> Click 'Allow'.
+ *    - This grants Google Drive & Gmail permissions to the script.
+ * 4. Deploy as Web App:
+ *    - Click 'Deploy' -> 'Manage Deployments'
+ *    - Click the Pencil icon (Edit)
+ *    - Under 'Version', select 'New version' (CRITICAL: Every code update must be deployed as a New Version!)
+ *    - Set 'Execute as': 'Me'
+ *    - Set 'Who has access': 'Anyone'
+ *    - Click 'Deploy'
  */
 
 const SHARED_SECRET = "conference_secret";
@@ -20,6 +26,28 @@ const FOLDER_NAME = "ESIT_Manuscript_Submissions";
 
 // Set your specific Google Drive Folder ID if desired, or leave empty to auto-create
 const TARGET_FOLDER_ID = ""; 
+
+/**
+ * Run this function once in the Apps Script editor to authorize DriveApp and GmailApp permissions!
+ */
+function testAuthorizationAndCreateFolder() {
+  const folder = getOrCreateFolder(FOLDER_NAME);
+  Logger.log("✅ Google Drive Folder Ready: " + folder.getName() + " (ID: " + folder.getId() + ")");
+  
+  const userEmail = Session.getActiveUser().getEmail();
+  if (userEmail) {
+    GmailApp.sendEmail(userEmail, "ESIT Google Drive & Gmail Service Test", "Google Drive & Gmail API permissions have been authorized successfully for ESIT Conference!");
+    Logger.log("✅ Test email sent to: " + userEmail);
+  }
+}
+
+function doGet(e) {
+  return ContentService.createTextOutput(JSON.stringify({
+    status: "ok",
+    service: "ESIT Conference Google Apps Script Service",
+    timestamp: new Date().toISOString()
+  })).setMimeType(ContentService.MimeType.JSON);
+}
 
 function doPost(e) {
   try {
