@@ -1,17 +1,17 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  X, Shield, Edit3, Calendar, Bell, Users, Save, CheckCircle2, 
-  Trash2, Plus, RefreshCw, Send, Mail, AlertCircle, FileText, 
+import {
+  X, Shield, Edit3, Calendar, Bell, Users, Save, CheckCircle2,
+  Trash2, Plus, RefreshCw, Send, Mail, AlertCircle, FileText,
   Sparkles, UserCheck, Eye, MessageSquare, LayoutTemplate, ArrowRight,
   Globe, Share2, Copy, CheckCheck, ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../../lib/context/AuthContext';
 import { useConferenceData } from '../../lib/context/ConferenceDataContext';
-import { 
-  ImportantDateItem, NewsItem, KeynoteSpeaker, UserProfile, 
-  EmailTemplateConfig, ConferenceSEOMetadata 
+import {
+  ImportantDateItem, NewsItem, KeynoteSpeaker, UserProfile,
+  EmailTemplateConfig, ConferenceSEOMetadata
 } from '../../lib/types';
 import { sendConferenceEmail } from '../../lib/email/emailService';
 import { defaultEmailTemplates } from '../../lib/data/initialEmailTemplates';
@@ -29,14 +29,13 @@ const LOCAL_STORAGE_TEMPLATES_KEY = 'esit_conference_email_templates';
 
 export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: AdminDashboardProps) {
   const { currentUser, isAdmin, allUsers, toggleReviewerRole, fetchAllUsers } = useAuth();
-  const { 
-    content, 
-    updateHero, 
+  const {
+    content,
+    updateHero,
     updateSEO,
-    updateImportantDates, 
-    updateNewsList, 
-    updateKeynotes, 
-    resetToDefault 
+    updateImportantDates,
+    updateNewsList,
+    updateKeynotes
   } = useConferenceData();
 
   const [activeTab, setActiveTab] = useState<'hero' | 'dates' | 'news' | 'keynotes' | 'users' | 'templates' | 'seo' | 'email'>('hero');
@@ -394,7 +393,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     setTestEmailStatus(res.message || 'Email sent successfully.');
   };
 
-  const filteredUsers = allUsers.filter(u => 
+  const filteredUsers = allUsers.filter(u =>
     u.email.toLowerCase().includes(userSearch.toLowerCase()) ||
     u.firstName.toLowerCase().includes(userSearch.toLowerCase()) ||
     u.lastName.toLowerCase().includes(userSearch.toLowerCase()) ||
@@ -450,7 +449,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#ffffff' }}>
-                ESIT 2025 Admin CMS & Portal Control
+                ESIT Admin CMS & Portal Control
               </h3>
               <span style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>
                 Online Content Management, SEO & Social Share Preview, and Email Notification System
@@ -458,30 +457,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <button
-              onClick={async () => {
-                if (confirm('Reset landing page content back to default reference demo?')) {
-                  await resetToDefault();
-                  showSuccess('Reset to default conference data.');
-                }
-              }}
-              style={{
-                background: 'rgba(255, 255, 255, 0.12)',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                color: '#ffffff',
-                padding: '6px 12px',
-                borderRadius: '6px',
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-            >
-              <RefreshCw size={14} /> Reset Defaults
-            </button>
-
+          <div style={{ display: 'flex', alignItems: 'center' }}>
             <button
               onClick={onClose}
               style={{
@@ -608,7 +584,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
 
         {/* Main Tab Content */}
         <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
-          
+
           {/* TAB 1: HERO & POSTER */}
           {activeTab === 'hero' && (
             <form onSubmit={handleSaveHero} style={{ display: 'grid', gap: '18px', maxWidth: '800px' }}>
@@ -725,7 +701,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                 gridTemplateColumns: '1fr',
                 gap: '24px'
               }} className="template-grid">
-                
+
                 {/* Left: SEO Editor Form */}
                 <form onSubmit={handleSaveSEO} style={{
                   backgroundColor: '#f8fafc',
@@ -1487,7 +1463,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                 gridTemplateColumns: '1fr',
                 gap: '24px'
               }} className="template-grid">
-                
+
                 {/* Left: Editor Form */}
                 <div style={{
                   backgroundColor: '#f8fafc',
@@ -1686,7 +1662,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                       )}
 
                       <hr style={{ border: 'none', borderTop: '1px solid #e2e8f0', margin: '20px 0' }} />
-                      
+
                       <div style={{ fontSize: '0.75rem', color: '#94a3b8', textAlign: 'center' }}>
                         {currentTemplate.footerNote || 'ESIT 2025 Secretariat, KMUTNB & Amari Pattaya, Thailand.'}
                       </div>
@@ -1907,10 +1883,10 @@ const getButtonTabStyle = (active: boolean, highlight?: boolean): React.CSSPrope
   gap: '8px',
   padding: '9px 16px',
   borderRadius: '8px',
-  border: active 
-    ? '2px solid #0f3d3e' 
-    : highlight 
-      ? '1px solid #10b981' 
+  border: active
+    ? '2px solid #0f3d3e'
+    : highlight
+      ? '1px solid #10b981'
       : '1px solid #cbd5e1',
   backgroundColor: active ? '#0f3d3e' : '#ffffff',
   color: active ? '#ffffff' : highlight ? '#047857' : '#334155',
