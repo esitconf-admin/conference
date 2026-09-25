@@ -31,13 +31,28 @@ const TARGET_FOLDER_ID = "1A7BPBWVm812p34MAwF06r5G-g-YRP9Od";
  * Run this function once in the Apps Script editor to authorize DriveApp and GmailApp permissions!
  */
 function testAuthorizationAndCreateFolder() {
-  const folder = getOrCreateFolder(FOLDER_NAME);
-  Logger.log("✅ Google Drive Folder Ready: " + folder.getName() + " (ID: " + folder.getId() + ")");
-  
   const userEmail = Session.getActiveUser().getEmail();
+  Logger.log("👤 Script executing as Google Account: " + userEmail);
+
+  let folder;
+  if (TARGET_FOLDER_ID && TARGET_FOLDER_ID.trim() !== "") {
+    try {
+      folder = DriveApp.getFolderById(TARGET_FOLDER_ID.trim());
+      Logger.log("✅ Successfully connected to Target Folder: '" + folder.getName() + "' (ID: " + folder.getId() + ")");
+    } catch (err) {
+      Logger.log("⚠️ Could not open TARGET_FOLDER_ID (" + TARGET_FOLDER_ID + "): " + err.message);
+      Logger.log("👉 ACTION REQUIRED: Share folder " + TARGET_FOLDER_ID + " with " + userEmail + " with 'Editor' permissions, or create the script in the same Google Account!");
+      folder = getOrCreateFolder(FOLDER_NAME);
+      Logger.log("📁 Falling back to folder in current account Drive: '" + folder.getName() + "' (ID: " + folder.getId() + ")");
+    }
+  } else {
+    folder = getOrCreateFolder(FOLDER_NAME);
+    Logger.log("📁 Using auto-created folder: '" + folder.getName() + "' (ID: " + folder.getId() + ")");
+  }
+  
   if (userEmail) {
-    GmailApp.sendEmail(userEmail, "ESIT Google Drive & Gmail Service Test", "Google Drive & Gmail API permissions have been authorized successfully for ESIT Conference!");
-    Logger.log("✅ Test email sent to: " + userEmail);
+    GmailApp.sendEmail(userEmail, "ESIT Google Drive & Gmail Service Test", "Google Drive & Gmail API permissions have been authorized successfully for ESIT Conference!\n\nFolder Name: " + folder.getName() + "\nFolder ID: " + folder.getId());
+    Logger.log("✅ Test confirmation email sent to: " + userEmail);
   }
 }
 
