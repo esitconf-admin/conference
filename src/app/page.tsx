@@ -18,14 +18,55 @@ import SubmitManuscriptModal from '../components/modals/SubmitManuscriptModal';
 import PDPAPrivacyModal from '../components/modals/PDPAPrivacyModal';
 import AdminDashboard from '../components/admin/AdminDashboard';
 import MySubmissionsModal from '../components/modals/MySubmissionsModal';
+import { useConferenceData } from '../lib/context/ConferenceDataContext';
 
 export default function HomePage() {
+  const { content } = useConferenceData();
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authDefaultMode, setAuthDefaultMode] = useState<'login' | 'register'>('login');
   const [submissionModalOpen, setSubmissionModalOpen] = useState(false);
   const [mySubmissionsModalOpen, setMySubmissionsModalOpen] = useState(false);
   const [pdpaModalOpen, setPdpaModalOpen] = useState(false);
   const [adminDashboardOpen, setAdminDashboardOpen] = useState(false);
+
+  React.useEffect(() => {
+    if (content.seo?.pageTitle) {
+      document.title = content.seo.pageTitle;
+    } else if (content.hero?.edition) {
+      document.title = `${content.hero.edition} | International Conference on Engineering Science & Innovative Technology`;
+    }
+
+    if (typeof document !== 'undefined' && content.seo) {
+      const setMeta = (name: string, val: string, isProperty = false) => {
+        if (!val) return;
+        const attr = isProperty ? 'property' : 'name';
+        let el = document.querySelector(`meta[${attr}="${name}"]`);
+        if (!el) {
+          el = document.createElement('meta');
+          el.setAttribute(attr, name);
+          document.head.appendChild(el);
+        }
+        el.setAttribute('content', val);
+      };
+
+      if (content.seo.metaDescription) {
+        setMeta('description', content.seo.metaDescription);
+        setMeta('og:description', content.seo.metaDescription, true);
+        setMeta('twitter:description', content.seo.metaDescription);
+      }
+      if (content.seo.pageTitle) {
+        setMeta('og:title', content.seo.pageTitle, true);
+        setMeta('twitter:title', content.seo.pageTitle);
+      }
+      if (content.seo.keywords) {
+        setMeta('keywords', content.seo.keywords);
+      }
+      if (content.seo.ogImageUrl) {
+        setMeta('og:image', content.seo.ogImageUrl, true);
+        setMeta('twitter:image', content.seo.ogImageUrl);
+      }
+    }
+  }, [content.seo, content.hero?.edition]);
 
   const handleOpenAuth = (mode: 'login' | 'register') => {
     setAuthDefaultMode(mode);
