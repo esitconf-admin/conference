@@ -11,9 +11,10 @@ import { useAuth } from '../../lib/context/AuthContext';
 import { useConferenceData } from '../../lib/context/ConferenceDataContext';
 import {
   ImportantDateItem, NewsItem, KeynoteSpeaker, UserProfile,
-  EmailTemplateConfig, ConferenceSEOMetadata
+  EmailTemplateConfig, ConferenceSEOMetadata, ManuscriptSubmission
 } from '../../lib/types';
 import { sendConferenceEmail } from '../../lib/email/emailService';
+import { getAllSubmissions, updateSubmissionStatus } from '../../lib/submission/submissionService';
 import { defaultEmailTemplates } from '../../lib/data/initialEmailTemplates';
 import { db, isFirebaseConfigured } from '../../lib/firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -38,8 +39,14 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     updateKeynotes
   } = useConferenceData();
 
-  const [activeTab, setActiveTab] = useState<'hero' | 'dates' | 'news' | 'keynotes' | 'users' | 'templates' | 'seo' | 'email'>('hero');
+  const [activeTab, setActiveTab] = useState<'hero' | 'dates' | 'news' | 'keynotes' | 'submissions' | 'users' | 'templates' | 'seo' | 'email'>('hero');
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Submissions State (Firestore & Google Drive)
+  const [submissionsList, setSubmissionsList] = useState<ManuscriptSubmission[]>([]);
+  const [submissionSearch, setSubmissionSearch] = useState('');
+  const [submissionTrackFilter, setSubmissionTrackFilter] = useState('All Tracks');
+  const [loadingSubmissions, setLoadingSubmissions] = useState(false);
 
   // Local CMS editable copies
   const [heroForm, setHeroForm] = useState(content.hero);
@@ -82,6 +89,13 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
 
   // Copy helper
   const [copiedLink, setCopiedLink] = useState(false);
+
+  const loadSubmissions = async () => {
+    setLoadingSubmissions(true);
+    const list = await getAllSubmissions();
+    setSubmissionsList(list);
+    setLoadingSubmissions(false);
+  };
 
   // Keep form synced when content loads
   useEffect(() => {
@@ -130,6 +144,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
   useEffect(() => {
     if (isOpen && isAdmin) {
       fetchAllUsers();
+      loadSubmissions();
     }
   }, [isOpen, isAdmin, fetchAllUsers]);
 
@@ -535,6 +550,15 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
             <Users size={15} />
             <span>Keynotes</span>
             <span style={getTabBadgeStyle(activeTab === 'keynotes')}>{keynotesList.length}</span>
+          </button>
+
+          <button
+            onClick={() => { setActiveTab('submissions'); loadSubmissions(); }}
+            style={getButtonTabStyle(activeTab === 'submissions')}
+          >
+            <FileText size={15} />
+            <span>Submissions</span>
+            <span style={getTabBadgeStyle(activeTab === 'submissions')}>{submissionsList.length}</span>
           </button>
 
           <button
@@ -1305,7 +1329,275 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
             </div>
           )}
 
-          {/* TAB 6: USER DIRECTORY & REVIEWER ROLES + DIRECT EMAIL BUTTON */}
+          {/* TAB 6: MANUSCRIPT SUBMISSIONS (GOOGLE DRIVE & FIRESTORE) */}
+          {activeTab === 'submissions' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <h4 style={{ margin: 0, color: '#0f3d3e', fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FileText size={18} color="#0f3d3e" /> Manuscript Submissions Repository
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>
+                    All submitted author papers stored in Google Drive and indexed in Firebase Firestore.
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={loadSubmissions}
+                    disabled={loadingSubmissions}
+                    className="btn btn-outline-primary btn-sm"
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <RefreshCw size={14} className={loadingSubmissions ? 'animate-spin' : ''} />
+                    <span>Refresh</span>
+                  </button>
+
+                  <select
+                    value={submissionTrackFilter}
+                    onChange={(e) => setSubmissionTrackFilter(e.target.value)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.85rem',
+                      backgroundColor: '#ffffff'
+                    }}
+                  >
+                    <option value="All Tracks">All Tracks</option>
+                    {content.tracks.map((t, idx) => (
+                      <option key={idx} value={t.category}>{t.category}</option>
+                    ))}
+                  </select>
+
+                  <input
+                    type="text"
+                    placeholder="Search by Title, ID, Author..."
+                    value={submissionSearch}
+                    onChange={(e) => setSubmissionSearch(e.target.value)}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.88rem',
+                      width: '240px'
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Submissions List Table */}
+              <div style={{
+                borderRadius: '12px',
+                border: '1px solid #e2e8f0',
+                overflow: 'hidden',
+                backgroundColor: '#ffffff',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
+              }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '1px solid #e2e8f0', textAlign: 'left', color: '#475569' }}>
+                      <th style={{ padding: '12px 16px', width: '150px' }}>Tracking ID</th>
+                      <th style={{ padding: '12px 16px' }}>Manuscript Title & Track</th>
+                      <th style={{ padding: '12px 16px' }}>Author / Submitter</th>
+                      <th style={{ padding: '12px 16px' }}>Date</th>
+                      <th style={{ padding: '12px 16px' }}>Review Status</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const filtered = submissionsList.filter(sub => {
+                        const matchesTrack = submissionTrackFilter === 'All Tracks' || sub.track === submissionTrackFilter;
+                        const q = submissionSearch.toLowerCase().trim();
+                        const matchesSearch = !q || 
+                          sub.id.toLowerCase().includes(q) ||
+                          sub.title.toLowerCase().includes(q) ||
+                          sub.authorName.toLowerCase().includes(q) ||
+                          sub.authorEmail.toLowerCase().includes(q) ||
+                          sub.organization.toLowerCase().includes(q);
+                        return matchesTrack && matchesSearch;
+                      });
+
+                      if (filtered.length === 0) {
+                        return (
+                          <tr>
+                            <td colSpan={6} style={{ padding: '40px 16px', textAlign: 'center', color: '#94a3b8' }}>
+                              <FileText size={32} style={{ margin: '0 auto 8px auto', opacity: 0.5, display: 'block' }} />
+                              {submissionsList.length === 0 ? 'No manuscripts submitted yet. When authors submit papers, they will appear here.' : 'No submissions match your search query.'}
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      return filtered.map((sub) => {
+                        const getStatusBadge = (status: string) => {
+                          switch (status) {
+                            case 'accepted':
+                              return { bg: '#ecfdf5', text: '#059669', label: 'Accepted' };
+                            case 'revision_requested':
+                              return { bg: '#fffbeb', text: '#d97706', label: 'Revision Required' };
+                            case 'rejected':
+                              return { bg: '#fef2f2', text: '#dc2626', label: 'Rejected' };
+                            case 'under_review':
+                              return { bg: '#eff6ff', text: '#2563eb', label: 'Under Review' };
+                            default:
+                              return { bg: '#f1f5f9', text: '#475569', label: 'Submitted' };
+                          }
+                        };
+
+                        const badge = getStatusBadge(sub.status);
+
+                        return (
+                          <tr key={sub.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={{ padding: '14px 16px', verticalAlign: 'top' }}>
+                              <span style={{
+                                backgroundColor: '#0f3d3e',
+                                color: '#ffffff',
+                                padding: '3px 8px',
+                                borderRadius: '4px',
+                                fontWeight: 700,
+                                fontSize: '0.78rem',
+                                letterSpacing: '0.5px',
+                                display: 'inline-block'
+                              }}>
+                                {sub.id}
+                              </span>
+                            </td>
+
+                            <td style={{ padding: '14px 16px', verticalAlign: 'top' }}>
+                              <strong style={{ color: '#0f3d3e', fontSize: '0.92rem', display: 'block', marginBottom: '4px' }}>
+                                {sub.title}
+                              </strong>
+                              <span style={{ fontSize: '0.78rem', color: '#64748b', display: 'block' }}>
+                                🏷️ {sub.track}
+                              </span>
+                              {sub.coAuthors && (
+                                <span style={{ fontSize: '0.74rem', color: '#94a3b8', display: 'block', marginTop: '2px' }}>
+                                  Co-authors: {sub.coAuthors}
+                                </span>
+                              )}
+                            </td>
+
+                            <td style={{ padding: '14px 16px', verticalAlign: 'top' }}>
+                              <div style={{ fontWeight: 600, color: '#334155' }}>{sub.authorName}</div>
+                              <div style={{ fontSize: '0.78rem', color: '#64748b' }}>{sub.organization}</div>
+                              <div style={{ fontSize: '0.78rem', color: '#0284c7' }}>{sub.authorEmail}</div>
+                            </td>
+
+                            <td style={{ padding: '14px 16px', verticalAlign: 'top', color: '#64748b', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                              {new Date(sub.submittedAt).toLocaleDateString('en-GB', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric'
+                              })}
+                            </td>
+
+                            <td style={{ padding: '14px 16px', verticalAlign: 'top' }}>
+                              <select
+                                value={sub.status}
+                                onChange={async (e) => {
+                                  const newStatus = e.target.value as ManuscriptSubmission['status'];
+                                  await updateSubmissionStatus(sub.id, { status: newStatus });
+                                  setSubmissionsList(prev => prev.map(item => item.id === sub.id ? { ...item, status: newStatus } : item));
+                                  showSuccess(`Updated status for paper ${sub.id} to "${newStatus}"`);
+                                }}
+                                style={{
+                                  padding: '4px 8px',
+                                  borderRadius: '6px',
+                                  fontSize: '0.78rem',
+                                  fontWeight: 600,
+                                  backgroundColor: badge.bg,
+                                  color: badge.text,
+                                  border: `1px solid ${badge.text}40`,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                <option value="submitted">Submitted</option>
+                                <option value="under_review">Under Review</option>
+                                <option value="revision_requested">Revision Required</option>
+                                <option value="accepted">Accepted</option>
+                                <option value="rejected">Rejected</option>
+                              </select>
+                            </td>
+
+                            <td style={{ padding: '14px 16px', textAlign: 'right', verticalAlign: 'top' }}>
+                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                                {sub.pdfUrl && (
+                                  <a
+                                    href={sub.pdfUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                      padding: '5px 10px',
+                                      backgroundColor: '#f0fdf9',
+                                      color: '#0f3d3e',
+                                      border: '1px solid #99f6e4',
+                                      borderRadius: '6px',
+                                      fontSize: '0.78rem',
+                                      fontWeight: 600,
+                                      textDecoration: 'none'
+                                    }}
+                                  >
+                                    <ExternalLink size={13} />
+                                    <span>Google Drive</span>
+                                  </a>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const authorProfile: UserProfile = {
+                                      uid: sub.authorUid,
+                                      email: sub.authorEmail,
+                                      firstName: sub.authorName.split(' ')[0] || sub.authorName,
+                                      lastName: sub.authorName.split(' ').slice(1).join(' ') || '',
+                                      organization: sub.organization,
+                                      country: 'Thailand',
+                                      roles: ['author'],
+                                      pdpaConsent: true,
+                                      pdpaConsentDate: new Date().toISOString(),
+                                      createdAt: sub.submittedAt,
+                                      updatedAt: new Date().toISOString(),
+                                      status: 'active'
+                                    };
+                                    setEmailingUser(authorProfile);
+                                    setIndividualSubject(`[${sub.id}] Manuscript Review Update - ${sub.title.substring(0, 40)}...`);
+                                    setIndividualMessage(`Dear ${sub.authorName},\n\nWe are writing to provide an update regarding your manuscript submission (ID: ${sub.id}) titled "${sub.title}".\n\nStatus: ${sub.status.toUpperCase()}\n\nBest regards,\nESIT Conference Secretariat`);
+                                  }}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    padding: '5px 10px',
+                                    backgroundColor: '#eff6ff',
+                                    color: '#1d4ed8',
+                                    border: '1px solid #bfdbfe',
+                                    borderRadius: '6px',
+                                    fontSize: '0.78rem',
+                                    fontWeight: 600,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  <Mail size={13} />
+                                  <span>Email Author</span>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      });
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 7: USER DIRECTORY & REVIEWER ROLES + DIRECT EMAIL BUTTON */}
           {activeTab === 'users' && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
