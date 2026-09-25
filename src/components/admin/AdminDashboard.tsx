@@ -332,9 +332,23 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
   // Open Individual User Email Modal
   const openEmailUserModal = (user: UserProfile) => {
     setEmailingUser(user);
-    setIndividualSubject(`Important Notice from ESIT 2025 Secretariat`);
-    setIndividualMessage(`Dear ${user.firstName} ${user.lastName},\n\nWe would like to share an important update regarding your conference registration with ${user.organization}.\n\nPlease let us know if you require an official acceptance or invitation letter.\n\nBest regards,\nESIT 2025 Secretariat`);
-    setIndividualSelectedTemplate('custom_message');
+    const userFullName = `${user.firstName} ${user.lastName}`.trim();
+    const defaultTmpl = emailTemplates.find(t => t.templateKey === 'custom_message') || emailTemplates[0];
+    setIndividualSelectedTemplate(defaultTmpl.templateKey);
+    setIndividualSubject(defaultTmpl.subject);
+    setIndividualMessage(defaultTmpl.bodyText.replace(/{name}/g, userFullName));
+  };
+
+  // Change template in Individual User Email Modal and update subject & body
+  const handleIndividualTemplateChange = (templateKey: string) => {
+    setIndividualSelectedTemplate(templateKey);
+    if (!emailingUser) return;
+    const userFullName = `${emailingUser.firstName} ${emailingUser.lastName}`.trim();
+    const found = emailTemplates.find(t => t.templateKey === templateKey);
+    if (found) {
+      setIndividualSubject(found.subject);
+      setIndividualMessage(found.bodyText.replace(/{name}/g, userFullName));
+    }
   };
 
   // Send Individual User Email
@@ -1806,13 +1820,14 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                 <label style={labelStyle}>Choose Template Format</label>
                 <select
                   value={individualSelectedTemplate}
-                  onChange={(e) => setIndividualSelectedTemplate(e.target.value)}
+                  onChange={(e) => handleIndividualTemplateChange(e.target.value)}
                   style={inputStyle}
                 >
-                  <option value="custom_message">Custom Notification Message</option>
-                  <option value="welcome_author">Welcome & Registration Confirmation</option>
-                  <option value="reviewer_assigned">Reviewer Appointment Notice</option>
-                  <option value="manuscript_submitted">Manuscript Received Confirmation</option>
+                  {emailTemplates.map(t => (
+                    <option key={t.id} value={t.templateKey}>
+                      {t.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
