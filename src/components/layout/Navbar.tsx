@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { MapPin, User, LogOut, Shield, ChevronDown, Menu, X, FileUp } from 'lucide-react';
+import { MapPin, User, LogOut, Shield, ChevronDown, Menu, X, FileUp, FileText } from 'lucide-react';
 import { useAuth } from '../../lib/context/AuthContext';
 import { useConferenceData } from '../../lib/context/ConferenceDataContext';
 
@@ -9,9 +9,10 @@ interface NavbarProps {
   onOpenAuth: (mode: 'login' | 'register') => void;
   onOpenSubmission: () => void;
   onOpenAdmin: () => void;
+  onOpenMySubmissions: () => void;
 }
 
-export default function Navbar({ onOpenAuth, onOpenSubmission, onOpenAdmin }: NavbarProps) {
+export default function Navbar({ onOpenAuth, onOpenSubmission, onOpenAdmin, onOpenMySubmissions }: NavbarProps) {
   const { currentUser, logout, isAdmin, isReviewer, isAuthor } = useAuth();
   const { content } = useConferenceData();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -219,6 +220,30 @@ export default function Navbar({ onOpenAuth, onOpenSubmission, onOpenAdmin }: Na
                         ))}
                       </div>
                     </div>
+
+                    <button
+                      onClick={() => { setUserDropdownOpen(false); onOpenMySubmissions(); }}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '10px 12px',
+                        background: 'none',
+                        border: 'none',
+                        borderRadius: '6px',
+                        color: '#0f3d3e',
+                        fontWeight: 600,
+                        fontSize: '0.86rem',
+                        cursor: 'pointer',
+                        textAlign: 'left'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <FileText size={16} color="#0f3d3e" />
+                      <span>My Submissions</span>
+                    </button>
 
                     {isAdmin && (
                       <button

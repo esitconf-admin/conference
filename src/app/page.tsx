@@ -17,11 +17,13 @@ import AuthModal from '../components/modals/AuthModal';
 import SubmitManuscriptModal from '../components/modals/SubmitManuscriptModal';
 import PDPAPrivacyModal from '../components/modals/PDPAPrivacyModal';
 import AdminDashboard from '../components/admin/AdminDashboard';
+import MySubmissionsModal from '../components/modals/MySubmissionsModal';
 
 export default function HomePage() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authDefaultMode, setAuthDefaultMode] = useState<'login' | 'register'>('login');
   const [submissionModalOpen, setSubmissionModalOpen] = useState(false);
+  const [mySubmissionsModalOpen, setMySubmissionsModalOpen] = useState(false);
   const [pdpaModalOpen, setPdpaModalOpen] = useState(false);
   const [adminDashboardOpen, setAdminDashboardOpen] = useState(false);
 
@@ -37,6 +39,7 @@ export default function HomePage() {
         onOpenAuth={handleOpenAuth}
         onOpenSubmission={() => setSubmissionModalOpen(true)}
         onOpenAdmin={() => setAdminDashboardOpen(true)}
+        onOpenMySubmissions={() => setMySubmissionsModalOpen(true)}
       />
 
       {/* 2. Main One-Page Conference Landing */}
@@ -73,6 +76,13 @@ export default function HomePage() {
       <SubmitManuscriptModal
         isOpen={submissionModalOpen}
         onClose={() => setSubmissionModalOpen(false)}
+        onRequireAuth={() => handleOpenAuth('login')}
+      />
+
+      <MySubmissionsModal
+        isOpen={mySubmissionsModalOpen}
+        onClose={() => setMySubmissionsModalOpen(false)}
+        onOpenNewSubmission={() => setSubmissionModalOpen(true)}
         onRequireAuth={() => handleOpenAuth('login')}
       />
 

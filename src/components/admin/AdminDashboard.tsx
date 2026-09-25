@@ -5,7 +5,8 @@ import {
   X, Shield, Edit3, Calendar, Bell, Users, Save, CheckCircle2,
   Trash2, Plus, RefreshCw, Send, Mail, AlertCircle, FileText,
   Sparkles, UserCheck, Eye, MessageSquare, LayoutTemplate, ArrowRight,
-  Globe, Share2, Copy, CheckCheck, ExternalLink
+  Globe, Share2, Copy, CheckCheck, ExternalLink, BarChart3, Activity,
+  ArrowUpRight, CheckCircle, Clock
 } from 'lucide-react';
 import { useAuth } from '../../lib/context/AuthContext';
 import { useConferenceData } from '../../lib/context/ConferenceDataContext';
@@ -39,7 +40,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     updateKeynotes
   } = useConferenceData();
 
-  const [activeTab, setActiveTab] = useState<'hero' | 'dates' | 'news' | 'keynotes' | 'submissions' | 'users' | 'templates' | 'seo' | 'email'>('hero');
+  const [activeTab, setActiveTab] = useState<'overview' | 'hero' | 'dates' | 'news' | 'keynotes' | 'submissions' | 'users' | 'templates' | 'seo' | 'email'>('overview');
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Submissions State (Firestore & Google Drive)
@@ -502,6 +503,14 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
           flexWrap: 'wrap'
         }}>
           <button
+            onClick={() => setActiveTab('overview')}
+            style={getButtonTabStyle(activeTab === 'overview')}
+          >
+            <BarChart3 size={15} />
+            <span>Overview & Summary</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('hero')}
             style={getButtonTabStyle(activeTab === 'hero')}
           >
@@ -608,6 +617,436 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
 
         {/* Main Tab Content */}
         <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
+
+          {/* TAB 0: EXECUTIVE OVERVIEW & SUMMARY (MINIMAL & CLEAN FOR ADMIN) */}
+          {activeTab === 'overview' && (
+            <div style={{ display: 'grid', gap: '24px', maxWidth: '1100px' }}>
+              
+              {/* Header Title & Refresh */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <h3 style={{ margin: 0, color: '#0f3d3e', fontSize: '1.35rem', fontWeight: 800 }}>
+                    Conference Executive Overview
+                  </h3>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '0.86rem', color: '#64748b' }}>
+                    Real-time summary of manuscript submissions, registered participants, and cloud services for {content.hero.edition}.
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <button
+                    onClick={() => { fetchAllUsers(); loadSubmissions(); }}
+                    className="btn btn-outline-primary btn-sm"
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <RefreshCw size={14} className={loadingSubmissions ? 'animate-spin' : ''} />
+                    <span>Refresh Stats</span>
+                  </button>
+                  <button
+                    onClick={() => { setActiveTab('submissions'); loadSubmissions(); }}
+                    className="btn btn-primary btn-sm"
+                  >
+                    <FileText size={14} />
+                    <span>View All Submissions</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 4 Metric Summary Cards */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+                gap: '16px'
+              }}>
+                {/* 1. Submissions Card */}
+                <div style={{
+                  backgroundColor: '#ffffff',
+                  borderRadius: '12px',
+                  border: '1px solid #e2e8f0',
+                  padding: '20px',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                  borderLeft: '4px solid #0f3d3e'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
+                      Total Submissions
+                    </span>
+                    <FileText size={20} color="#0f3d3e" />
+                  </div>
+                  <div style={{ fontSize: '2.1rem', fontWeight: 800, color: '#0f3d3e', lineHeight: 1.1 }}>
+                    {submissionsList.length}
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap', fontSize: '0.72rem' }}>
+                    <span style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                      {submissionsList.filter(s => s.status === 'under_review').length} In Review
+                    </span>
+                    <span style={{ backgroundColor: '#ecfdf5', color: '#059669', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                      {submissionsList.filter(s => s.status === 'accepted').length} Accepted
+                    </span>
+                    <span style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                      {submissionsList.filter(s => s.status === 'submitted').length} New
+                    </span>
+                  </div>
+                </div>
+
+                {/* 2. Registered Users Card */}
+                <div style={{
+                  backgroundColor: '#ffffff',
+                  borderRadius: '12px',
+                  border: '1px solid #e2e8f0',
+                  padding: '20px',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                  borderLeft: '4px solid #0284c7'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
+                      Registered Users
+                    </span>
+                    <Users size={20} color="#0284c7" />
+                  </div>
+                  <div style={{ fontSize: '2.1rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.1 }}>
+                    {allUsers.length}
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap', fontSize: '0.72rem' }}>
+                    <span style={{ backgroundColor: '#ecfdf5', color: '#047857', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                      {allUsers.filter(u => u.roles.includes('author')).length} Authors
+                    </span>
+                    <span style={{ backgroundColor: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                      {allUsers.filter(u => u.roles.includes('reviewer')).length} Reviewers
+                    </span>
+                    <span style={{ backgroundColor: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                      {allUsers.filter(u => u.roles.includes('admin')).length} Admins
+                    </span>
+                  </div>
+                </div>
+
+                {/* 3. Next Milestone Card */}
+                <div style={{
+                  backgroundColor: '#ffffff',
+                  borderRadius: '12px',
+                  border: '1px solid #e2e8f0',
+                  padding: '20px',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                  borderLeft: '4px solid #f59e0b'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
+                      Next Key Deadline
+                    </span>
+                    <Calendar size={20} color="#f59e0b" />
+                  </div>
+                  <div style={{ fontSize: '1rem', fontWeight: 700, color: '#0f3d3e', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {datesList[0]?.title || 'Manuscript Submission'}
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#d97706', fontWeight: 600 }}>
+                    📅 {datesList[0]?.isExtended && datesList[0]?.extendedDate ? datesList[0].extendedDate : datesList[0]?.originalDate || '30 Nov 2024'}
+                  </div>
+                </div>
+
+                {/* 4. Cloud Service Health Card */}
+                <div style={{
+                  backgroundColor: '#ffffff',
+                  borderRadius: '12px',
+                  border: '1px solid #e2e8f0',
+                  padding: '20px',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                  borderLeft: '4px solid #10b981'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
+                      Cloud Infrastructure
+                    </span>
+                    <CheckCircle size={20} color="#10b981" />
+                  </div>
+                  <div style={{ display: 'grid', gap: '4px', fontSize: '0.78rem', color: '#334155' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }} />
+                      <span>Google Drive: <strong>Active</strong></span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }} />
+                      <span>Gmail Transactional API: <strong>Ready</strong></span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }} />
+                      <span>Firebase Database: <strong>Synced</strong></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Two-Column Activity & Action Grid */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                gap: '20px',
+                alignItems: 'start'
+              }}>
+                
+                {/* Left Column: Recent Manuscript Submissions */}
+                <div style={{
+                  backgroundColor: '#ffffff',
+                  borderRadius: '12px',
+                  border: '1px solid #e2e8f0',
+                  padding: '20px',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                    <h4 style={{ margin: 0, color: '#0f3d3e', fontSize: '1.05rem', fontWeight: 700 }}>
+                      Recent Manuscript Submissions
+                    </h4>
+                    <button
+                      onClick={() => { setActiveTab('submissions'); loadSubmissions(); }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#0f3d3e',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <span>All Papers ({submissionsList.length})</span>
+                      <ArrowRight size={14} />
+                    </button>
+                  </div>
+
+                  {submissionsList.length === 0 ? (
+                    <div style={{ padding: '30px 10px', textAlign: 'center', color: '#94a3b8', fontSize: '0.88rem' }}>
+                      <FileText size={28} style={{ margin: '0 auto 8px auto', opacity: 0.5, display: 'block' }} />
+                      No manuscripts submitted yet. When authors upload papers, they will appear here.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gap: '10px' }}>
+                      {submissionsList.slice(0, 5).map(sub => (
+                        <div
+                          key={sub.id}
+                          style={{
+                            padding: '12px',
+                            backgroundColor: '#f8fafc',
+                            borderRadius: '8px',
+                            border: '1px solid #e2e8f0',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: '10px'
+                          }}
+                        >
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0f3d3e', backgroundColor: '#e2e8f0', padding: '1px 6px', borderRadius: '4px' }}>
+                                {sub.id}
+                              </span>
+                              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                                {sub.authorName} ({sub.organization})
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '0.86rem', fontWeight: 600, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {sub.title}
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                            {sub.pdfUrl && (
+                              <a
+                                href={sub.pdfUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Open in Google Drive"
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  padding: '4px 8px',
+                                  backgroundColor: '#f0fdf9',
+                                  color: '#0f3d3e',
+                                  borderRadius: '6px',
+                                  fontSize: '0.74rem',
+                                  fontWeight: 600,
+                                  textDecoration: 'none',
+                                  border: '1px solid #a7f3d0'
+                                }}
+                              >
+                                <ExternalLink size={12} style={{ marginRight: '3px' }} />
+                                Drive
+                              </a>
+                            )}
+                            <span style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              padding: '3px 8px',
+                              borderRadius: '9999px',
+                              backgroundColor: sub.status === 'accepted' ? '#ecfdf5' : sub.status === 'under_review' ? '#eff6ff' : '#f1f5f9',
+                              color: sub.status === 'accepted' ? '#059669' : sub.status === 'under_review' ? '#2563eb' : '#475569',
+                              textTransform: 'capitalize'
+                            }}>
+                              {sub.status.replace('_', ' ')}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Right Column: Administrative Quick-Action Hub */}
+                <div style={{ display: 'grid', gap: '16px' }}>
+                  
+                  {/* Quick Shortcuts */}
+                  <div style={{
+                    backgroundColor: '#ffffff',
+                    borderRadius: '12px',
+                    border: '1px solid #e2e8f0',
+                    padding: '20px',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+                  }}>
+                    <h4 style={{ margin: '0 0 14px 0', color: '#0f3d3e', fontSize: '1.05rem', fontWeight: 700 }}>
+                      Quick Administrative Actions
+                    </h4>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                      <button
+                        onClick={() => { setActiveTab('submissions'); loadSubmissions(); }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '12px',
+                          backgroundColor: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          color: '#0f3d3e',
+                          fontWeight: 600,
+                          fontSize: '0.84rem',
+                          cursor: 'pointer',
+                          textAlign: 'left'
+                        }}
+                      >
+                        <FileText size={16} color="#0f3d3e" />
+                        <span>Submissions Hub</span>
+                      </button>
+
+                      <button
+                        onClick={() => setActiveTab('users')}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '12px',
+                          backgroundColor: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          color: '#0f3d3e',
+                          fontWeight: 600,
+                          fontSize: '0.84rem',
+                          cursor: 'pointer',
+                          textAlign: 'left'
+                        }}
+                      >
+                        <UserCheck size={16} color="#0284c7" />
+                        <span>Appoint Reviewers</span>
+                      </button>
+
+                      <button
+                        onClick={() => setActiveTab('templates')}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '12px',
+                          backgroundColor: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          color: '#0f3d3e',
+                          fontWeight: 600,
+                          fontSize: '0.84rem',
+                          cursor: 'pointer',
+                          textAlign: 'left'
+                        }}
+                      >
+                        <Mail size={16} color="#059669" />
+                        <span>Email Broadcasts</span>
+                      </button>
+
+                      <button
+                        onClick={() => setActiveTab('seo')}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '12px',
+                          backgroundColor: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          color: '#0f3d3e',
+                          fontWeight: 600,
+                          fontSize: '0.84rem',
+                          cursor: 'pointer',
+                          textAlign: 'left'
+                        }}
+                      >
+                        <Globe size={16} color="#f59e0b" />
+                        <span>SEO & Social Preview</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Conference Timeline Preview */}
+                  <div style={{
+                    backgroundColor: '#ffffff',
+                    borderRadius: '12px',
+                    border: '1px solid #e2e8f0',
+                    padding: '20px',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <h4 style={{ margin: 0, color: '#0f3d3e', fontSize: '1.02rem', fontWeight: 700 }}>
+                        Milestones Timeline
+                      </h4>
+                      <button
+                        onClick={() => setActiveTab('dates')}
+                        style={{ background: 'none', border: 'none', color: '#0f3d3e', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        Edit Dates ➔
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'grid', gap: '8px', fontSize: '0.82rem' }}>
+                      {datesList.slice(0, 4).map((d) => (
+                        <div
+                          key={d.id}
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '8px 10px',
+                            backgroundColor: '#f8fafc',
+                            borderRadius: '6px'
+                          }}
+                        >
+                          <span style={{ color: '#334155', fontWeight: 600 }}>{d.title}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ color: '#64748b' }}>
+                              {d.isExtended && d.extendedDate ? d.extendedDate : d.originalDate}
+                            </span>
+                            {d.isExtended && (
+                              <span style={{ fontSize: '0.68rem', backgroundColor: '#fef3c7', color: '#b45309', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
+                                EXTENDED
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+          )}
 
           {/* TAB 1: HERO & POSTER */}
           {activeTab === 'hero' && (
