@@ -4,15 +4,20 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, Shield, Edit3, Calendar, Bell, Users, Save, CheckCircle2, 
   Trash2, Plus, RefreshCw, Send, Mail, AlertCircle, FileText, 
-  Sparkles, UserCheck, Eye, MessageSquare, LayoutTemplate, ArrowRight
+  Sparkles, UserCheck, Eye, MessageSquare, LayoutTemplate, ArrowRight,
+  Globe, Share2, Copy, CheckCheck, ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../../lib/context/AuthContext';
 import { useConferenceData } from '../../lib/context/ConferenceDataContext';
-import { ImportantDateItem, NewsItem, KeynoteSpeaker, UserProfile, EmailTemplateConfig } from '../../lib/types';
+import { 
+  ImportantDateItem, NewsItem, KeynoteSpeaker, UserProfile, 
+  EmailTemplateConfig, ConferenceSEOMetadata 
+} from '../../lib/types';
 import { sendConferenceEmail } from '../../lib/email/emailService';
 import { defaultEmailTemplates } from '../../lib/data/initialEmailTemplates';
 import { db, isFirebaseConfigured } from '../../lib/firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import Image from 'next/image';
 
 interface AdminDashboardProps {
   isOpen: boolean;
@@ -27,13 +32,14 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
   const { 
     content, 
     updateHero, 
+    updateSEO,
     updateImportantDates, 
     updateNewsList, 
     updateKeynotes, 
     resetToDefault 
   } = useConferenceData();
 
-  const [activeTab, setActiveTab] = useState<'hero' | 'dates' | 'news' | 'keynotes' | 'users' | 'templates' | 'email'>('hero');
+  const [activeTab, setActiveTab] = useState<'hero' | 'dates' | 'news' | 'keynotes' | 'users' | 'templates' | 'seo' | 'email'>('hero');
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Local CMS editable copies
@@ -41,6 +47,18 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
   const [datesList, setDatesList] = useState<ImportantDateItem[]>(content.dates);
   const [newsList, setNewsList] = useState<NewsItem[]>(content.news);
   const [keynotesList, setKeynotesList] = useState<KeynoteSpeaker[]>(content.keynotes);
+
+  // SEO & Social Preview Form
+  const [seoForm, setSeoForm] = useState<ConferenceSEOMetadata>(
+    content.seo || {
+      pageTitle: 'ESIT 2025 | International Conference on Engineering Science & Innovative Technology',
+      metaDescription: 'The 5th International Conference on Engineering Science and Innovative Technology (ESIT 2025), Pattaya, Thailand. Fostering Smart Innovation, Sustainable Green Energy & Industrial AI.',
+      keywords: 'ESIT 2025, Conference, Engineering Science, KMUTNB, Pattaya, Call for Papers, Scopus, IEEE',
+      ogImageUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80',
+      siteUrl: 'https://esit-conference.vercel.app',
+      siteName: 'ESIT 2025 International Conference'
+    }
+  );
 
   // Email Templates State
   const [emailTemplates, setEmailTemplates] = useState<EmailTemplateConfig[]>(defaultEmailTemplates);
@@ -63,12 +81,18 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
   const [testEmailSending, setTestEmailSending] = useState(false);
   const [testEmailStatus, setTestEmailStatus] = useState<string | null>(null);
 
+  // Copy helper
+  const [copiedLink, setCopiedLink] = useState(false);
+
   // Keep form synced when content loads
   useEffect(() => {
     setHeroForm(content.hero);
     setDatesList(content.dates);
     setNewsList(content.news);
     setKeynotesList(content.keynotes);
+    if (content.seo) {
+      setSeoForm(content.seo);
+    }
   }, [content]);
 
   // Load email templates
@@ -157,7 +181,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
             Administrator Access Required
           </h3>
           <p style={{ color: '#64748b', fontSize: '0.92rem', marginBottom: '24px', lineHeight: '1.6' }}>
-            Only designated Conference Administrators can edit online landing page content, posters, news, and assign reviewer credentials.
+            Only designated Conference Administrators can edit online landing page content, posters, news, SEO metadata, and assign reviewer credentials.
           </p>
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
             <button onClick={onClose} className="btn btn-outline-primary btn-sm">
@@ -180,6 +204,12 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     e.preventDefault();
     await updateHero(heroForm);
     showSuccess('Hero banner and conference details updated successfully!');
+  };
+
+  const handleSaveSEO = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await updateSEO(seoForm);
+    showSuccess('SEO & Social Share Preview metadata updated successfully!');
   };
 
   const handleSaveDates = async () => {
@@ -375,7 +405,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',
-        maxWidth: '1180px',
+        maxWidth: '1200px',
         width: '100%',
         height: '92vh',
         display: 'flex',
@@ -409,7 +439,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                 ESIT 2025 Admin CMS & Portal Control
               </h3>
               <span style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>
-                Online Content Management, Reviewer Roles, and Email Notification System
+                Online Content Management, SEO & Social Share Preview, and Email Notification System
               </span>
             </div>
           </div>
@@ -475,6 +505,22 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
           </button>
 
           <button
+            onClick={() => setActiveTab('seo')}
+            style={getButtonTabStyle(activeTab === 'seo', true)}
+          >
+            <Globe size={15} />
+            <span>SEO & Social Share Preview</span>
+            <span style={{
+              backgroundColor: activeTab === 'seo' ? '#ffffff' : '#059669',
+              color: activeTab === 'seo' ? '#047857' : '#ffffff',
+              padding: '1px 6px',
+              borderRadius: '9999px',
+              fontSize: '0.72rem',
+              fontWeight: 800
+            }}>NEW</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('dates')}
             style={getButtonTabStyle(activeTab === 'dates')}
           >
@@ -512,18 +558,10 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
 
           <button
             onClick={() => setActiveTab('templates')}
-            style={getButtonTabStyle(activeTab === 'templates', true)}
+            style={getButtonTabStyle(activeTab === 'templates')}
           >
             <LayoutTemplate size={15} />
             <span>Email Templates</span>
-            <span style={{
-              backgroundColor: activeTab === 'templates' ? '#ffffff' : '#f59e0b',
-              color: activeTab === 'templates' ? '#b45309' : '#ffffff',
-              padding: '1px 6px',
-              borderRadius: '9999px',
-              fontSize: '0.72rem',
-              fontWeight: 800
-            }}>PRO</span>
           </button>
 
           <button
@@ -651,7 +689,251 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
             </form>
           )}
 
-          {/* TAB 2: IMPORTANT DATES */}
+          {/* TAB 2: SEO & SOCIAL SHARE PREVIEW (NEW MODULE REQUESTED) */}
+          {activeTab === 'seo' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+                <div>
+                  <h4 style={{ margin: 0, color: '#0f3d3e', fontSize: '1.15rem' }}>
+                    SEO Metadata & Social Share Preview Manager
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>
+                    Customize how your conference link looks when shared on <strong>LINE, WhatsApp, Facebook, LinkedIn, Twitter</strong>, and Google search.
+                  </p>
+                </div>
+                <button onClick={handleSaveSEO} className="btn btn-primary btn-sm">
+                  <Save size={16} /> Save SEO & Social Metadata
+                </button>
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr',
+                gap: '24px'
+              }} className="template-grid">
+                
+                {/* Left: SEO Editor Form */}
+                <form onSubmit={handleSaveSEO} style={{
+                  backgroundColor: '#f8fafc',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  border: '1px solid #e2e8f0',
+                  display: 'grid',
+                  gap: '14px'
+                }}>
+                  <div>
+                    <label style={labelStyle}>
+                      Browser Tab & Social Share Title (`title`) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={seoForm.pageTitle}
+                      onChange={(e) => setSeoForm({ ...seoForm, pageTitle: e.target.value })}
+                      style={inputStyle}
+                    />
+                    <span style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', display: 'block' }}>
+                      Recommended length: 50-60 characters (shown in LINE/WhatsApp cards).
+                    </span>
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>
+                      Social Preview Description (`meta description` / `og:description`) *
+                    </label>
+                    <textarea
+                      rows={3}
+                      required
+                      value={seoForm.metaDescription}
+                      onChange={(e) => setSeoForm({ ...seoForm, metaDescription: e.target.value })}
+                      style={{ ...inputStyle, fontFamily: 'inherit', lineHeight: '1.5' }}
+                    />
+                    <span style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', display: 'block' }}>
+                      Shown below the title in chat share previews and Google search snippets.
+                    </span>
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>
+                      Social Share Card Banner Image URL (`og:image`) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={seoForm.ogImageUrl}
+                      onChange={(e) => setSeoForm({ ...seoForm, ogImageUrl: e.target.value })}
+                      style={inputStyle}
+                    />
+                    <span style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', display: 'block' }}>
+                      Image shown in link preview bubbles (Recommended: 1200x630px JPG/PNG).
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={labelStyle}>Canonical Website URL (`og:url`)</label>
+                      <input
+                        type="text"
+                        value={seoForm.siteUrl}
+                        onChange={(e) => setSeoForm({ ...seoForm, siteUrl: e.target.value })}
+                        style={inputStyle}
+                      />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Site Brand Name (`og:site_name`)</label>
+                      <input
+                        type="text"
+                        value={seoForm.siteName}
+                        onChange={(e) => setSeoForm({ ...seoForm, siteName: e.target.value })}
+                        style={inputStyle}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>SEO Search Keywords (Comma separated)</label>
+                    <input
+                      type="text"
+                      value={seoForm.keywords}
+                      onChange={(e) => setSeoForm({ ...seoForm, keywords: e.target.value })}
+                      style={inputStyle}
+                    />
+                  </div>
+
+                  <button type="submit" className="btn btn-primary" style={{ justifySelf: 'start', marginTop: '6px' }}>
+                    <Save size={16} /> Save Changes
+                  </button>
+                </form>
+
+                {/* Right: Live Chat Bubble Mockup Preview (LINE / WhatsApp Style) */}
+                <div style={{
+                  backgroundColor: '#e6f4f1',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  border: '1px solid rgba(15, 61, 62, 0.15)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f3d3e', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Share2 size={16} color="#f59e0b" />
+                      Live LINE / WhatsApp / Social Share Preview
+                    </span>
+                    <span style={{ fontSize: '0.72rem', backgroundColor: '#0f3d3e', color: '#fff', padding: '2px 8px', borderRadius: '4px' }}>
+                      Auto-Rendering
+                    </span>
+                  </div>
+
+                  {/* Chat Message Bubble Preview */}
+                  <div style={{
+                    backgroundColor: '#dcf8c6',
+                    borderRadius: '14px',
+                    padding: '12px 14px',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                    maxWidth: '440px',
+                    border: '1px solid #c7e8b0'
+                  }}>
+                    {/* Share Link */}
+                    <a
+                      href={seoForm.siteUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        color: '#0284c7',
+                        textDecoration: 'underline',
+                        fontSize: '0.9rem',
+                        fontWeight: 600,
+                        display: 'block',
+                        marginBottom: '8px',
+                        wordBreak: 'break-all'
+                      }}
+                    >
+                      {seoForm.siteUrl}
+                    </a>
+
+                    {/* Rich Link Card inside Bubble */}
+                    <div style={{
+                      backgroundColor: '#ffffff',
+                      borderRadius: '10px',
+                      overflow: 'hidden',
+                      border: '1px solid #d1d5db',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.04)'
+                    }}>
+                      {/* Thumbnail Image */}
+                      {seoForm.ogImageUrl && (
+                        <div style={{ position: 'relative', width: '100%', height: '180px', backgroundColor: '#092c2c' }}>
+                          <Image
+                            src={seoForm.ogImageUrl}
+                            alt="Social Share Thumbnail"
+                            fill
+                            style={{ objectFit: 'cover' }}
+                            unoptimized
+                          />
+                        </div>
+                      )}
+
+                      {/* Content Details */}
+                      <div style={{ padding: '12px 14px', borderLeft: '4px solid #10b981' }}>
+                        <div style={{
+                          fontSize: '0.95rem',
+                          fontWeight: 700,
+                          color: '#0f172a',
+                          marginBottom: '4px',
+                          lineHeight: '1.3'
+                        }}>
+                          {seoForm.pageTitle}
+                        </div>
+
+                        <div style={{
+                          fontSize: '0.82rem',
+                          color: '#475569',
+                          lineHeight: '1.4',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden'
+                        }}>
+                          {seoForm.metaDescription}
+                        </div>
+
+                        <div style={{
+                          fontSize: '0.72rem',
+                          color: '#94a3b8',
+                          marginTop: '6px',
+                          textTransform: 'lowercase'
+                        }}>
+                          {seoForm.siteUrl.replace(/^https?:\/\//, '')}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: 'right', fontSize: '0.68rem', color: '#64748b', marginTop: '6px' }}>
+                      Just now · Read ✓✓
+                    </div>
+                  </div>
+
+                  <div style={{
+                    fontSize: '0.78rem',
+                    color: '#0f3d3e',
+                    backgroundColor: '#ffffff',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(15, 61, 62, 0.15)'
+                  }}>
+                    💡 <em>Tip: When you save these details, they automatically update your conference website&apos;s <code>&lt;title&gt;</code> and <code>&lt;meta property=&quot;og:...&quot;&gt;</code> tags.</em>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: IMPORTANT DATES */}
           {activeTab === 'dates' && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -760,7 +1042,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
             </div>
           )}
 
-          {/* TAB 3: NEWS & ANNOUNCEMENTS */}
+          {/* TAB 4: NEWS & ANNOUNCEMENTS */}
           {activeTab === 'news' && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -886,7 +1168,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
             </div>
           )}
 
-          {/* TAB 4: KEYNOTES */}
+          {/* TAB 5: KEYNOTES */}
           {activeTab === 'keynotes' && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -993,7 +1275,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
             </div>
           )}
 
-          {/* TAB 5: USER DIRECTORY & REVIEWER ROLES + DIRECT EMAIL BUTTON */}
+          {/* TAB 6: USER DIRECTORY & REVIEWER ROLES + DIRECT EMAIL BUTTON */}
           {activeTab === 'users' && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
@@ -1088,7 +1370,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
 
                           <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
-                              {/* Direct Email Button requested by user */}
+                              {/* Direct Email Button */}
                               <button
                                 onClick={() => openEmailUserModal(user)}
                                 style={{
@@ -1142,7 +1424,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
             </div>
           )}
 
-          {/* TAB 6: EMAIL TEMPLATES MANAGER (NEW REQUESTED MODULE) */}
+          {/* TAB 7: EMAIL TEMPLATES MANAGER */}
           {activeTab === 'templates' && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
@@ -1402,7 +1684,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
             </div>
           )}
 
-          {/* TAB 7: EMAIL API TESTER */}
+          {/* TAB 8: EMAIL API TESTER */}
           {activeTab === 'email' && (
             <div style={{ maxWidth: '650px' }}>
               <h4 style={{ color: '#0f3d3e', marginBottom: '8px' }}>Google Email API / Apps Script Tester</h4>
@@ -1613,10 +1895,10 @@ const getButtonTabStyle = (active: boolean, highlight?: boolean): React.CSSPrope
   border: active 
     ? '2px solid #0f3d3e' 
     : highlight 
-      ? '1px solid #f59e0b' 
+      ? '1px solid #10b981' 
       : '1px solid #cbd5e1',
   backgroundColor: active ? '#0f3d3e' : '#ffffff',
-  color: active ? '#ffffff' : highlight ? '#b45309' : '#334155',
+  color: active ? '#ffffff' : highlight ? '#047857' : '#334155',
   fontWeight: active ? 700 : 600,
   cursor: 'pointer',
   fontSize: '0.88rem',

@@ -3,6 +3,14 @@ import { ConferenceContent } from '../types';
 export const initialConferenceData: ConferenceContent = {
   id: 'current_conference',
   updatedAt: new Date().toISOString(),
+  seo: {
+    pageTitle: 'ESIT 2025 | International Conference on Engineering Science & Innovative Technology',
+    metaDescription: 'The 5th International Conference on Engineering Science and Innovative Technology (ESIT 2025), Pattaya, Thailand. Fostering Smart Innovation, Sustainable Green Energy & Industrial AI.',
+    keywords: 'ESIT 2025, Conference, Engineering Science, KMUTNB, Pattaya, Call for Papers, Scopus, IEEE',
+    ogImageUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80',
+    siteUrl: 'https://esit-conference.vercel.app',
+    siteName: 'ESIT 2025 International Conference'
+  },
   hero: {
     edition: 'ESIT 2025',
     title: 'The 5th International Conference on Engineering Science and Innovative Technology',

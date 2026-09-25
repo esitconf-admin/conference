@@ -98,10 +98,20 @@ export interface ConferenceHeroData {
   cfpDownloadUrl?: string;
 }
 
+export interface ConferenceSEOMetadata {
+  pageTitle: string;
+  metaDescription: string;
+  keywords: string;
+  ogImageUrl: string;
+  siteUrl: string;
+  siteName: string;
+}
+
 export interface ConferenceContent {
   id: string;
   updatedAt: string;
   updatedBy?: string;
+  seo?: ConferenceSEOMetadata;
   hero: ConferenceHeroData;
   dates: ImportantDateItem[];
   news: NewsItem[];

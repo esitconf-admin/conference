@@ -10,6 +10,7 @@ interface ConferenceDataContextType {
   content: ConferenceContent;
   loading: boolean;
   updateHero: (hero: Partial<ConferenceContent['hero']>) => Promise<boolean>;
+  updateSEO: (seo: Partial<NonNullable<ConferenceContent['seo']>>) => Promise<boolean>;
   updateImportantDates: (dates: ImportantDateItem[]) => Promise<boolean>;
   updateNewsList: (news: NewsItem[]) => Promise<boolean>;
   updateKeynotes: (keynotes: KeynoteSpeaker[]) => Promise<boolean>;
@@ -91,6 +92,29 @@ export function ConferenceDataProvider({ children }: { children: React.ReactNode
     return saveContent(newContent);
   };
 
+  const updateSEO = async (seoUpdates: Partial<NonNullable<ConferenceContent['seo']>>): Promise<boolean> => {
+    const currentSeo = content.seo || {
+      pageTitle: content.hero.title,
+      metaDescription: content.hero.fullTheme,
+      keywords: 'ESIT, Conference, KMUTNB',
+      ogImageUrl: content.hero.posterImageUrl,
+      siteUrl: 'https://esit-conference.vercel.app',
+      siteName: 'ESIT Conference'
+    };
+
+    const newContent = {
+      ...content,
+      seo: { ...currentSeo, ...seoUpdates }
+    };
+
+    // Update live browser title if in window
+    if (typeof document !== 'undefined' && seoUpdates.pageTitle) {
+      document.title = seoUpdates.pageTitle;
+    }
+
+    return saveContent(newContent);
+  };
+
   const updateImportantDates = async (dates: ImportantDateItem[]): Promise<boolean> => {
     return saveContent({ ...content, dates });
   };
@@ -116,6 +140,7 @@ export function ConferenceDataProvider({ children }: { children: React.ReactNode
       content,
       loading,
       updateHero,
+      updateSEO,
       updateImportantDates,
       updateNewsList,
       updateKeynotes,
