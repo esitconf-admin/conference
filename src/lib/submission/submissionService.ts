@@ -42,14 +42,17 @@ export async function submitManuscript(
     // 1. Convert File to Base64
     const base64Data = await fileToBase64(params.file);
 
-    // 2. Post file to Google Apps Script to upload to Google Drive & trigger confirmation email
+    // 2. Post file to API route which uploads to Google Drive & triggers confirmation email
     let driveUrl = `https://drive.google.com/drive/search?q=${encodeURIComponent(submissionId)}`;
+    let driveFileId: string | undefined = undefined;
 
-    if (webhookUrl) {
-      try {
-        const payload = JSON.stringify({
-          action: 'upload_manuscript',
-          secret,
+    try {
+      const response = await fetch('/api/submit-manuscript', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
           submissionId,
           paperTitle: params.title,
           authorName: params.authorName,
@@ -58,20 +61,20 @@ export async function submitManuscript(
           fileName: params.file.name,
           mimeType: params.file.type || 'application/pdf',
           fileData: base64Data
-        });
+        })
+      });
 
-        // Use text/plain with no-cors to prevent CORS preflight error in Google Apps Script
-        await fetch(webhookUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: {
-            'Content-Type': 'text/plain'
-          },
-          body: payload
-        });
-      } catch (driveErr) {
-        console.warn('Google Drive webhook dispatch warning:', driveErr);
+      if (response.ok) {
+        const json = await response.json();
+        if (json.driveUrl) {
+          driveUrl = json.driveUrl;
+        }
+        if (json.fileId) {
+          driveFileId = json.fileId;
+        }
       }
+    } catch (apiErr) {
+      console.warn('API route upload warning, proceeding with Firestore save:', apiErr);
     }
 
     // 3. Prepare complete submission document

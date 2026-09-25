@@ -319,7 +319,39 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
         console.error('Error saving email templates to Firestore:', err);
       }
     }
-    showSuccess('Email template customized and saved successfully!');
+    showSuccess('Email templates saved successfully!');
+  };
+
+  // Add New Template Handler
+  const handleAddNewTemplate = () => {
+    const newId = 'tpl_' + Date.now();
+    const newTpl: EmailTemplateConfig = {
+      id: newId,
+      name: `Custom Template ${emailTemplates.length + 1}`,
+      templateKey: 'custom_message',
+      subject: `[${content.hero.edition}] Official Notice`,
+      headerTitle: `${content.hero.edition} Official Notification`,
+      bodyText: `Dear {name},\n\nWe are pleased to inform you regarding your participation in ${content.hero.edition}...\n\nBest regards,\n${content.hero.edition} Secretariat`,
+      buttonLabel: 'Access Conference Portal',
+      footerNote: `${content.hero.edition} Secretariat, ${content.hero.venueCityCountry}`
+    };
+    const updated = [...emailTemplates, newTpl];
+    setEmailTemplates(updated);
+    setSelectedTemplateIndex(updated.length - 1);
+    showSuccess('New template created! You can now customize and save it.');
+  };
+
+  // Delete Template Handler
+  const handleDeleteTemplate = (idx: number) => {
+    if (emailTemplates.length <= 1) {
+      alert('You must keep at least one template.');
+      return;
+    }
+    const templateName = emailTemplates[idx]?.name;
+    const updated = emailTemplates.filter((_, i) => i !== idx);
+    setEmailTemplates(updated);
+    setSelectedTemplateIndex(Math.max(0, idx - 1));
+    showSuccess(`Deleted template "${templateName}".`);
   };
 
   // Send Test for Current Selected Template
@@ -855,7 +887,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                                 href={sub.pdfUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                title="Open in Google Drive"
+                                title="Open Manuscript"
                                 style={{
                                   display: 'flex',
                                   alignItems: 'center',
@@ -869,8 +901,8 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                                   border: '1px solid #a7f3d0'
                                 }}
                               >
-                                <ExternalLink size={12} style={{ marginRight: '3px' }} />
-                                Drive
+                                <FileText size={12} style={{ marginRight: '3px' }} />
+                                Manuscript
                               </a>
                             )}
                             <span style={{
@@ -1981,8 +2013,8 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                                       textDecoration: 'none'
                                     }}
                                   >
-                                    <ExternalLink size={13} />
-                                    <span>Google Drive</span>
+                                    <FileText size={13} />
+                                    <span>Manuscript</span>
                                   </a>
                                 )}
 
@@ -2194,12 +2226,18 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                     Email Notification Templates Manager
                   </h4>
                   <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>
-                    Customize email subjects, header titles, body text, and signatures sent automatically via Gmail API.
+                    Create custom email templates and customize subjects, header titles, body text, and signatures sent via Gmail API.
                   </p>
                 </div>
-                <button onClick={handleSaveEmailTemplates} className="btn btn-primary btn-sm">
-                  <Save size={16} /> Save All Templates
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={handleAddNewTemplate} className="btn btn-outline-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Plus size={15} />
+                    <span>Create New Template</span>
+                  </button>
+                  <button onClick={handleSaveEmailTemplates} className="btn btn-primary btn-sm">
+                    <Save size={16} /> Save All Templates
+                  </button>
+                </div>
               </div>
 
               {/* Template selector pills */}
@@ -2244,6 +2282,48 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                   display: 'grid',
                   gap: '14px'
                 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={labelStyle}>Template Display Name (for selector dropdowns)</label>
+                      <input
+                        type="text"
+                        value={currentTemplate.name}
+                        onChange={(e) => {
+                          const updated = [...emailTemplates];
+                          updated[selectedTemplateIndex].name = e.target.value;
+                          setEmailTemplates(updated);
+                        }}
+                        style={inputStyle}
+                        placeholder="e.g. Acceptance Notice / Payment Reminder"
+                      />
+                    </div>
+                    {emailTemplates.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteTemplate(selectedTemplateIndex)}
+                        title="Delete this template"
+                        style={{
+                          background: 'none',
+                          border: '1px solid #fecaca',
+                          backgroundColor: '#fef2f2',
+                          color: '#dc2626',
+                          cursor: 'pointer',
+                          padding: '9px 12px',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          marginTop: '20px'
+                        }}
+                      >
+                        <Trash2 size={14} />
+                        <span>Delete</span>
+                      </button>
+                    )}
+                  </div>
+
                   <div>
                     <label style={labelStyle}>Email Subject Line</label>
                     <input

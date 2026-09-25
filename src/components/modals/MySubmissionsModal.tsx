@@ -417,7 +417,7 @@ export default function MySubmissionsModal({
                       </div>
 
                       <div style={{ display: 'flex', gap: '8px' }}>
-                        {paper.pdfUrl && (
+                        {paper.pdfUrl ? (
                           <a
                             href={paper.pdfUrl}
                             target="_blank"
@@ -436,9 +436,13 @@ export default function MySubmissionsModal({
                               textDecoration: 'none'
                             }}
                           >
-                            <ExternalLink size={14} />
-                            <span>View in Google Drive</span>
+                            <FileText size={14} />
+                            <span>Manuscript</span>
                           </a>
+                        ) : (
+                          <span style={{ fontSize: '0.78rem', color: '#94a3b8', padding: '4px 8px' }}>
+                            No file attached
+                          </span>
                         )}
                       </div>
                     </div>
