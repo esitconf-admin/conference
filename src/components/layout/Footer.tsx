@@ -44,11 +44,15 @@ export default function Footer({ onOpenPDPA, onOpenAdmin, onOpenAuth }: FooterPr
                 fontWeight: 800,
                 lineHeight: 1
               }}>
-                <span style={{ fontSize: '0.95rem' }}>ESIT</span>
-                <span style={{ fontSize: '0.65rem', color: '#f59e0b' }}>2025</span>
+                <span style={{ fontSize: '0.95rem' }}>
+                  {hero.edition.split(' ')[0] || 'ESIT'}
+                </span>
+                <span style={{ fontSize: '0.65rem', color: '#f59e0b' }}>
+                  {hero.edition.split(' ')[1] || '2027'}
+                </span>
               </div>
               <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#ffffff' }}>
-                ESIT 2025
+                {hero.edition}
               </div>
             </div>
 

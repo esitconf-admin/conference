@@ -97,8 +97,12 @@ export default function Navbar({ onOpenAuth, onOpenSubmission, onOpenAdmin }: Na
               lineHeight: 1,
               boxShadow: '0 4px 10px rgba(15, 61, 62, 0.25)'
             }}>
-              <span style={{ fontSize: '0.95rem', letterSpacing: '-0.5px' }}>ESIT</span>
-              <span style={{ fontSize: '0.65rem', color: '#f59e0b' }}>2025</span>
+              <span style={{ fontSize: '0.95rem', letterSpacing: '-0.5px' }}>
+                {content.hero.edition.split(' ')[0] || 'ESIT'}
+              </span>
+              <span style={{ fontSize: '0.65rem', color: '#f59e0b' }}>
+                {content.hero.edition.split(' ')[1] || '2027'}
+              </span>
             </div>
             <div>
               <div style={{
@@ -108,10 +112,10 @@ export default function Navbar({ onOpenAuth, onOpenSubmission, onOpenAdmin }: Na
                 letterSpacing: '-0.5px',
                 lineHeight: 1.1
               }}>
-                ESIT 2025
+                {content.hero.edition}
               </div>
               <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
-                Pattaya, Thailand
+                {content.hero.venueCityCountry}
               </div>
             </div>
           </a>
