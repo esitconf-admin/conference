@@ -90,6 +90,9 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
   const [testEmailSending, setTestEmailSending] = useState(false);
   const [testEmailStatus, setTestEmailStatus] = useState<string | null>(null);
 
+  // Reviewer Evaluations Inspection Modal
+  const [viewingEvaluationsPaper, setViewingEvaluationsPaper] = useState<ManuscriptSubmission | null>(null);
+
   // Copy helper
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -1903,16 +1906,18 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
                   <thead>
                     <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '1px solid #e2e8f0', textAlign: 'left', color: '#475569' }}>
-                      <th style={{ padding: '12px 16px', width: '150px' }}>Tracking ID</th>
+                      <th style={{ padding: '12px 16px', width: '130px' }}>Tracking ID</th>
                       <th style={{ padding: '12px 16px' }}>Manuscript Title & Track</th>
                       <th style={{ padding: '12px 16px' }}>Author / Submitter</th>
-                      <th style={{ padding: '12px 16px' }}>Date</th>
+                      <th style={{ padding: '12px 16px' }}>Assigned Reviewers</th>
+                      <th style={{ padding: '12px 16px' }}>Evaluations</th>
                       <th style={{ padding: '12px 16px' }}>Review Status</th>
                       <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(() => {
+                      const availableReviewers = allUsers.filter(u => u.roles.includes('reviewer'));
                       const filtered = submissionsList.filter(sub => {
                         const matchesTrack = submissionTrackFilter === 'All Tracks' || sub.track === submissionTrackFilter;
                         const q = submissionSearch.toLowerCase().trim();
@@ -1928,7 +1933,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                       if (filtered.length === 0) {
                         return (
                           <tr>
-                            <td colSpan={6} style={{ padding: '40px 16px', textAlign: 'center', color: '#94a3b8' }}>
+                            <td colSpan={7} style={{ padding: '40px 16px', textAlign: 'center', color: '#94a3b8' }}>
                               <FileText size={32} style={{ margin: '0 auto 8px auto', opacity: 0.5, display: 'block' }} />
                               {submissionsList.length === 0 ? 'No manuscripts submitted yet. When authors submit papers, they will appear here.' : 'No submissions match your search query.'}
                             </td>
@@ -1953,6 +1958,10 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                         };
 
                         const badge = getStatusBadge(sub.status);
+                        const evaluations = sub.evaluations || [];
+                        const avgScore = evaluations.length > 0 
+                          ? (evaluations.reduce((acc, curr) => acc + curr.overallScore, 0) / evaluations.length).toFixed(1)
+                          : null;
 
                         return (
                           <tr key={sub.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
@@ -1971,7 +1980,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                               </span>
                             </td>
 
-                            <td style={{ padding: '14px 16px', verticalAlign: 'top' }}>
+                            <td style={{ padding: '14px 16px', verticalAlign: 'top', maxWidth: '280px' }}>
                               <strong style={{ color: '#0f3d3e', fontSize: '0.92rem', display: 'block', marginBottom: '4px' }}>
                                 {sub.title}
                               </strong>
@@ -1991,12 +2000,125 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                               <div style={{ fontSize: '0.78rem', color: '#0284c7' }}>{sub.authorEmail}</div>
                             </td>
 
-                            <td style={{ padding: '14px 16px', verticalAlign: 'top', color: '#64748b', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                              {new Date(sub.submittedAt).toLocaleDateString('en-GB', {
-                                day: 'numeric',
-                                month: 'short',
-                                year: 'numeric'
-                              })}
+                            {/* ASSIGNED REVIEWERS & ASSIGN SELECTOR */}
+                            <td style={{ padding: '14px 16px', verticalAlign: 'top', minWidth: '180px' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                {sub.assignedReviewers && sub.assignedReviewers.length > 0 ? (
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                    {sub.assignedReviewers.map((rev, rIdx) => {
+                                      const matchedUser = allUsers.find(u => u.email.toLowerCase() === rev.toLowerCase() || u.uid === rev);
+                                      const displayName = matchedUser ? `${matchedUser.firstName} ${matchedUser.lastName}` : rev;
+                                      return (
+                                        <span
+                                          key={rIdx}
+                                          style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            backgroundColor: '#f0fdf4',
+                                            color: '#166534',
+                                            border: '1px solid #bbf7d0',
+                                            padding: '2px 6px',
+                                            borderRadius: '4px',
+                                            fontSize: '0.75rem',
+                                            fontWeight: 600
+                                          }}
+                                          title={rev}
+                                        >
+                                          <span>👤 {displayName}</span>
+                                          <button
+                                            onClick={async () => {
+                                              await removeReviewerFromPaper(sub.id, rev);
+                                              showSuccess(`Removed reviewer ${displayName} from ${sub.id}`);
+                                              await loadSubmissions();
+                                            }}
+                                            style={{
+                                              background: 'none',
+                                              border: 'none',
+                                              color: '#dc2626',
+                                              cursor: 'pointer',
+                                              padding: '0 2px',
+                                              fontSize: '0.8rem',
+                                              lineHeight: 1
+                                            }}
+                                            title="Remove Reviewer"
+                                          >
+                                            ×
+                                          </button>
+                                        </span>
+                                      );
+                                    })}
+                                  </div>
+                                ) : (
+                                  <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                                    No reviewer assigned
+                                  </span>
+                                )}
+
+                                {/* Assign Reviewer Dropdown */}
+                                <select
+                                  defaultValue=""
+                                  onChange={async (e) => {
+                                    const selectedVal = e.target.value;
+                                    if (!selectedVal) return;
+                                    await assignReviewerToPaper(sub.id, selectedVal);
+                                    showSuccess(`Assigned reviewer to paper ${sub.id} & notified author/reviewer`);
+                                    await loadSubmissions();
+                                    e.target.value = "";
+                                  }}
+                                  style={{
+                                    padding: '3px 6px',
+                                    borderRadius: '6px',
+                                    border: '1px dashed #0f3d3e',
+                                    fontSize: '0.75rem',
+                                    backgroundColor: '#ffffff',
+                                    color: '#0f3d3e',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    marginTop: '4px'
+                                  }}
+                                >
+                                  <option value="">+ Assign Reviewer...</option>
+                                  {availableReviewers.map((u) => (
+                                    <option key={u.uid} value={u.email}>
+                                      {u.firstName} {u.lastName} ({u.organization || u.email})
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </td>
+
+                            {/* EVALUATIONS SCORE BADGE */}
+                            <td style={{ padding: '14px 16px', verticalAlign: 'top' }}>
+                              {evaluations.length > 0 ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setViewingEvaluationsPaper(sub)}
+                                  style={{
+                                    display: 'inline-flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'flex-start',
+                                    background: '#fefce8',
+                                    border: '1px solid #fef08a',
+                                    borderRadius: '6px',
+                                    padding: '4px 8px',
+                                    cursor: 'pointer',
+                                    textAlign: 'left'
+                                  }}
+                                  title="Click to view detailed criteria scores & feedback"
+                                >
+                                  <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#854d0e', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                    ⭐ {avgScore} / 5.0
+                                  </span>
+                                  <span style={{ fontSize: '0.72rem', color: '#a16207', fontWeight: 600 }}>
+                                    {evaluations.length} {evaluations.length === 1 ? 'Review' : 'Reviews'} ➔
+                                  </span>
+                                </button>
+                              ) : (
+                                <span style={{ fontSize: '0.76rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                                  Pending Review
+                                </span>
+                              )}
                             </td>
 
                             <td style={{ padding: '14px 16px', verticalAlign: 'top' }}>
@@ -2731,6 +2853,189 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: REVIEWER EVALUATIONS INSPECTOR */}
+      {viewingEvaluationsPaper && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1100,
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '750px',
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '18px 24px',
+              backgroundColor: '#0f3d3e',
+              color: '#ffffff',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '8px', color: '#ffffff' }}>
+                  <Award size={20} color="#fef3c7" /> Reviewer Evaluation Scorecards
+                </h3>
+                <span style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>
+                  Paper: {viewingEvaluationsPaper.id} — {viewingEvaluationsPaper.title}
+                </span>
+              </div>
+              <button
+                onClick={() => setViewingEvaluationsPaper(null)}
+                style={{ background: 'none', border: 'none', color: '#ffffff', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {(!viewingEvaluationsPaper.evaluations || viewingEvaluationsPaper.evaluations.length === 0) ? (
+                <div style={{ textAlign: 'center', padding: '40px 20px', color: '#64748b' }}>
+                  <Clock size={36} style={{ margin: '0 auto 12px auto', opacity: 0.5, display: 'block' }} />
+                  <p style={{ fontWeight: 600, margin: '0 0 4px 0' }}>No evaluation submitted yet.</p>
+                  <p style={{ fontSize: '0.85rem', margin: 0 }}>Assigned reviewers have not finalized their scores.</p>
+                </div>
+              ) : (
+                viewingEvaluationsPaper.evaluations.map((ev, index) => {
+                  const getRecBadge = (rec: string) => {
+                    switch (rec) {
+                      case 'accept': return { bg: '#dcfce7', text: '#15803d', label: 'Accept (as is)' };
+                      case 'minor_revision': return { bg: '#fef9c3', text: '#a16207', label: 'Minor Revision' };
+                      case 'major_revision': return { bg: '#ffedd5', text: '#c2410c', label: 'Major Revision' };
+                      case 'reject': return { bg: '#fee2e2', text: '#b91c1c', label: 'Reject' };
+                      default: return { bg: '#f1f5f9', text: '#475569', label: rec };
+                    }
+                  };
+                  const recBadge = getRecBadge(ev.recommendation);
+
+                  return (
+                    <div
+                      key={ev.id || index}
+                      style={{
+                        backgroundColor: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '12px',
+                        padding: '18px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '14px'
+                      }}
+                    >
+                      {/* Reviewer Header */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+                        <div>
+                          <strong style={{ color: '#0f3d3e', fontSize: '0.95rem' }}>
+                            👤 Reviewer #{index + 1} ({ev.reviewerName || ev.reviewerEmail})
+                          </strong>
+                          <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                            Submitted: {new Date(ev.submittedAt).toLocaleString('en-GB')}
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{
+                            backgroundColor: '#0f3d3e',
+                            color: '#fef3c7',
+                            padding: '4px 10px',
+                            borderRadius: '20px',
+                            fontSize: '0.84rem',
+                            fontWeight: 800
+                          }}>
+                            ⭐ {ev.overallScore.toFixed(1)} / 5.0
+                          </span>
+                          <span style={{
+                            backgroundColor: recBadge.bg,
+                            color: recBadge.text,
+                            padding: '4px 10px',
+                            borderRadius: '6px',
+                            fontSize: '0.78rem',
+                            fontWeight: 700
+                          }}>
+                            {recBadge.label}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Criteria Score Matrix */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '8px', backgroundColor: '#ffffff', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Originality</div>
+                          <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0f3d3e' }}>{ev.originalityScore}/5</div>
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Technical Merit</div>
+                          <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0f3d3e' }}>{ev.technicalScore}/5</div>
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Methodology</div>
+                          <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0f3d3e' }}>{ev.methodologyScore}/5</div>
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Clarity</div>
+                          <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0f3d3e' }}>{ev.clarityScore}/5</div>
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Relevance</div>
+                          <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0f3d3e' }}>{ev.relevanceScore}/5</div>
+                        </div>
+                      </div>
+
+                      {/* Comments for Author */}
+                      <div>
+                        <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                          💬 Comments for Author (Will be shared in decision letter):
+                        </div>
+                        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '10px 12px', fontSize: '0.84rem', color: '#334155', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>
+                          {ev.commentsForAuthor || '(No author comments provided)'}
+                        </div>
+                      </div>
+
+                      {/* Confidential Comments for Committee */}
+                      {ev.confidentialCommentsForAdmin && (
+                        <div>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#991b1b', marginBottom: '4px' }}>
+                            🔒 Confidential Notes to Scientific Committee:
+                          </div>
+                          <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '10px 12px', fontSize: '0.84rem', color: '#991b1b', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>
+                            {ev.confidentialCommentsForAdmin}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{ padding: '14px 24px', backgroundColor: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setViewingEvaluationsPaper(null)}
+                className="btn btn-primary btn-sm"
+              >
+                Close Inspector
+              </button>
+            </div>
           </div>
         </div>
       )}
