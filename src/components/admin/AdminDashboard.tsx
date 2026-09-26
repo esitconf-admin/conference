@@ -150,10 +150,14 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
 
   useEffect(() => {
     if (isOpen && isAdmin) {
-      fetchAllUsers();
-      loadSubmissions();
+      if (activeTab === 'submissions' || activeTab === 'overview') {
+        loadSubmissions();
+      }
+      if (activeTab === 'users' || activeTab === 'overview') {
+        fetchAllUsers();
+      }
     }
-  }, [isOpen, isAdmin, fetchAllUsers]);
+  }, [isOpen, isAdmin, activeTab, fetchAllUsers]);
 
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);

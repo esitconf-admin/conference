@@ -1,6 +1,6 @@
 import { ManuscriptSubmission, ReviewEvaluation } from '../types';
 import { db, isFirebaseConfigured } from '../firebase/config';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { getAllSubmissions } from '../submission/submissionService';
 import { sendConferenceEmail } from '../email/emailService';
 
@@ -61,11 +61,18 @@ export async function submitPaperEvaluation(
       return { success: false, error: 'Manuscript record not found.' };
     }
 
-    // 2. Append or update evaluation
+    // 2. Append or update evaluation (supports multiple independent reviewers per manuscript)
     const existingEvaluations = currentPaper.evaluations || [];
-    const filteredEvaluations = existingEvaluations.filter(
-      e => e.reviewerUid !== evaluation.reviewerUid && e.id !== evaluation.id
-    );
+    const revUid = (evaluation.reviewerUid || '').toLowerCase().trim();
+    const revEmail = (evaluation.reviewerEmail || '').toLowerCase().trim();
+
+    const filteredEvaluations = existingEvaluations.filter(e => {
+      const eUid = (e.reviewerUid || '').toLowerCase().trim();
+      const eEmail = (e.reviewerEmail || '').toLowerCase().trim();
+      const isMatch = (revUid && eUid === revUid) || (revEmail && eEmail === revEmail) || e.id === evaluation.id;
+      return !isMatch;
+    });
+
     const updatedEvaluations = [...filteredEvaluations, evaluation];
 
     // Determine status recommendation if applicable
@@ -76,13 +83,15 @@ export async function submitPaperEvaluation(
 
     const paperUpdates: Partial<ManuscriptSubmission> = {
       evaluations: updatedEvaluations,
-      status: newStatus
+      status: newStatus,
+      updatedAt: new Date().toISOString()
     };
 
     // 3. Save updates to Firestore
     if (isFirebaseConfigured && db) {
       try {
-        await updateDoc(doc(db, 'submissions', submissionId), paperUpdates);
+        const docRef = doc(db, 'submissions', submissionId);
+        await setDoc(docRef, { ...currentPaper, ...paperUpdates }, { merge: true });
       } catch (err) {
         console.error('Firestore evaluation update error:', err);
       }

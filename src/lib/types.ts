@@ -175,6 +175,7 @@ export interface ManuscriptSubmission {
   fileName?: string;
   status: 'submitted' | 'under_review' | 'revision_requested' | 'accepted' | 'rejected';
   submittedAt: string;
+  updatedAt?: string;
   assignedReviewers?: string[];
   evaluations?: ReviewEvaluation[];
 }

@@ -33,13 +33,23 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Manuscript Submissions: Authors can create/read own, Reviewers can read assigned, Admins can manage all
+    // Manuscript Submissions: Authors can create/read own, Reviewers can read/evaluate assigned, Admins can manage all
     match /submissions/{submissionId} {
       allow read: if isAdmin() || 
         (isAuthenticated() && resource.data.authorUid == request.auth.uid) ||
-        (isAuthenticated() && request.auth.uid in resource.data.assignedReviewers);
+        (isAuthenticated() && (
+          request.auth.uid in resource.data.assignedReviewers || 
+          request.auth.token.email in resource.data.assignedReviewers ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles.hasAny(['reviewer'])
+        ));
       allow create: if isAuthenticated();
-      allow update: if isAdmin() || (isAuthenticated() && resource.data.authorUid == request.auth.uid);
+      allow update: if isAdmin() || 
+        (isAuthenticated() && resource.data.authorUid == request.auth.uid) ||
+        (isAuthenticated() && (
+          request.auth.uid in resource.data.assignedReviewers || 
+          request.auth.token.email in resource.data.assignedReviewers ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles.hasAny(['reviewer'])
+        ));
       allow delete: if isAdmin() || (isAuthenticated() && resource.data.authorUid == request.auth.uid);
     }
 
