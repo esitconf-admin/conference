@@ -304,9 +304,8 @@ Prof. Dr. David T.W. Lin (National University of Tainan, Taiwan) – Low Grade W
   ],
   contactInfo: {
     chairperson: 'Assoc. Prof. Dr. Rattanakorn Phadungthin',
-    chairpersonEmail: 'esit@cit.kmutnb.ac.th',
-    secretariatEmail: 'secretariat.esit@cit.kmutnb.ac.th',
-    phone: '+66 2 555 2000 ext 6221',
+    chairpersonEmail: 'esitconf@gmail.com',
+    secretariatEmail: 'esitconf@gmail.com',
     address: 'College of Industrial Technology, KMUTNB, 1518 Pracharat 1 Rd, Bangkok 10800, Thailand'
   }
 };
