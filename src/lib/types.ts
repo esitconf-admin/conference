@@ -127,7 +127,7 @@ export interface ConferenceContent {
     chairperson: string;
     chairpersonEmail: string;
     secretariatEmail: string;
-    phone: string;
+    phone?: string;
     address: string;
   };
 }

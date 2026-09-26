@@ -114,26 +114,28 @@ export default function Footer({ onOpenPDPA, onOpenAdmin, onOpenAuth }: FooterPr
                 <Mail size={16} color="#f59e0b" style={{ flexShrink: 0, marginTop: '3px' }} />
                 <div>
                   <div style={{ color: '#ffffff', fontWeight: 600 }}>Secretariat E-mail</div>
-                  <a href={`mailto:${contactInfo.secretariatEmail}`} style={{ color: '#94a3b8', textDecoration: 'none' }}>
-                    {contactInfo.secretariatEmail}
+                  <a href={`mailto:${contactInfo?.secretariatEmail || 'esitconf@gmail.com'}`} style={{ color: '#94a3b8', textDecoration: 'none' }}>
+                    {contactInfo?.secretariatEmail || 'esitconf@gmail.com'}
                   </a>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                <Phone size={16} color="#f59e0b" style={{ flexShrink: 0, marginTop: '3px' }} />
-                <div>
-                  <div style={{ color: '#ffffff', fontWeight: 600 }}>Phone / Tel</div>
-                  <span style={{ color: '#94a3b8' }}>{contactInfo.phone}</span>
+              {contactInfo?.phone && (
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                  <Phone size={16} color="#f59e0b" style={{ flexShrink: 0, marginTop: '3px' }} />
+                  <div>
+                    <div style={{ color: '#ffffff', fontWeight: 600 }}>Phone / Tel</div>
+                    <span style={{ color: '#94a3b8' }}>{contactInfo.phone}</span>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
                 <MapPin size={16} color="#f59e0b" style={{ flexShrink: 0, marginTop: '3px' }} />
                 <div>
                   <div style={{ color: '#ffffff', fontWeight: 600 }}>Secretariat Office</div>
                   <span style={{ color: '#94a3b8', fontSize: '0.82rem', lineHeight: '1.4' }}>
-                    {contactInfo.address}
+                    {contactInfo?.address || 'College of Industrial Technology, KMUTNB, 1518 Pracharat 1 Rd, Bangkok 10800, Thailand'}
                   </span>
                 </div>
               </div>

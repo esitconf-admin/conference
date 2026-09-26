@@ -39,7 +39,8 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     updateSEO,
     updateImportantDates,
     updateNewsList,
-    updateKeynotes
+    updateKeynotes,
+    updateContactInfo
   } = useConferenceData();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'hero' | 'dates' | 'news' | 'keynotes' | 'submissions' | 'users' | 'templates' | 'seo' | 'email'>('overview');
@@ -57,6 +58,13 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
   const [datesList, setDatesList] = useState<ImportantDateItem[]>(content.dates);
   const [newsList, setNewsList] = useState<NewsItem[]>(content.news);
   const [keynotesList, setKeynotesList] = useState<KeynoteSpeaker[]>(content.keynotes);
+  const [contactForm, setContactForm] = useState(content.contactInfo || {
+    chairperson: 'Assoc. Prof. Dr. Rattanakorn Phadungthin',
+    chairpersonEmail: 'esitconf@gmail.com',
+    secretariatEmail: 'esitconf@gmail.com',
+    phone: '',
+    address: 'College of Industrial Technology, KMUTNB, 1518 Pracharat 1 Rd, Bangkok 10800, Thailand'
+  });
 
   // SEO & Social Preview Form
   const [seoForm, setSeoForm] = useState<ConferenceSEOMetadata>(
@@ -112,6 +120,9 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     setKeynotesList(content.keynotes);
     if (content.seo) {
       setSeoForm(content.seo);
+    }
+    if (content.contactInfo) {
+      setContactForm(content.contactInfo);
     }
   }, [content]);
 
@@ -228,7 +239,8 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
   const handleSaveHero = async (e: React.FormEvent) => {
     e.preventDefault();
     await updateHero(heroForm);
-    showSuccess('Hero banner and conference details updated successfully!');
+    await updateContactInfo(contactForm);
+    showSuccess('Hero banner, venue details, and secretariat contact info updated successfully!');
   };
 
   const handleSaveSEO = async (e: React.FormEvent) => {
@@ -1226,21 +1238,89 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                 </div>
               </div>
 
-              <div>
-                <label style={labelStyle}>Conference Poster Image URL</label>
-                <input
-                  type="text"
-                  value={heroForm.posterImageUrl}
-                  onChange={(e) => setHeroForm({ ...heroForm, posterImageUrl: e.target.value })}
-                  style={inputStyle}
-                />
-                <span style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                  Image URL or public image link for the main landing page poster.
-                </span>
+              {/* SECRETARIAT & CONTACT INFORMATION (FOOTER & INQUIRIES) */}
+              <div style={{
+                marginTop: '10px',
+                padding: '18px',
+                backgroundColor: '#ffffff',
+                border: '1px solid #cbd5e1',
+                borderRadius: '10px',
+                display: 'grid',
+                gap: '14px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+                  <Mail size={18} color="#0f3d3e" />
+                  <strong style={{ color: '#0f3d3e', fontSize: '0.96rem' }}>
+                    Secretariat & Footer Contact Information
+                  </strong>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                  <div>
+                    <label style={labelStyle}>Secretariat Official E-mail *</label>
+                    <input
+                      type="email"
+                      required
+                      value={contactForm.secretariatEmail}
+                      onChange={(e) => setContactForm({ ...contactForm, secretariatEmail: e.target.value })}
+                      style={inputStyle}
+                      placeholder="e.g. esitconf@gmail.com"
+                    />
+                    <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px', display: 'block' }}>
+                      Displayed in the Footer Secretariat contact section.
+                    </span>
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>Phone / Tel (Optional)</label>
+                    <input
+                      type="text"
+                      value={contactForm.phone || ''}
+                      onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+                      style={inputStyle}
+                      placeholder="e.g. +66 2 555 2000 (leave blank to hide)"
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                  <div>
+                    <label style={labelStyle}>Conference Chairperson Name</label>
+                    <input
+                      type="text"
+                      value={contactForm.chairperson}
+                      onChange={(e) => setContactForm({ ...contactForm, chairperson: e.target.value })}
+                      style={inputStyle}
+                      placeholder="e.g. Assoc. Prof. Dr. Rattanakorn Phadungthin"
+                    />
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>Chairperson E-mail</label>
+                    <input
+                      type="email"
+                      value={contactForm.chairpersonEmail}
+                      onChange={(e) => setContactForm({ ...contactForm, chairpersonEmail: e.target.value })}
+                      style={inputStyle}
+                      placeholder="e.g. esitconf@gmail.com"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={labelStyle}>Secretariat Office Address</label>
+                  <textarea
+                    rows={2}
+                    value={contactForm.address}
+                    onChange={(e) => setContactForm({ ...contactForm, address: e.target.value })}
+                    style={{ ...inputStyle, fontFamily: 'inherit' }}
+                    placeholder="e.g. College of Industrial Technology, KMUTNB..."
+                  />
+                </div>
               </div>
 
               <button type="submit" className="btn btn-primary" style={{ justifySelf: 'start', marginTop: '8px' }}>
-                <Save size={16} /> Save Hero Changes
+                <Save size={16} /> Save Hero & Contact Changes
               </button>
             </form>
           )}

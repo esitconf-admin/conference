@@ -15,6 +15,7 @@ interface ConferenceDataContextType {
   updateNewsList: (news: NewsItem[]) => Promise<boolean>;
   updateKeynotes: (keynotes: KeynoteSpeaker[]) => Promise<boolean>;
   updateCommittees: (committees: CommitteeGroup[]) => Promise<boolean>;
+  updateContactInfo: (contactInfo: Partial<ConferenceContent['contactInfo']>) => Promise<boolean>;
   resetToDefault: () => Promise<boolean>;
 }
 
@@ -143,6 +144,17 @@ export function ConferenceDataProvider({ children }: { children: React.ReactNode
     return saveContent({ ...content, committees });
   };
 
+  const updateContactInfo = async (contactUpdates: Partial<ConferenceContent['contactInfo']>): Promise<boolean> => {
+    const newContent = {
+      ...content,
+      contactInfo: {
+        ...content.contactInfo,
+        ...contactUpdates
+      }
+    };
+    return saveContent(newContent);
+  };
+
   const resetToDefault = async (): Promise<boolean> => {
     return saveContent(initialConferenceData);
   };
@@ -157,6 +169,7 @@ export function ConferenceDataProvider({ children }: { children: React.ReactNode
       updateNewsList,
       updateKeynotes,
       updateCommittees,
+      updateContactInfo,
       resetToDefault
     }}>
       {children}
