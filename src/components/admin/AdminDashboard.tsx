@@ -6,16 +6,17 @@ import {
   Trash2, Plus, RefreshCw, Send, Mail, AlertCircle, FileText,
   Sparkles, UserCheck, Eye, MessageSquare, LayoutTemplate, ArrowRight,
   Globe, Share2, Copy, CheckCheck, ExternalLink, BarChart3, Activity,
-  ArrowUpRight, CheckCircle, Clock, Folder
+  ArrowUpRight, CheckCircle, Clock, Folder, Star, Award
 } from 'lucide-react';
 import { useAuth } from '../../lib/context/AuthContext';
 import { useConferenceData } from '../../lib/context/ConferenceDataContext';
 import {
   ImportantDateItem, NewsItem, KeynoteSpeaker, UserProfile,
-  EmailTemplateConfig, ConferenceSEOMetadata, ManuscriptSubmission
+  EmailTemplateConfig, ConferenceSEOMetadata, ManuscriptSubmission, ReviewEvaluation
 } from '../../lib/types';
 import { sendConferenceEmail } from '../../lib/email/emailService';
 import { getAllSubmissions, updateSubmissionStatus } from '../../lib/submission/submissionService';
+import { assignReviewerToPaper, removeReviewerFromPaper } from '../../lib/review/reviewService';
 import { defaultEmailTemplates } from '../../lib/data/initialEmailTemplates';
 import { db, isFirebaseConfigured } from '../../lib/firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';

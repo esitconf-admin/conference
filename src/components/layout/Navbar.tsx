@@ -1,7 +1,6 @@
 'use client';
-
 import React, { useState } from 'react';
-import { MapPin, User, LogOut, Shield, ChevronDown, Menu, X, FileUp, FileText } from 'lucide-react';
+import { MapPin, User, LogOut, Shield, ChevronDown, Menu, X, FileUp, FileText, Award } from 'lucide-react';
 import { useAuth } from '../../lib/context/AuthContext';
 import { useConferenceData } from '../../lib/context/ConferenceDataContext';
 
@@ -10,9 +9,16 @@ interface NavbarProps {
   onOpenSubmission: () => void;
   onOpenAdmin: () => void;
   onOpenMySubmissions: () => void;
+  onOpenReviewerPortal?: () => void;
 }
 
-export default function Navbar({ onOpenAuth, onOpenSubmission, onOpenAdmin, onOpenMySubmissions }: NavbarProps) {
+export default function Navbar({
+  onOpenAuth,
+  onOpenSubmission,
+  onOpenAdmin,
+  onOpenMySubmissions,
+  onOpenReviewerPortal
+}: NavbarProps) {
   const { currentUser, logout, isAdmin, isReviewer, isAuthor } = useAuth();
   const { content } = useConferenceData();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -240,6 +246,32 @@ export default function Navbar({ onOpenAuth, onOpenSubmission, onOpenAdmin, onOp
                       <FileText size={16} color="#0f3d3e" />
                       <span>My Submissions</span>
                     </button>
+
+                    {(isReviewer || isAdmin) && onOpenReviewerPortal && (
+                      <button
+                        onClick={() => { setUserDropdownOpen(false); onOpenReviewerPortal(); }}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '10px 12px',
+                          background: 'none',
+                          border: 'none',
+                          borderRadius: '6px',
+                          color: '#0f3d3e',
+                          fontWeight: 700,
+                          fontSize: '0.86rem',
+                          cursor: 'pointer',
+                          textAlign: 'left'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#ecfdf5'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                      >
+                        <Award size={16} color="#059669" />
+                        <span>Reviewer Evaluation Portal</span>
+                      </button>
+                    )}
 
                     {isAdmin && (
                       <button

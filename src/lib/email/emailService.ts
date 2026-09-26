@@ -7,7 +7,15 @@ export interface SendEmailPayload {
   to: string;
   recipientName: string;
   subject: string;
-  template: 'welcome_author' | 'reviewer_assigned' | 'password_reset' | 'manuscript_submitted' | 'admin_alert' | 'custom_message';
+  template: 
+    | 'welcome_author' 
+    | 'reviewer_assigned' 
+    | 'paper_under_review' 
+    | 'reviewer_paper_assigned' 
+    | 'password_reset' 
+    | 'manuscript_submitted' 
+    | 'admin_alert' 
+    | 'custom_message';
   data?: Record<string, string | number | boolean | undefined>;
 }
 

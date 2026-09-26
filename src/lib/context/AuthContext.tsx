@@ -11,6 +11,7 @@ import {
   User as FirebaseUser
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, collection, getDocs } from 'firebase/firestore';
+import { sendConferenceEmail } from '../email/emailService';
 
 interface AuthContextType {
   currentUser: UserProfile | null;
@@ -261,6 +262,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (e) {
         console.error('Failed to update reviewer role in Firestore:', e);
+      }
+    }
+
+    // Send automated email notification to newly appointed reviewer
+    if (makeReviewer) {
+      const targetUser = updated.find(u => u.uid === uid);
+      if (targetUser && targetUser.email) {
+        const portalUrl = typeof window !== 'undefined' ? window.location.origin : 'https://esit-conference.vercel.app';
+        sendConferenceEmail({
+          to: targetUser.email,
+          recipientName: `${targetUser.firstName} ${targetUser.lastName}`.trim() || 'Reviewer',
+          subject: 'Official Appointment: ESIT Technical Reviewer - ESIT Conference',
+          template: 'reviewer_assigned',
+          data: {
+            portalUrl: portalUrl
+          }
+        }).catch(err => console.warn('Reviewer appointment email notice failed:', err));
       }
     }
 

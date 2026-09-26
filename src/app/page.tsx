@@ -16,8 +16,9 @@ import FloatingScrollTop from '../components/common/FloatingScrollTop';
 import AuthModal from '../components/modals/AuthModal';
 import SubmitManuscriptModal from '../components/modals/SubmitManuscriptModal';
 import PDPAPrivacyModal from '../components/modals/PDPAPrivacyModal';
-import AdminDashboard from '../components/admin/AdminDashboard';
 import MySubmissionsModal from '../components/modals/MySubmissionsModal';
+import ReviewerPortalModal from '../components/modals/ReviewerPortalModal';
+import AdminDashboard from '../components/admin/AdminDashboard';
 import { useConferenceData } from '../lib/context/ConferenceDataContext';
 
 export default function HomePage() {
@@ -26,6 +27,7 @@ export default function HomePage() {
   const [authDefaultMode, setAuthDefaultMode] = useState<'login' | 'register'>('login');
   const [submissionModalOpen, setSubmissionModalOpen] = useState(false);
   const [mySubmissionsModalOpen, setMySubmissionsModalOpen] = useState(false);
+  const [reviewerPortalOpen, setReviewerPortalOpen] = useState(false);
   const [pdpaModalOpen, setPdpaModalOpen] = useState(false);
   const [adminDashboardOpen, setAdminDashboardOpen] = useState(false);
 
@@ -81,6 +83,7 @@ export default function HomePage() {
         onOpenSubmission={() => setSubmissionModalOpen(true)}
         onOpenAdmin={() => setAdminDashboardOpen(true)}
         onOpenMySubmissions={() => setMySubmissionsModalOpen(true)}
+        onOpenReviewerPortal={() => setReviewerPortalOpen(true)}
       />
 
       {/* 2. Main One-Page Conference Landing */}
@@ -124,6 +127,12 @@ export default function HomePage() {
         isOpen={mySubmissionsModalOpen}
         onClose={() => setMySubmissionsModalOpen(false)}
         onOpenNewSubmission={() => setSubmissionModalOpen(true)}
+        onRequireAuth={() => handleOpenAuth('login')}
+      />
+
+      <ReviewerPortalModal
+        isOpen={reviewerPortalOpen}
+        onClose={() => setReviewerPortalOpen(false)}
         onRequireAuth={() => handleOpenAuth('login')}
       />
 

@@ -240,12 +240,62 @@ function doPost(e) {
       htmlBody = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px;">
           <div style="background-color: #0f3d3e; color: #ffffff; padding: 18px; border-radius: 6px; text-align: center;">
-            <h2 style="margin: 0; color: #ffffff;">Reviewer Appointment Notice</h2>
+            <h2 style="margin: 0; color: #ffffff;">ESIT Conference Secretariat</h2>
+            <span style="font-size: 13px; color: #fef3c7;">Reviewer Appointment Notice</span>
           </div>
           <div style="padding: 20px 0; color: #334155; line-height: 1.6;">
             <p>Dear <strong>${recipientName}</strong>,</p>
-            <p>You have been officially appointed as a <strong>Technical Reviewer</strong> for the <strong>ESIT Conference</strong> by the Scientific Committee.</p>
-            <p>You can now log in to the portal with your registered email to access manuscripts and submit review scores.</p>
+            <p>We are honored to invite and appoint you as a <strong>Technical Reviewer</strong> for the <strong>ESIT International Conference</strong>.</p>
+            <p>You can now log in to the <strong>Reviewer Evaluation Portal</strong> using your registered email account to view assigned manuscripts, score submissions, and submit peer-review recommendations.</p>
+            <div style="margin: 20px 0; text-align: center;">
+              <a href="${data && data.portalUrl ? data.portalUrl : '#'}" style="background-color: #0f3d3e; color: #ffffff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 6px; display: inline-block;">Access Reviewer Portal</a>
+            </div>
+            <p>Thank you for contributing your expertise to maintaining the academic quality of ESIT.</p>
+          </div>
+          <hr style="border: none; border-top: 1px solid #e2e8f0;" />
+          <p style="font-size: 12px; color: #94a3b8; text-align: center;">ESIT Scientific Committee & KMUTNB</p>
+        </div>
+      `;
+    } else if (template === "paper_under_review") {
+      htmlBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <div style="background-color: #0f3d3e; color: #ffffff; padding: 18px; border-radius: 6px; text-align: center;">
+            <h2 style="margin: 0; color: #ffffff;">ESIT Scientific Committee</h2>
+            <span style="font-size: 13px; color: #fef3c7;">Manuscript Status Update</span>
+          </div>
+          <div style="padding: 20px 0; color: #334155; line-height: 1.6;">
+            <p>Dear <strong>${recipientName}</strong>,</p>
+            <p>Your manuscript has officially progressed to the <strong>Under Review</strong> stage for the <strong>ESIT Conference</strong>.</p>
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #f59e0b; border-radius: 6px; padding: 16px; margin: 20px 0;">
+              <p style="margin: 4px 0;"><strong>Submission ID:</strong> <span style="color: #0f3d3e; font-weight: bold;">${data && data.submissionId ? data.submissionId : 'N/A'}</span></p>
+              <p style="margin: 4px 0;"><strong>Paper Title:</strong> ${data && data.paperTitle ? data.paperTitle : 'Your submitted paper'}</p>
+              <p style="margin: 4px 0;"><strong>Current Status:</strong> <span style="background-color: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 12px;">Under Double-Blind Peer Review</span></p>
+            </div>
+            <p>Our Technical Review Committee is currently evaluating your submission. You will receive an official notification once the evaluation is finalized.</p>
+          </div>
+          <hr style="border: none; border-top: 1px solid #e2e8f0;" />
+          <p style="font-size: 12px; color: #94a3b8; text-align: center;">ESIT Conference Secretariat & KMUTNB</p>
+        </div>
+      `;
+    } else if (template === "reviewer_paper_assigned") {
+      htmlBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <div style="background-color: #0f3d3e; color: #ffffff; padding: 18px; border-radius: 6px; text-align: center;">
+            <h2 style="margin: 0; color: #ffffff;">ESIT Reviewer Assignment</h2>
+            <span style="font-size: 13px; color: #fef3c7;">New Manuscript for Evaluation</span>
+          </div>
+          <div style="padding: 20px 0; color: #334155; line-height: 1.6;">
+            <p>Dear <strong>${recipientName}</strong>,</p>
+            <p>A new manuscript has been assigned to you for technical evaluation for the <strong>ESIT Conference</strong>.</p>
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #0f3d3e; border-radius: 6px; padding: 16px; margin: 20px 0;">
+              <p style="margin: 4px 0;"><strong>Submission ID:</strong> <span style="color: #0f3d3e; font-weight: bold;">${data && data.submissionId ? data.submissionId : 'N/A'}</span></p>
+              <p style="margin: 4px 0;"><strong>Paper Title:</strong> ${data && data.paperTitle ? data.paperTitle : 'Assigned Paper'}</p>
+              <p style="margin: 4px 0;"><strong>Track:</strong> ${data && data.track ? data.track : 'General Track'}</p>
+            </div>
+            <p>Please log in to the <strong>Reviewer Evaluation Portal</strong> to read the manuscript and submit your scores and recommendations.</p>
+            <div style="margin: 20px 0; text-align: center;">
+              <a href="${data && data.portalUrl ? data.portalUrl : '#'}" style="background-color: #0f3d3e; color: #ffffff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 6px; display: inline-block;">Open Reviewer Portal</a>
+            </div>
           </div>
           <hr style="border: none; border-top: 1px solid #e2e8f0;" />
           <p style="font-size: 12px; color: #94a3b8; text-align: center;">ESIT Scientific Committee</p>

@@ -143,6 +143,24 @@ export interface EmailTemplateConfig {
   footerNote?: string;
 }
 
+export interface ReviewEvaluation {
+  id: string;
+  submissionId: string;
+  reviewerUid: string;
+  reviewerName: string;
+  reviewerEmail: string;
+  originalityScore: number; // 1 - 5
+  technicalScore: number; // 1 - 5
+  methodologyScore: number; // 1 - 5
+  clarityScore: number; // 1 - 5
+  relevanceScore: number; // 1 - 5
+  overallScore: number; // Calculated average score (1.0 - 5.0)
+  recommendation: 'accept' | 'minor_revision' | 'major_revision' | 'reject';
+  commentsForAuthor: string;
+  confidentialCommentsForAdmin?: string;
+  submittedAt: string;
+}
+
 export interface ManuscriptSubmission {
   id: string;
   title: string;
@@ -158,12 +176,6 @@ export interface ManuscriptSubmission {
   status: 'submitted' | 'under_review' | 'revision_requested' | 'accepted' | 'rejected';
   submittedAt: string;
   assignedReviewers?: string[];
-  reviews?: {
-    reviewerUid: string;
-    reviewerName: string;
-    score: number;
-    comments: string;
-    submittedAt: string;
-  }[];
+  evaluations?: ReviewEvaluation[];
 }
 
