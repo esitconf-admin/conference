@@ -14,8 +14,17 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() && (
-        request.auth.token.email in ['admin@conference.org'] ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles.hasAny(['admin'])
+        request.auth.token.email in ['admin@conference.org', 'esitconf@gmail.com'] ||
+        (request.auth.token.email != null && request.auth.token.email.matches('^admin@.*')) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles.hasAny(['admin']))
+      );
+    }
+
+    function isReviewer() {
+      return isAuthenticated() && (
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles.hasAny(['reviewer'])
       );
     }
 
@@ -25,7 +34,7 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // User Profiles: Owners and Admins can read, only Admin can assign Reviewer roles
+    // User Profiles: Owners and Admins can read, only Admin can assign Reviewer/Admin roles
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
       allow create: if isAuthenticated() && request.auth.uid == userId;
@@ -33,27 +42,31 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Manuscript Submissions: Authors can create/read own, Reviewers can read/evaluate assigned, Admins can manage all
+    // Manuscript Submissions: Authors create/read own, Reviewers read/evaluate assigned, Admins manage all
     match /submissions/{submissionId} {
       allow read: if isAdmin() || 
         (isAuthenticated() && resource.data.authorUid == request.auth.uid) ||
         (isAuthenticated() && (
-          request.auth.uid in resource.data.assignedReviewers || 
-          request.auth.token.email in resource.data.assignedReviewers ||
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles.hasAny(['reviewer'])
+          (resource.data.assignedReviewers != null && (
+            request.auth.uid in resource.data.assignedReviewers || 
+            request.auth.token.email in resource.data.assignedReviewers
+          )) ||
+          isReviewer()
         ));
       allow create: if isAuthenticated();
       allow update: if isAdmin() || 
         (isAuthenticated() && resource.data.authorUid == request.auth.uid) ||
         (isAuthenticated() && (
-          request.auth.uid in resource.data.assignedReviewers || 
-          request.auth.token.email in resource.data.assignedReviewers ||
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles.hasAny(['reviewer'])
+          (resource.data.assignedReviewers != null && (
+            request.auth.uid in resource.data.assignedReviewers || 
+            request.auth.token.email in resource.data.assignedReviewers
+          )) ||
+          isReviewer()
         ));
       allow delete: if isAdmin() || (isAuthenticated() && resource.data.authorUid == request.auth.uid);
     }
 
-    // Audit logs: Read by Admin only, append-only
+    // Audit logs: Read by Admin only, append-only by authenticated users
     match /audit_logs/{logId} {
       allow read: if isAdmin();
       allow create: if isAuthenticated();
