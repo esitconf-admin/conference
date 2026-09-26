@@ -107,6 +107,13 @@ export interface ConferenceSEOMetadata {
   siteName: string;
 }
 
+export interface GuidelineItem {
+  id?: string;
+  text: string;
+  linkUrl?: string;
+  linkLabel?: string;
+}
+
 export interface ConferenceContent {
   id: string;
   updatedAt: string;
@@ -123,8 +130,8 @@ export interface ConferenceContent {
     category: string;
     topics: string[];
   }[];
-  authorGuidelines?: string[];
-  reviewerGuidelines?: string[];
+  authorGuidelines?: (string | GuidelineItem)[];
+  reviewerGuidelines?: (string | GuidelineItem)[];
   contactInfo: {
     chairperson: string;
     chairpersonEmail: string;

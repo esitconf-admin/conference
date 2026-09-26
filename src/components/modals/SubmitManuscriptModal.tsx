@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { X, UploadCloud, FileText, CheckCircle2, AlertCircle, Sparkles, ExternalLink, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, UploadCloud, FileText, CheckCircle2, AlertCircle, Sparkles, ExternalLink, ShieldCheck, Check } from 'lucide-react';
 import { useAuth } from '../../lib/context/AuthContext';
 import { useConferenceData } from '../../lib/context/ConferenceDataContext';
 import { submitManuscript } from '../../lib/submission/submissionService';
@@ -19,7 +19,7 @@ export default function SubmitManuscriptModal({ isOpen, onClose, onRequireAuth }
 
   const [title, setTitle] = useState('');
   const [abstract, setAbstract] = useState('');
-  const [track, setTrack] = useState(content.tracks[0]?.category || 'Track 1: Energy Management');
+  const [track, setTrack] = useState(content.tracks[0]?.category || '');
   const [coAuthors, setCoAuthors] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -29,6 +29,16 @@ export default function SubmitManuscriptModal({ isOpen, onClose, onRequireAuth }
   const [submittedId, setSubmittedId] = useState<string>('');
   const [driveUrl, setDriveUrl] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+
+  // Sync selected track with active conference tracks
+  useEffect(() => {
+    if (content.tracks && content.tracks.length > 0) {
+      const match = content.tracks.some(t => t.category === track);
+      if (!match || !track) {
+        setTrack(content.tracks[0].category);
+      }
+    }
+  }, [content.tracks, isOpen, track]);
 
   if (!isOpen) return null;
 
@@ -338,13 +348,57 @@ export default function SubmitManuscriptModal({ isOpen, onClose, onRequireAuth }
                     padding: '10px 12px',
                     borderRadius: '8px',
                     border: '1px solid #cbd5e1',
-                    fontSize: '0.92rem'
+                    fontSize: '0.92rem',
+                    backgroundColor: '#ffffff',
+                    fontWeight: 600,
+                    color: '#0f3d3e'
                   }}
                 >
                   {content.tracks.map((t, idx) => (
-                    <option key={idx} value={t.category}>{t.category}</option>
+                    <option key={idx} value={t.category}>
+                      Track {idx + 1}: {t.category}
+                    </option>
                   ))}
                 </select>
+
+                {/* Sub-topics helper preview */}
+                {(() => {
+                  const currentTrackObj = content.tracks.find(t => t.category === track) || content.tracks[0];
+                  if (!currentTrackObj || !currentTrackObj.topics || currentTrackObj.topics.length === 0) return null;
+                  return (
+                    <div style={{
+                      marginTop: '8px',
+                      padding: '10px 14px',
+                      backgroundColor: '#f8fafc',
+                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '0.8rem',
+                      color: '#475569',
+                      lineHeight: '1.5'
+                    }}>
+                      <span style={{ fontWeight: 700, color: '#0f3d3e', display: 'block', marginBottom: '4px' }}>
+                        Research Topic Areas for this Track:
+                      </span>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {currentTrackObj.topics.map((tp, tpIdx) => (
+                          <span
+                            key={tpIdx}
+                            style={{
+                              backgroundColor: '#e6f4f1',
+                              color: '#0f3d3e',
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              fontSize: '0.76rem',
+                              fontWeight: 500
+                            }}
+                          >
+                            • {tp}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div>

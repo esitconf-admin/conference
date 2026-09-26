@@ -303,12 +303,22 @@ Prof. Dr. David T.W. Lin (National University of Tainan, Taiwan) – Low Grade W
     }
   ],
   authorGuidelines: [
-    'Full papers must be written in formal English and strictly formatted according to standard IEEE templates (4 to 6 pages including figures and references).',
-    'All submissions undergo double-blind peer review by at least two independent expert reviewers. Accepted papers will be submitted for inclusion into prestigious digital indexing libraries.'
+    {
+      text: 'Full papers must be written in formal English and strictly formatted according to standard IEEE templates (4 to 6 pages including figures and references).',
+      linkUrl: 'https://www.ieee.org/conferences/publishing/templates.html',
+      linkLabel: 'Download IEEE Template (DOCX / LaTeX)'
+    },
+    {
+      text: 'All submissions undergo double-blind peer review by at least two independent expert reviewers. Accepted papers will be submitted for inclusion into prestigious digital indexing libraries.'
+    }
   ],
   reviewerGuidelines: [
-    'Registered users can be assigned as Reviewers by Conference Admins. Reviewers receive email notifications and secure portal access to score manuscripts based on originality, technical soundness, methodology, clarity, and relevance.',
-    'Reviewers receive an official Certificate of Reviewing Service endorsed by the KMUTNB College of Industrial Technology.'
+    {
+      text: 'Registered users can be assigned as Reviewers by Conference Admins. Reviewers receive email notifications and secure portal access to score manuscripts based on originality, technical soundness, methodology, clarity, and relevance.'
+    },
+    {
+      text: 'Reviewers receive an official Certificate of Reviewing Service endorsed by the KMUTNB College of Industrial Technology.'
+    }
   ],
   contactInfo: {
     chairperson: 'Assoc. Prof. Dr. Rattanakorn Phadungthin',

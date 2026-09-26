@@ -1,15 +1,16 @@
 'use client';
 
 import React from 'react';
-import { Layers, Check, FileCheck, Award } from 'lucide-react';
+import { Layers, Check, FileCheck, Award, ExternalLink } from 'lucide-react';
 import { useConferenceData } from '../../lib/context/ConferenceDataContext';
+import { GuidelineItem } from '../../lib/types';
 
 export default function TracksTopicsSection() {
   const { content } = useConferenceData();
   const { tracks } = content;
 
   return (
-    <section id="author-guide" className="section section-alt">
+    <section id="tracks" className="section section-alt" style={{ scrollMarginTop: '80px' }}>
       <div className="container">
         <div className="section-header">
           <div className="section-badge">
@@ -72,15 +73,20 @@ export default function TracksTopicsSection() {
           display: 'grid',
           gridTemplateColumns: '1fr',
           gap: '24px'
-        }} id="reviewer-guide" className="guide-grid">
+        }} className="guide-grid">
           
-          <div style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '16px',
-            padding: '30px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.04)'
-          }}>
+          {/* Author Submission Guidelines Card */}
+          <div
+            id="author-guide"
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '16px',
+              padding: '30px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
+              scrollMarginTop: '100px'
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
               <div style={{
                 width: '40px',
@@ -102,25 +108,64 @@ export default function TracksTopicsSection() {
               </div>
             </div>
             
-            <div style={{ display: 'grid', gap: '12px' }}>
+            <div style={{ display: 'grid', gap: '16px' }}>
               {(content.authorGuidelines && content.authorGuidelines.length > 0 ? content.authorGuidelines : [
                 'Full papers must be written in formal English and strictly formatted according to standard IEEE templates (4 to 6 pages including figures and references).',
                 'All submissions undergo double-blind peer review by at least two independent expert reviewers. Accepted papers will be submitted for inclusion into prestigious digital indexing libraries.'
-              ]).map((guide, gIdx) => (
-                <p key={gIdx} style={{ fontSize: '0.9rem', color: '#475569', lineHeight: '1.6', margin: 0 }}>
-                  <strong>{gIdx + 1}.</strong> {guide}
-                </p>
-              ))}
+              ]).map((guide: string | GuidelineItem, gIdx: number) => {
+                const text = typeof guide === 'string' ? guide : guide.text;
+                const linkUrl = typeof guide === 'string' ? undefined : guide.linkUrl;
+                const linkLabel = typeof guide === 'string' ? undefined : guide.linkLabel;
+
+                return (
+                  <div key={gIdx} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <p style={{ fontSize: '0.9rem', color: '#475569', lineHeight: '1.6', margin: 0 }}>
+                      <strong style={{ color: '#0f3d3e' }}>{gIdx + 1}.</strong> {text}
+                    </p>
+                    {linkUrl && linkUrl.trim() !== '' && (
+                      <a
+                        href={linkUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          alignSelf: 'flex-start',
+                          marginTop: '2px',
+                          fontSize: '0.82rem',
+                          fontWeight: 600,
+                          color: '#0f3d3e',
+                          backgroundColor: '#ebf6f5',
+                          padding: '4px 10px',
+                          borderRadius: '6px',
+                          textDecoration: 'none',
+                          border: '1px solid rgba(15, 61, 62, 0.15)',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <span>{linkLabel || 'View Reference / Download'}</span>
+                        <ExternalLink size={13} />
+                      </a>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          <div style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '16px',
-            padding: '30px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.04)'
-          }}>
+          {/* Reviewer Role & Evaluation Card */}
+          <div
+            id="reviewer-guide"
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '16px',
+              padding: '30px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
+              scrollMarginTop: '100px'
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
               <div style={{
                 width: '40px',
@@ -142,15 +187,49 @@ export default function TracksTopicsSection() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gap: '12px' }}>
+            <div style={{ display: 'grid', gap: '16px' }}>
               {(content.reviewerGuidelines && content.reviewerGuidelines.length > 0 ? content.reviewerGuidelines : [
                 'Registered users can be assigned as Reviewers by Conference Admins. Reviewers receive email notifications and secure portal access to score manuscripts based on originality, technical soundness, methodology, clarity, and relevance.',
                 'Reviewers receive an official Certificate of Reviewing Service endorsed by the KMUTNB College of Industrial Technology.'
-              ]).map((guide, rIdx) => (
-                <p key={rIdx} style={{ fontSize: '0.9rem', color: '#475569', lineHeight: '1.6', margin: 0 }}>
-                  <strong>{rIdx + 1}.</strong> {guide}
-                </p>
-              ))}
+              ]).map((guide: string | GuidelineItem, rIdx: number) => {
+                const text = typeof guide === 'string' ? guide : guide.text;
+                const linkUrl = typeof guide === 'string' ? undefined : guide.linkUrl;
+                const linkLabel = typeof guide === 'string' ? undefined : guide.linkLabel;
+
+                return (
+                  <div key={rIdx} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <p style={{ fontSize: '0.9rem', color: '#475569', lineHeight: '1.6', margin: 0 }}>
+                      <strong style={{ color: '#0f3d3e' }}>{rIdx + 1}.</strong> {text}
+                    </p>
+                    {linkUrl && linkUrl.trim() !== '' && (
+                      <a
+                        href={linkUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          alignSelf: 'flex-start',
+                          marginTop: '2px',
+                          fontSize: '0.82rem',
+                          fontWeight: 600,
+                          color: '#92400e',
+                          backgroundColor: '#fef3c7',
+                          padding: '4px 10px',
+                          borderRadius: '6px',
+                          textDecoration: 'none',
+                          border: '1px solid rgba(217, 119, 6, 0.2)',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <span>{linkLabel || 'View Reference / Download'}</span>
+                        <ExternalLink size={13} />
+                      </a>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 

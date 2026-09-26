@@ -6,13 +6,13 @@ import {
   Trash2, Plus, RefreshCw, Send, Mail, AlertCircle, FileText,
   Sparkles, UserCheck, Eye, MessageSquare, LayoutTemplate, ArrowRight,
   Globe, Share2, Copy, CheckCheck, ExternalLink, BarChart3, Activity,
-  ArrowUpRight, CheckCircle, Clock, Folder, Star, Award, Layers, FileCheck, Check
+  ArrowUpRight, CheckCircle, Clock, Folder, Star, Award, Layers, FileCheck, Check, Link as LinkIcon
 } from 'lucide-react';
 import { useAuth } from '../../lib/context/AuthContext';
 import { useConferenceData } from '../../lib/context/ConferenceDataContext';
 import {
   ImportantDateItem, NewsItem, KeynoteSpeaker, UserProfile,
-  EmailTemplateConfig, ConferenceSEOMetadata, ManuscriptSubmission, ReviewEvaluation
+  EmailTemplateConfig, ConferenceSEOMetadata, ManuscriptSubmission, ReviewEvaluation, GuidelineItem
 } from '../../lib/types';
 import { sendConferenceEmail } from '../../lib/email/emailService';
 import { getAllSubmissions, updateSubmissionStatus } from '../../lib/submission/submissionService';
@@ -42,6 +42,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     updateKeynotes,
     updateTracks,
     updateGuidelines,
+    updateTracksAndGuidelines,
     updateContactInfo
   } = useConferenceData();
 
@@ -61,17 +62,42 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
   const [newsList, setNewsList] = useState<NewsItem[]>(content.news);
   const [keynotesList, setKeynotesList] = useState<KeynoteSpeaker[]>(content.keynotes);
   const [tracksList, setTracksList] = useState(content.tracks || []);
-  const [authorGuidelinesList, setAuthorGuidelinesList] = useState<string[]>(
-    content.authorGuidelines || [
-      'Full papers must be written in formal English and strictly formatted according to standard IEEE templates (4 to 6 pages including figures and references).',
-      'All submissions undergo double-blind peer review by at least two independent expert reviewers. Accepted papers will be submitted for inclusion into prestigious digital indexing libraries.'
-    ]
+
+  const normalizeGuidelineItems = (list?: (string | GuidelineItem)[]): GuidelineItem[] => {
+    if (!list || list.length === 0) return [];
+    return list.map(item => {
+      if (typeof item === 'string') {
+        return { text: item, linkUrl: '', linkLabel: '' };
+      }
+      return {
+        text: item.text || '',
+        linkUrl: item.linkUrl || '',
+        linkLabel: item.linkLabel || ''
+      };
+    });
+  };
+
+  const [authorGuidelinesList, setAuthorGuidelinesList] = useState<GuidelineItem[]>(() =>
+    normalizeGuidelineItems(content.authorGuidelines || [
+      {
+        text: 'Full papers must be written in formal English and strictly formatted according to standard IEEE templates (4 to 6 pages including figures and references).',
+        linkUrl: 'https://www.ieee.org/conferences/publishing/templates.html',
+        linkLabel: 'Download IEEE Manuscript Template'
+      },
+      {
+        text: 'All submissions undergo double-blind peer review by at least two independent expert reviewers. Accepted papers will be submitted for inclusion into prestigious digital indexing libraries.'
+      }
+    ])
   );
-  const [reviewerGuidelinesList, setReviewerGuidelinesList] = useState<string[]>(
-    content.reviewerGuidelines || [
-      'Registered users can be assigned as Reviewers by Conference Admins. Reviewers receive email notifications and secure portal access to score manuscripts based on originality, technical soundness, methodology, clarity, and relevance.',
-      'Reviewers receive an official Certificate of Reviewing Service endorsed by the KMUTNB College of Industrial Technology.'
-    ]
+  const [reviewerGuidelinesList, setReviewerGuidelinesList] = useState<GuidelineItem[]>(() =>
+    normalizeGuidelineItems(content.reviewerGuidelines || [
+      {
+        text: 'Registered users can be assigned as Reviewers by Conference Admins. Reviewers receive email notifications and secure portal access to score manuscripts based on originality, technical soundness, methodology, clarity, and relevance.'
+      },
+      {
+        text: 'Reviewers receive an official Certificate of Reviewing Service endorsed by the KMUTNB College of Industrial Technology.'
+      }
+    ])
   );
   const [contactForm, setContactForm] = useState(content.contactInfo || {
     chairperson: 'Assoc. Prof. Dr. Rattanakorn Phadungthin',
@@ -143,10 +169,10 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
       setTracksList(content.tracks);
     }
     if (content.authorGuidelines) {
-      setAuthorGuidelinesList(content.authorGuidelines);
+      setAuthorGuidelinesList(normalizeGuidelineItems(content.authorGuidelines));
     }
     if (content.reviewerGuidelines) {
-      setReviewerGuidelinesList(content.reviewerGuidelines);
+      setReviewerGuidelinesList(normalizeGuidelineItems(content.reviewerGuidelines));
     }
   }, [content]);
 
@@ -289,8 +315,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
   };
 
   const handleSaveTracksAndGuidelines = async () => {
-    await updateTracks(tracksList);
-    await updateGuidelines({
+    await updateTracksAndGuidelines(tracksList, {
       authorGuidelines: authorGuidelinesList,
       reviewerGuidelines: reviewerGuidelinesList
     });
@@ -316,7 +341,11 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
   const handleAddAuthorGuideline = () => {
     setAuthorGuidelinesList([
       ...authorGuidelinesList,
-      'New submission requirement or manuscript preparation instruction...'
+      {
+        text: 'New submission requirement or manuscript preparation instruction...',
+        linkUrl: '',
+        linkLabel: ''
+      }
     ]);
   };
 
@@ -328,7 +357,11 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
   const handleAddReviewerGuideline = () => {
     setReviewerGuidelinesList([
       ...reviewerGuidelinesList,
-      'New reviewer scoring policy or evaluation protocol...'
+      {
+        text: 'New reviewer scoring policy or evaluation protocol...',
+        linkUrl: '',
+        linkLabel: ''
+      }
     ]);
   };
 
@@ -2167,66 +2200,117 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                   These bullet points appear inside the <strong>Author Submission Guidelines</strong> card on the landing page Call for Papers section.
                 </p>
 
-                <div style={{ display: 'grid', gap: '12px' }}>
+                <div style={{ display: 'grid', gap: '16px' }}>
                   {authorGuidelinesList.map((guideline, idx) => (
                     <div
                       key={idx}
                       style={{
-                        display: 'flex',
-                        gap: '12px',
-                        alignItems: 'flex-start',
                         backgroundColor: '#f8fafc',
-                        padding: '12px 16px',
-                        borderRadius: '8px',
-                        border: '1px solid #e2e8f0'
+                        padding: '16px 18px',
+                        borderRadius: '10px',
+                        border: '1px solid #cbd5e1',
+                        display: 'grid',
+                        gap: '10px'
                       }}
                     >
-                      <span style={{
-                        backgroundColor: '#059669',
-                        color: '#ffffff',
-                        width: '24px',
-                        height: '24px',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.78rem',
-                        fontWeight: 700,
-                        flexShrink: 0,
-                        marginTop: '4px'
-                      }}>
-                        {idx + 1}
-                      </span>
-                      <textarea
-                        rows={2}
-                        value={guideline}
-                        onChange={(e) => {
-                          const updated = [...authorGuidelinesList];
-                          updated[idx] = e.target.value;
-                          setAuthorGuidelinesList(updated);
-                        }}
-                        style={{
-                          ...inputStyle,
-                          flex: 1,
-                          fontFamily: 'inherit',
-                          resize: 'vertical'
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteAuthorGuideline(idx)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#ef4444',
-                          cursor: 'pointer',
-                          padding: '6px',
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                        <span style={{
+                          backgroundColor: '#059669',
+                          color: '#ffffff',
+                          width: '26px',
+                          height: '26px',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          flexShrink: 0,
                           marginTop: '4px'
-                        }}
-                        title="Delete Guideline"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                        }}>
+                          {idx + 1}
+                        </span>
+                        <textarea
+                          rows={2}
+                          value={guideline.text}
+                          onChange={(e) => {
+                            const updated = [...authorGuidelinesList];
+                            updated[idx] = { ...updated[idx], text: e.target.value };
+                            setAuthorGuidelinesList(updated);
+                          }}
+                          placeholder="Enter author guideline or manuscript formatting instruction..."
+                          style={{
+                            ...inputStyle,
+                            flex: 1,
+                            fontFamily: 'inherit',
+                            resize: 'vertical',
+                            lineHeight: '1.5'
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteAuthorGuideline(idx)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            padding: '6px',
+                            marginTop: '4px'
+                          }}
+                          title="Delete Guideline"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+
+                      {/* Attached URL Link & Button Label */}
+                      <div style={{
+                        padding: '10px 14px',
+                        backgroundColor: '#ffffff',
+                        borderRadius: '8px',
+                        border: '1px solid #e2e8f0',
+                        display: 'grid',
+                        gridTemplateColumns: '1.4fr 1fr',
+                        gap: '12px',
+                        alignItems: 'center',
+                        marginLeft: '38px'
+                      }}>
+                        <div>
+                          <label style={{ ...labelStyle, fontSize: '0.76rem', display: 'flex', alignItems: 'center', gap: '4px', color: '#0f3d3e' }}>
+                            <LinkIcon size={12} />
+                            <span>Attached URL Link (Optional)</span>
+                          </label>
+                          <input
+                            type="url"
+                            value={guideline.linkUrl || ''}
+                            onChange={(e) => {
+                              const updated = [...authorGuidelinesList];
+                              updated[idx] = { ...updated[idx], linkUrl: e.target.value };
+                              setAuthorGuidelinesList(updated);
+                            }}
+                            placeholder="https://... (e.g. IEEE Template, Drive link)"
+                            style={{ ...inputStyle, padding: '6px 10px', fontSize: '0.84rem' }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ ...labelStyle, fontSize: '0.76rem', color: '#64748b' }}>
+                            Link Button Label
+                          </label>
+                          <input
+                            type="text"
+                            value={guideline.linkLabel || ''}
+                            onChange={(e) => {
+                              const updated = [...authorGuidelinesList];
+                              updated[idx] = { ...updated[idx], linkLabel: e.target.value };
+                              setAuthorGuidelinesList(updated);
+                            }}
+                            placeholder="e.g. Download IEEE Template"
+                            style={{ ...inputStyle, padding: '6px 10px', fontSize: '0.84rem' }}
+                          />
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -2258,66 +2342,117 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                   These bullet points appear inside the <strong>Reviewer Guidelines & Policies</strong> card on the landing page Call for Papers section.
                 </p>
 
-                <div style={{ display: 'grid', gap: '12px' }}>
+                <div style={{ display: 'grid', gap: '16px' }}>
                   {reviewerGuidelinesList.map((guideline, idx) => (
                     <div
                       key={idx}
                       style={{
-                        display: 'flex',
-                        gap: '12px',
-                        alignItems: 'flex-start',
                         backgroundColor: '#f8fafc',
-                        padding: '12px 16px',
-                        borderRadius: '8px',
-                        border: '1px solid #e2e8f0'
+                        padding: '16px 18px',
+                        borderRadius: '10px',
+                        border: '1px solid #cbd5e1',
+                        display: 'grid',
+                        gap: '10px'
                       }}
                     >
-                      <span style={{
-                        backgroundColor: '#d97706',
-                        color: '#ffffff',
-                        width: '24px',
-                        height: '24px',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.78rem',
-                        fontWeight: 700,
-                        flexShrink: 0,
-                        marginTop: '4px'
-                      }}>
-                        {idx + 1}
-                      </span>
-                      <textarea
-                        rows={2}
-                        value={guideline}
-                        onChange={(e) => {
-                          const updated = [...reviewerGuidelinesList];
-                          updated[idx] = e.target.value;
-                          setReviewerGuidelinesList(updated);
-                        }}
-                        style={{
-                          ...inputStyle,
-                          flex: 1,
-                          fontFamily: 'inherit',
-                          resize: 'vertical'
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteReviewerGuideline(idx)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#ef4444',
-                          cursor: 'pointer',
-                          padding: '6px',
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                        <span style={{
+                          backgroundColor: '#d97706',
+                          color: '#ffffff',
+                          width: '26px',
+                          height: '26px',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          flexShrink: 0,
                           marginTop: '4px'
-                        }}
-                        title="Delete Guideline"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                        }}>
+                          {idx + 1}
+                        </span>
+                        <textarea
+                          rows={2}
+                          value={guideline.text}
+                          onChange={(e) => {
+                            const updated = [...reviewerGuidelinesList];
+                            updated[idx] = { ...updated[idx], text: e.target.value };
+                            setReviewerGuidelinesList(updated);
+                          }}
+                          placeholder="Enter reviewer scoring policy or evaluation protocol..."
+                          style={{
+                            ...inputStyle,
+                            flex: 1,
+                            fontFamily: 'inherit',
+                            resize: 'vertical',
+                            lineHeight: '1.5'
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteReviewerGuideline(idx)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            padding: '6px',
+                            marginTop: '4px'
+                          }}
+                          title="Delete Guideline"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+
+                      {/* Attached URL Link & Button Label */}
+                      <div style={{
+                        padding: '10px 14px',
+                        backgroundColor: '#ffffff',
+                        borderRadius: '8px',
+                        border: '1px solid #e2e8f0',
+                        display: 'grid',
+                        gridTemplateColumns: '1.4fr 1fr',
+                        gap: '12px',
+                        alignItems: 'center',
+                        marginLeft: '38px'
+                      }}>
+                        <div>
+                          <label style={{ ...labelStyle, fontSize: '0.76rem', display: 'flex', alignItems: 'center', gap: '4px', color: '#b45309' }}>
+                            <LinkIcon size={12} />
+                            <span>Attached URL Link (Optional)</span>
+                          </label>
+                          <input
+                            type="url"
+                            value={guideline.linkUrl || ''}
+                            onChange={(e) => {
+                              const updated = [...reviewerGuidelinesList];
+                              updated[idx] = { ...updated[idx], linkUrl: e.target.value };
+                              setReviewerGuidelinesList(updated);
+                            }}
+                            placeholder="https://... (e.g. Scoring Rubric PDF, Policy Link)"
+                            style={{ ...inputStyle, padding: '6px 10px', fontSize: '0.84rem' }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ ...labelStyle, fontSize: '0.76rem', color: '#64748b' }}>
+                            Link Button Label
+                          </label>
+                          <input
+                            type="text"
+                            value={guideline.linkLabel || ''}
+                            onChange={(e) => {
+                              const updated = [...reviewerGuidelinesList];
+                              updated[idx] = { ...updated[idx], linkLabel: e.target.value };
+                              setReviewerGuidelinesList(updated);
+                            }}
+                            placeholder="e.g. View Scoring Rubric"
+                            style={{ ...inputStyle, padding: '6px 10px', fontSize: '0.84rem' }}
+                          />
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { ConferenceContent, ImportantDateItem, NewsItem, CommitteeGroup, KeynoteSpeaker } from '../types';
+import { ConferenceContent, ImportantDateItem, NewsItem, CommitteeGroup, KeynoteSpeaker, GuidelineItem } from '../types';
 import { initialConferenceData } from '../data/initialConferenceData';
 import { db, isFirebaseConfigured } from '../firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -16,7 +16,8 @@ interface ConferenceDataContextType {
   updateKeynotes: (keynotes: KeynoteSpeaker[]) => Promise<boolean>;
   updateCommittees: (committees: CommitteeGroup[]) => Promise<boolean>;
   updateTracks: (tracks: ConferenceContent['tracks']) => Promise<boolean>;
-  updateGuidelines: (guidelines: { authorGuidelines?: string[]; reviewerGuidelines?: string[] }) => Promise<boolean>;
+  updateGuidelines: (guidelines: { authorGuidelines?: (string | GuidelineItem)[]; reviewerGuidelines?: (string | GuidelineItem)[] }) => Promise<boolean>;
+  updateTracksAndGuidelines: (tracks: ConferenceContent['tracks'], guidelines: { authorGuidelines?: (string | GuidelineItem)[]; reviewerGuidelines?: (string | GuidelineItem)[] }) => Promise<boolean>;
   updateContactInfo: (contactInfo: Partial<ConferenceContent['contactInfo']>) => Promise<boolean>;
   resetToDefault: () => Promise<boolean>;
 }
@@ -91,7 +92,7 @@ export function ConferenceDataProvider({ children }: { children: React.ReactNode
 
     if (isFirebaseConfigured && db) {
       try {
-        await setDoc(doc(db, 'conference_content', 'main'), updated);
+        await setDoc(doc(db, 'conference_content', 'main'), updated, { merge: true });
       } catch (err) {
         console.error('Error writing to Firestore:', err);
       }
@@ -150,9 +151,22 @@ export function ConferenceDataProvider({ children }: { children: React.ReactNode
     return saveContent({ ...content, tracks });
   };
 
-  const updateGuidelines = async (guidelines: { authorGuidelines?: string[]; reviewerGuidelines?: string[] }): Promise<boolean> => {
+  const updateGuidelines = async (guidelines: { authorGuidelines?: (string | GuidelineItem)[]; reviewerGuidelines?: (string | GuidelineItem)[] }): Promise<boolean> => {
     const newContent = {
       ...content,
+      authorGuidelines: guidelines.authorGuidelines ?? content.authorGuidelines,
+      reviewerGuidelines: guidelines.reviewerGuidelines ?? content.reviewerGuidelines
+    };
+    return saveContent(newContent);
+  };
+
+  const updateTracksAndGuidelines = async (
+    tracks: ConferenceContent['tracks'],
+    guidelines: { authorGuidelines?: (string | GuidelineItem)[]; reviewerGuidelines?: (string | GuidelineItem)[] }
+  ): Promise<boolean> => {
+    const newContent = {
+      ...content,
+      tracks,
       authorGuidelines: guidelines.authorGuidelines ?? content.authorGuidelines,
       reviewerGuidelines: guidelines.reviewerGuidelines ?? content.reviewerGuidelines
     };
@@ -186,6 +200,7 @@ export function ConferenceDataProvider({ children }: { children: React.ReactNode
       updateCommittees,
       updateTracks,
       updateGuidelines,
+      updateTracksAndGuidelines,
       updateContactInfo,
       resetToDefault
     }}>
