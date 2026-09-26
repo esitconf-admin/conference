@@ -15,6 +15,8 @@ interface ConferenceDataContextType {
   updateNewsList: (news: NewsItem[]) => Promise<boolean>;
   updateKeynotes: (keynotes: KeynoteSpeaker[]) => Promise<boolean>;
   updateCommittees: (committees: CommitteeGroup[]) => Promise<boolean>;
+  updateTracks: (tracks: ConferenceContent['tracks']) => Promise<boolean>;
+  updateGuidelines: (guidelines: { authorGuidelines?: string[]; reviewerGuidelines?: string[] }) => Promise<boolean>;
   updateContactInfo: (contactInfo: Partial<ConferenceContent['contactInfo']>) => Promise<boolean>;
   resetToDefault: () => Promise<boolean>;
 }
@@ -144,6 +146,19 @@ export function ConferenceDataProvider({ children }: { children: React.ReactNode
     return saveContent({ ...content, committees });
   };
 
+  const updateTracks = async (tracks: ConferenceContent['tracks']): Promise<boolean> => {
+    return saveContent({ ...content, tracks });
+  };
+
+  const updateGuidelines = async (guidelines: { authorGuidelines?: string[]; reviewerGuidelines?: string[] }): Promise<boolean> => {
+    const newContent = {
+      ...content,
+      authorGuidelines: guidelines.authorGuidelines ?? content.authorGuidelines,
+      reviewerGuidelines: guidelines.reviewerGuidelines ?? content.reviewerGuidelines
+    };
+    return saveContent(newContent);
+  };
+
   const updateContactInfo = async (contactUpdates: Partial<ConferenceContent['contactInfo']>): Promise<boolean> => {
     const newContent = {
       ...content,
@@ -169,6 +184,8 @@ export function ConferenceDataProvider({ children }: { children: React.ReactNode
       updateNewsList,
       updateKeynotes,
       updateCommittees,
+      updateTracks,
+      updateGuidelines,
       updateContactInfo,
       resetToDefault
     }}>

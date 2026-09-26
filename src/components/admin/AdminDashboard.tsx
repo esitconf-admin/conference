@@ -6,7 +6,7 @@ import {
   Trash2, Plus, RefreshCw, Send, Mail, AlertCircle, FileText,
   Sparkles, UserCheck, Eye, MessageSquare, LayoutTemplate, ArrowRight,
   Globe, Share2, Copy, CheckCheck, ExternalLink, BarChart3, Activity,
-  ArrowUpRight, CheckCircle, Clock, Folder, Star, Award
+  ArrowUpRight, CheckCircle, Clock, Folder, Star, Award, Layers, FileCheck, Check
 } from 'lucide-react';
 import { useAuth } from '../../lib/context/AuthContext';
 import { useConferenceData } from '../../lib/context/ConferenceDataContext';
@@ -40,10 +40,12 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     updateImportantDates,
     updateNewsList,
     updateKeynotes,
+    updateTracks,
+    updateGuidelines,
     updateContactInfo
   } = useConferenceData();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'hero' | 'dates' | 'news' | 'keynotes' | 'submissions' | 'users' | 'templates' | 'seo' | 'email'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'hero' | 'dates' | 'news' | 'keynotes' | 'tracks' | 'submissions' | 'users' | 'templates' | 'seo' | 'email'>('overview');
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Submissions State (Firestore & Google Drive)
@@ -58,6 +60,19 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
   const [datesList, setDatesList] = useState<ImportantDateItem[]>(content.dates);
   const [newsList, setNewsList] = useState<NewsItem[]>(content.news);
   const [keynotesList, setKeynotesList] = useState<KeynoteSpeaker[]>(content.keynotes);
+  const [tracksList, setTracksList] = useState(content.tracks || []);
+  const [authorGuidelinesList, setAuthorGuidelinesList] = useState<string[]>(
+    content.authorGuidelines || [
+      'Full papers must be written in formal English and strictly formatted according to standard IEEE templates (4 to 6 pages including figures and references).',
+      'All submissions undergo double-blind peer review by at least two independent expert reviewers. Accepted papers will be submitted for inclusion into prestigious digital indexing libraries.'
+    ]
+  );
+  const [reviewerGuidelinesList, setReviewerGuidelinesList] = useState<string[]>(
+    content.reviewerGuidelines || [
+      'Registered users can be assigned as Reviewers by Conference Admins. Reviewers receive email notifications and secure portal access to score manuscripts based on originality, technical soundness, methodology, clarity, and relevance.',
+      'Reviewers receive an official Certificate of Reviewing Service endorsed by the KMUTNB College of Industrial Technology.'
+    ]
+  );
   const [contactForm, setContactForm] = useState(content.contactInfo || {
     chairperson: 'Assoc. Prof. Dr. Rattanakorn Phadungthin',
     chairpersonEmail: 'esitconf@gmail.com',
@@ -123,6 +138,15 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     }
     if (content.contactInfo) {
       setContactForm(content.contactInfo);
+    }
+    if (content.tracks) {
+      setTracksList(content.tracks);
+    }
+    if (content.authorGuidelines) {
+      setAuthorGuidelinesList(content.authorGuidelines);
+    }
+    if (content.reviewerGuidelines) {
+      setReviewerGuidelinesList(content.reviewerGuidelines);
     }
   }, [content]);
 
@@ -262,6 +286,54 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
   const handleSaveKeynotes = async () => {
     await updateKeynotes(keynotesList);
     showSuccess('Keynote speakers updated successfully!');
+  };
+
+  const handleSaveTracksAndGuidelines = async () => {
+    await updateTracks(tracksList);
+    await updateGuidelines({
+      authorGuidelines: authorGuidelinesList,
+      reviewerGuidelines: reviewerGuidelinesList
+    });
+    showSuccess('Conference tracks, Author guidelines, and Reviewer guidelines updated successfully!');
+  };
+
+  // Track handlers
+  const handleAddTrack = () => {
+    setTracksList([
+      ...tracksList,
+      {
+        category: 'New Research Track',
+        topics: ['Topic Area 1', 'Topic Area 2', 'Topic Area 3']
+      }
+    ]);
+  };
+
+  const handleDeleteTrack = (idx: number) => {
+    setTracksList(tracksList.filter((_, i) => i !== idx));
+  };
+
+  // Author guideline handlers
+  const handleAddAuthorGuideline = () => {
+    setAuthorGuidelinesList([
+      ...authorGuidelinesList,
+      'New submission requirement or manuscript preparation instruction...'
+    ]);
+  };
+
+  const handleDeleteAuthorGuideline = (idx: number) => {
+    setAuthorGuidelinesList(authorGuidelinesList.filter((_, i) => i !== idx));
+  };
+
+  // Reviewer guideline handlers
+  const handleAddReviewerGuideline = () => {
+    setReviewerGuidelinesList([
+      ...reviewerGuidelinesList,
+      'New reviewer scoring policy or evaluation protocol...'
+    ]);
+  };
+
+  const handleDeleteReviewerGuideline = (idx: number) => {
+    setReviewerGuidelinesList(reviewerGuidelinesList.filter((_, i) => i !== idx));
   };
 
   // Date handlers
@@ -613,6 +685,15 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
             <Users size={15} />
             <span>Keynotes</span>
             <span style={getTabBadgeStyle(activeTab === 'keynotes')}>{keynotesList.length}</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('tracks')}
+            style={getButtonTabStyle(activeTab === 'tracks')}
+          >
+            <Layers size={15} />
+            <span>Tracks & Guidelines</span>
+            <span style={getTabBadgeStyle(activeTab === 'tracks')}>{tracksList.length}</span>
           </button>
 
           <button
@@ -1908,6 +1989,370 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* TAB: TRACKS & GUIDELINES CMS */}
+          {activeTab === 'tracks' && (
+            <div style={{ display: 'grid', gap: '32px', maxWidth: '1100px' }}>
+              
+              {/* Header with Save Button */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '12px',
+                paddingBottom: '16px',
+                borderBottom: '1px solid #e2e8f0'
+              }}>
+                <div>
+                  <h3 style={{ margin: 0, color: '#0f3d3e', fontSize: '1.3rem', fontWeight: 800 }}>
+                    Tracks, Topics & Submission Guidelines
+                  </h3>
+                  <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.88rem' }}>
+                    Configure conference scientific tracks, research topics, Author submission rules, and Reviewer evaluation guidelines displayed publicly on the landing page.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button onClick={handleAddTrack} className="btn btn-outline-primary btn-sm">
+                    <Plus size={16} /> Add Track
+                  </button>
+                  <button onClick={handleSaveTracksAndGuidelines} className="btn btn-primary btn-sm">
+                    <Save size={16} /> Save Tracks & Guidelines
+                  </button>
+                </div>
+              </div>
+
+              {/* SECTION 1: RESEARCH TRACKS & TOPICS */}
+              <div style={{
+                backgroundColor: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '24px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ padding: '6px', backgroundColor: '#e0f2fe', color: '#0284c7', borderRadius: '8px', display: 'flex' }}>
+                      <Layers size={18} />
+                    </div>
+                    <h4 style={{ margin: 0, color: '#0f172a', fontSize: '1.1rem', fontWeight: 700 }}>
+                      1. Conference Research Tracks ({tracksList.length})
+                    </h4>
+                  </div>
+                  <button onClick={handleAddTrack} className="btn btn-outline-primary btn-sm" style={{ fontSize: '0.8rem' }}>
+                    <Plus size={14} /> Add Track Card
+                  </button>
+                </div>
+
+                <p style={{ fontSize: '0.84rem', color: '#64748b', marginBottom: '20px', lineHeight: '1.5' }}>
+                  Each track card will display its title and list of scientific topics on the landing page Call for Papers section. Type one topic per line in the box below.
+                </p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+                  {tracksList.map((track, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        backgroundColor: '#f8fafc',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '10px',
+                        padding: '18px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '12px'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{
+                          backgroundColor: '#0f3d3e',
+                          color: '#ffffff',
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          fontSize: '0.74rem',
+                          fontWeight: 700
+                        }}>
+                          Track #{idx + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTrack(idx)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '0.78rem'
+                          }}
+                          title="Delete Track"
+                        >
+                          <Trash2 size={16} />
+                          <span>Delete</span>
+                        </button>
+                      </div>
+
+                      <div>
+                        <label style={labelStyle}>Track Category Title</label>
+                        <input
+                          type="text"
+                          value={track.category}
+                          onChange={(e) => {
+                            const updated = [...tracksList];
+                            updated[idx] = { ...updated[idx], category: e.target.value };
+                            setTracksList(updated);
+                          }}
+                          placeholder="e.g. Electrical & Electronic Engineering"
+                          style={{ ...inputStyle, fontWeight: 600 }}
+                        />
+                      </div>
+
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                          <label style={labelStyle}>Research Topics (One per line)</label>
+                          <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                            {track.topics.length} topics
+                          </span>
+                        </div>
+                        <textarea
+                          rows={6}
+                          value={track.topics.join('\n')}
+                          onChange={(e) => {
+                            const lines = e.target.value.split('\n');
+                            const updated = [...tracksList];
+                            updated[idx] = { ...updated[idx], topics: lines };
+                            setTracksList(updated);
+                          }}
+                          placeholder="Smart Grid & Power Electronics&#10;Renewable Energy Systems&#10;Embedded Systems & IoT"
+                          style={{
+                            ...inputStyle,
+                            fontFamily: 'inherit',
+                            resize: 'vertical',
+                            lineHeight: '1.5'
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* SECTION 2: AUTHOR GUIDELINES */}
+              <div style={{
+                backgroundColor: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '24px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ padding: '6px', backgroundColor: '#ecfdf5', color: '#059669', borderRadius: '8px', display: 'flex' }}>
+                      <FileText size={18} />
+                    </div>
+                    <h4 style={{ margin: 0, color: '#0f172a', fontSize: '1.1rem', fontWeight: 700 }}>
+                      2. Author Submission Guidelines ({authorGuidelinesList.length} rules)
+                    </h4>
+                  </div>
+                  <button onClick={handleAddAuthorGuideline} className="btn btn-outline-primary btn-sm" style={{ fontSize: '0.8rem' }}>
+                    <Plus size={14} /> Add Guideline Point
+                  </button>
+                </div>
+
+                <p style={{ fontSize: '0.84rem', color: '#64748b', marginBottom: '16px' }}>
+                  These bullet points appear inside the <strong>Author Submission Guidelines</strong> card on the landing page Call for Papers section.
+                </p>
+
+                <div style={{ display: 'grid', gap: '12px' }}>
+                  {authorGuidelinesList.map((guideline, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        display: 'flex',
+                        gap: '12px',
+                        alignItems: 'flex-start',
+                        backgroundColor: '#f8fafc',
+                        padding: '12px 16px',
+                        borderRadius: '8px',
+                        border: '1px solid #e2e8f0'
+                      }}
+                    >
+                      <span style={{
+                        backgroundColor: '#059669',
+                        color: '#ffffff',
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        flexShrink: 0,
+                        marginTop: '4px'
+                      }}>
+                        {idx + 1}
+                      </span>
+                      <textarea
+                        rows={2}
+                        value={guideline}
+                        onChange={(e) => {
+                          const updated = [...authorGuidelinesList];
+                          updated[idx] = e.target.value;
+                          setAuthorGuidelinesList(updated);
+                        }}
+                        style={{
+                          ...inputStyle,
+                          flex: 1,
+                          fontFamily: 'inherit',
+                          resize: 'vertical'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAuthorGuideline(idx)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                          padding: '6px',
+                          marginTop: '4px'
+                        }}
+                        title="Delete Guideline"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* SECTION 3: REVIEWER GUIDELINES */}
+              <div style={{
+                backgroundColor: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '24px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ padding: '6px', backgroundColor: '#fef3c7', color: '#d97706', borderRadius: '8px', display: 'flex' }}>
+                      <FileCheck size={18} />
+                    </div>
+                    <h4 style={{ margin: 0, color: '#0f172a', fontSize: '1.1rem', fontWeight: 700 }}>
+                      3. Reviewer Evaluation Guidelines & Policies ({reviewerGuidelinesList.length} rules)
+                    </h4>
+                  </div>
+                  <button onClick={handleAddReviewerGuideline} className="btn btn-outline-primary btn-sm" style={{ fontSize: '0.8rem' }}>
+                    <Plus size={14} /> Add Reviewer Policy
+                  </button>
+                </div>
+
+                <p style={{ fontSize: '0.84rem', color: '#64748b', marginBottom: '16px' }}>
+                  These bullet points appear inside the <strong>Reviewer Guidelines & Policies</strong> card on the landing page Call for Papers section.
+                </p>
+
+                <div style={{ display: 'grid', gap: '12px' }}>
+                  {reviewerGuidelinesList.map((guideline, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        display: 'flex',
+                        gap: '12px',
+                        alignItems: 'flex-start',
+                        backgroundColor: '#f8fafc',
+                        padding: '12px 16px',
+                        borderRadius: '8px',
+                        border: '1px solid #e2e8f0'
+                      }}
+                    >
+                      <span style={{
+                        backgroundColor: '#d97706',
+                        color: '#ffffff',
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        flexShrink: 0,
+                        marginTop: '4px'
+                      }}>
+                        {idx + 1}
+                      </span>
+                      <textarea
+                        rows={2}
+                        value={guideline}
+                        onChange={(e) => {
+                          const updated = [...reviewerGuidelinesList];
+                          updated[idx] = e.target.value;
+                          setReviewerGuidelinesList(updated);
+                        }}
+                        style={{
+                          ...inputStyle,
+                          flex: 1,
+                          fontFamily: 'inherit',
+                          resize: 'vertical'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteReviewerGuideline(idx)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                          padding: '6px',
+                          marginTop: '4px'
+                        }}
+                        title="Delete Guideline"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sticky bottom save bar */}
+              <div style={{
+                position: 'sticky',
+                bottom: 0,
+                backgroundColor: '#ffffff',
+                border: '1px solid #cbd5e1',
+                padding: '16px 24px',
+                borderRadius: '12px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '12px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '0.85rem' }}>
+                  <CheckCircle size={16} color="#059669" />
+                  <span>Changes will be instantly published to both Firestore and local storage.</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSaveTracksAndGuidelines}
+                  className="btn btn-primary"
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px' }}
+                >
+                  <Save size={18} />
+                  <span>Save Tracks & Guidelines</span>
+                </button>
+              </div>
+
             </div>
           )}
 

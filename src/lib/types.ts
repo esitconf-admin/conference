@@ -123,6 +123,8 @@ export interface ConferenceContent {
     category: string;
     topics: string[];
   }[];
+  authorGuidelines?: string[];
+  reviewerGuidelines?: string[];
   contactInfo: {
     chairperson: string;
     chairpersonEmail: string;

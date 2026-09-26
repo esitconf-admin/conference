@@ -101,12 +101,17 @@ export default function TracksTopicsSection() {
                 <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Standard IEEE Double-Column Format</span>
               </div>
             </div>
-            <p style={{ fontSize: '0.9rem', color: '#475569', lineHeight: '1.6', marginBottom: '12px' }}>
-              1. Full papers must be written in formal English and strictly formatted according to standard IEEE templates (4 to 6 pages including figures and references).
-            </p>
-            <p style={{ fontSize: '0.9rem', color: '#475569', lineHeight: '1.6', margin: 0 }}>
-              2. All submissions undergo double-blind peer review by at least two independent expert reviewers. Accepted papers will be submitted for inclusion into prestigious digital indexing libraries.
-            </p>
+            
+            <div style={{ display: 'grid', gap: '12px' }}>
+              {(content.authorGuidelines && content.authorGuidelines.length > 0 ? content.authorGuidelines : [
+                'Full papers must be written in formal English and strictly formatted according to standard IEEE templates (4 to 6 pages including figures and references).',
+                'All submissions undergo double-blind peer review by at least two independent expert reviewers. Accepted papers will be submitted for inclusion into prestigious digital indexing libraries.'
+              ]).map((guide, gIdx) => (
+                <p key={gIdx} style={{ fontSize: '0.9rem', color: '#475569', lineHeight: '1.6', margin: 0 }}>
+                  <strong>{gIdx + 1}.</strong> {guide}
+                </p>
+              ))}
+            </div>
           </div>
 
           <div style={{
@@ -136,12 +141,17 @@ export default function TracksTopicsSection() {
                 <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Appointed by Scientific Committee</span>
               </div>
             </div>
-            <p style={{ fontSize: '0.9rem', color: '#475569', lineHeight: '1.6', marginBottom: '12px' }}>
-              1. Registered users can be assigned as <strong>Reviewers</strong> by Conference Admins. Reviewers receive email notifications and secure portal access to score manuscripts based on originality, technical soundness, and clarity.
-            </p>
-            <p style={{ fontSize: '0.9rem', color: '#475569', lineHeight: '1.6', margin: 0 }}>
-              2. Reviewers receive an official Certificate of Reviewing Service endorsed by the KMUTNB College of Industrial Technology.
-            </p>
+
+            <div style={{ display: 'grid', gap: '12px' }}>
+              {(content.reviewerGuidelines && content.reviewerGuidelines.length > 0 ? content.reviewerGuidelines : [
+                'Registered users can be assigned as Reviewers by Conference Admins. Reviewers receive email notifications and secure portal access to score manuscripts based on originality, technical soundness, methodology, clarity, and relevance.',
+                'Reviewers receive an official Certificate of Reviewing Service endorsed by the KMUTNB College of Industrial Technology.'
+              ]).map((guide, rIdx) => (
+                <p key={rIdx} style={{ fontSize: '0.9rem', color: '#475569', lineHeight: '1.6', margin: 0 }}>
+                  <strong>{rIdx + 1}.</strong> {guide}
+                </p>
+              ))}
+            </div>
           </div>
 
         </div>
