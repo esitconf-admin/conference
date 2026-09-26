@@ -49,6 +49,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
   const [submissionsList, setSubmissionsList] = useState<ManuscriptSubmission[]>([]);
   const [submissionSearch, setSubmissionSearch] = useState('');
   const [submissionTrackFilter, setSubmissionTrackFilter] = useState('All Tracks');
+  const [submissionStatusFilter, setSubmissionStatusFilter] = useState('all');
   const [loadingSubmissions, setLoadingSubmissions] = useState(false);
 
   // Local CMS editable copies
@@ -1827,119 +1828,382 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
           )}
 
           {/* TAB 6: MANUSCRIPT SUBMISSIONS (GOOGLE DRIVE & FIRESTORE) */}
-          {activeTab === 'submissions' && (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
-                <div>
-                  <h4 style={{ margin: 0, color: '#0f3d3e', fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <FileText size={18} color="#0f3d3e" /> Manuscript Submissions Repository
-                  </h4>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>
-                    All submitted author papers stored in Google Drive and indexed in Firebase Firestore.
-                  </p>
+          {activeTab === 'submissions' && (() => {
+            const totalSubmissions = submissionsList.length;
+            const unassignedCount = submissionsList.filter(s => !s.assignedReviewers || s.assignedReviewers.length === 0).length;
+            const underReviewCount = submissionsList.filter(s => s.status === 'under_review').length;
+            const evaluatedCount = submissionsList.filter(s => s.evaluations && s.evaluations.length > 0).length;
+            const acceptedCount = submissionsList.filter(s => s.status === 'accepted').length;
+            const revisionCount = submissionsList.filter(s => s.status === 'revision_requested').length;
+            const rejectedCount = submissionsList.filter(s => s.status === 'rejected').length;
+
+            const allEvaluations = submissionsList.flatMap(s => s.evaluations || []);
+            const avgScoreOverall = allEvaluations.length > 0
+              ? (allEvaluations.reduce((a, b) => a + b.overallScore, 0) / allEvaluations.length).toFixed(1)
+              : null;
+
+            const acceptanceRate = totalSubmissions > 0
+              ? Math.round((acceptedCount / totalSubmissions) * 100)
+              : 0;
+
+            const trackCounts = content.tracks.map(t => ({
+              category: t.category,
+              count: submissionsList.filter(s => s.track === t.category).length
+            }));
+
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* Header & Actions */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                  <div>
+                    <h4 style={{ margin: 0, color: '#0f3d3e', fontSize: '1.18rem', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800 }}>
+                      <FileText size={20} color="#0f3d3e" /> Manuscript Submissions Hub
+                    </h4>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '0.85rem', color: '#64748b' }}>
+                      Real-time peer-review oversight, Google Drive synchronization, and reviewer assignments.
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <a
+                      href={ESIT_DRIVE_FOLDER_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-outline-primary btn-sm"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}
+                      title="Open ESIT_Manuscript_Submissions Google Drive Folder"
+                    >
+                      <Folder size={14} color="#0f3d3e" />
+                      <span>Drive Folder</span>
+                    </a>
+
+                    <button
+                      onClick={loadSubmissions}
+                      disabled={loadingSubmissions}
+                      className="btn btn-outline-primary btn-sm"
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <RefreshCw size={14} className={loadingSubmissions ? 'animate-spin' : ''} />
+                      <span>Refresh</span>
+                    </button>
+                  </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <a
-                    href={ESIT_DRIVE_FOLDER_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn btn-outline-primary btn-sm"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}
-                    title="Open ESIT_Manuscript_Submissions Google Drive Folder"
-                  >
-                    <Folder size={14} color="#0f3d3e" />
-                    <span>Drive Folder</span>
-                  </a>
-
-                  <button
-                    onClick={loadSubmissions}
-                    disabled={loadingSubmissions}
-                    className="btn btn-outline-primary btn-sm"
-                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    <RefreshCw size={14} className={loadingSubmissions ? 'animate-spin' : ''} />
-                    <span>Refresh</span>
-                  </button>
-
-                  <select
-                    value={submissionTrackFilter}
-                    onChange={(e) => setSubmissionTrackFilter(e.target.value)}
+                {/* MINIMAL DASHBOARD: 5 KEY METRIC KPI CARDS */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                  gap: '12px'
+                }}>
+                  {/* Card 1: Total Submissions */}
+                  <div
+                    onClick={() => setSubmissionStatusFilter('all')}
                     style={{
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '0.85rem',
-                      backgroundColor: '#ffffff'
+                      padding: '16px',
+                      backgroundColor: submissionStatusFilter === 'all' ? '#f0fdf9' : '#ffffff',
+                      borderRadius: '12px',
+                      border: submissionStatusFilter === 'all' ? '2px solid #0f3d3e' : '1px solid #e2e8f0',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
                     }}
                   >
-                    <option value="All Tracks">All Tracks</option>
-                    {content.tracks.map((t, idx) => (
-                      <option key={idx} value={t.category}>{t.category}</option>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Total Papers
+                      </span>
+                      <FileText size={16} color="#0f3d3e" />
+                    </div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f3d3e', lineHeight: 1 }}>
+                      {totalSubmissions}
+                    </div>
+                    <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '6px', display: 'block' }}>
+                      {submissionStatusFilter === 'all' ? '● Showing All' : 'Click to view all'}
+                    </span>
+                  </div>
+
+                  {/* Card 2: Needs Reviewer (Unassigned) */}
+                  <div
+                    onClick={() => setSubmissionStatusFilter('unassigned')}
+                    style={{
+                      padding: '16px',
+                      backgroundColor: submissionStatusFilter === 'unassigned' ? '#fffbeb' : '#ffffff',
+                      borderRadius: '12px',
+                      border: submissionStatusFilter === 'unassigned' ? '2px solid #d97706' : '1px solid #e2e8f0',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Needs Reviewer
+                      </span>
+                      <AlertCircle size={16} color="#d97706" />
+                    </div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#b45309', lineHeight: 1 }}>
+                      {unassignedCount}
+                    </div>
+                    <span style={{ fontSize: '0.74rem', color: '#92400e', marginTop: '6px', display: 'block' }}>
+                      {unassignedCount === 0 ? '✓ All assigned' : '⚠️ Action required'}
+                    </span>
+                  </div>
+
+                  {/* Card 3: In Review */}
+                  <div
+                    onClick={() => setSubmissionStatusFilter('under_review')}
+                    style={{
+                      padding: '16px',
+                      backgroundColor: submissionStatusFilter === 'under_review' ? '#eff6ff' : '#ffffff',
+                      borderRadius: '12px',
+                      border: submissionStatusFilter === 'under_review' ? '2px solid #2563eb' : '1px solid #e2e8f0',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Under Review
+                      </span>
+                      <Activity size={16} color="#2563eb" />
+                    </div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1d4ed8', lineHeight: 1 }}>
+                      {underReviewCount}
+                    </div>
+                    <span style={{ fontSize: '0.74rem', color: '#60a5fa', marginTop: '6px', display: 'block' }}>
+                      In peer evaluation
+                    </span>
+                  </div>
+
+                  {/* Card 4: Reviews Completed / Scored */}
+                  <div
+                    onClick={() => setSubmissionStatusFilter('evaluated')}
+                    style={{
+                      padding: '16px',
+                      backgroundColor: submissionStatusFilter === 'evaluated' ? '#faf5ff' : '#ffffff',
+                      borderRadius: '12px',
+                      border: submissionStatusFilter === 'evaluated' ? '2px solid #7c3aed' : '1px solid #e2e8f0',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#6d28d9', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Reviews Scored
+                      </span>
+                      <Star size={16} color="#7c3aed" />
+                    </div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#6d28d9', lineHeight: 1 }}>
+                      {evaluatedCount}
+                    </div>
+                    <span style={{ fontSize: '0.74rem', color: '#8b5cf6', marginTop: '6px', display: 'block' }}>
+                      {avgScoreOverall ? `⭐ Avg: ${avgScoreOverall}/5.0` : 'No scorecards yet'}
+                    </span>
+                  </div>
+
+                  {/* Card 5: Accepted Decisions */}
+                  <div
+                    onClick={() => setSubmissionStatusFilter('accepted')}
+                    style={{
+                      padding: '16px',
+                      backgroundColor: submissionStatusFilter === 'accepted' ? '#ecfdf5' : '#ffffff',
+                      borderRadius: '12px',
+                      border: submissionStatusFilter === 'accepted' ? '2px solid #059669' : '1px solid #e2e8f0',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#047857', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Accepted
+                      </span>
+                      <CheckCircle2 size={16} color="#059669" />
+                    </div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#047857', lineHeight: 1 }}>
+                      {acceptedCount}
+                    </div>
+                    <span style={{ fontSize: '0.74rem', color: '#10b981', marginTop: '6px', display: 'block' }}>
+                      {totalSubmissions > 0 ? `${acceptanceRate}% Acceptance Rate` : '0%'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* TRACK DISTRIBUTION BREAKDOWN & FILTER STRIP */}
+                <div style={{
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '10px',
+                  padding: '12px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '10px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <BarChart3 size={14} color="#0f3d3e" /> Track Filter:
+                    </span>
+                    <button
+                      onClick={() => setSubmissionTrackFilter('All Tracks')}
+                      style={{
+                        padding: '3px 10px',
+                        borderRadius: '20px',
+                        fontSize: '0.76rem',
+                        fontWeight: 600,
+                        border: submissionTrackFilter === 'All Tracks' ? '1px solid #0f3d3e' : '1px solid #cbd5e1',
+                        backgroundColor: submissionTrackFilter === 'All Tracks' ? '#0f3d3e' : '#ffffff',
+                        color: submissionTrackFilter === 'All Tracks' ? '#ffffff' : '#475569',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      All ({totalSubmissions})
+                    </button>
+                    {trackCounts.map((t, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setSubmissionTrackFilter(t.category)}
+                        style={{
+                          padding: '3px 10px',
+                          borderRadius: '20px',
+                          fontSize: '0.76rem',
+                          fontWeight: 600,
+                          border: submissionTrackFilter === t.category ? '1px solid #0f3d3e' : '1px solid #cbd5e1',
+                          backgroundColor: submissionTrackFilter === t.category ? '#0f3d3e' : '#ffffff',
+                          color: submissionTrackFilter === t.category ? '#ffffff' : '#475569',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {t.category} ({t.count})
+                      </button>
                     ))}
-                  </select>
+                  </div>
+
+                  {/* Active Filter Clear Helper */}
+                  {(submissionTrackFilter !== 'All Tracks' || submissionStatusFilter !== 'all' || submissionSearch) && (
+                    <button
+                      onClick={() => {
+                        setSubmissionTrackFilter('All Tracks');
+                        setSubmissionStatusFilter('all');
+                        setSubmissionSearch('');
+                      }}
+                      style={{
+                        fontSize: '0.76rem',
+                        color: '#ef4444',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontWeight: 600
+                      }}
+                    >
+                      ✕ Reset All Filters
+                    </button>
+                  )}
+                </div>
+
+                {/* SEARCH AND CONTROLS */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '0.84rem', color: '#64748b' }}>
+                      Status View:
+                    </span>
+                    <select
+                      value={submissionStatusFilter}
+                      onChange={(e) => setSubmissionStatusFilter(e.target.value)}
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: '6px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '0.82rem',
+                        backgroundColor: '#ffffff',
+                        color: '#0f3d3e',
+                        fontWeight: 600
+                      }}
+                    >
+                      <option value="all">All Statuses ({totalSubmissions})</option>
+                      <option value="unassigned">⚠️ Needs Reviewer ({unassignedCount})</option>
+                      <option value="submitted">Submitted ({submissionsList.filter(s => s.status === 'submitted').length})</option>
+                      <option value="under_review">Under Review ({underReviewCount})</option>
+                      <option value="evaluated">Scored by Reviewer ({evaluatedCount})</option>
+                      <option value="revision_requested">Revision Requested ({revisionCount})</option>
+                      <option value="accepted">Accepted ({acceptedCount})</option>
+                      <option value="rejected">Rejected ({rejectedCount})</option>
+                    </select>
+                  </div>
 
                   <input
                     type="text"
-                    placeholder="Search by Title, ID, Author..."
+                    placeholder="Search by Title, ID, Author, Email..."
                     value={submissionSearch}
                     onChange={(e) => setSubmissionSearch(e.target.value)}
                     style={{
                       padding: '8px 14px',
                       borderRadius: '8px',
                       border: '1px solid #cbd5e1',
-                      fontSize: '0.88rem',
-                      width: '240px'
+                      fontSize: '0.86rem',
+                      width: '280px'
                     }}
                   />
                 </div>
-              </div>
 
-              {/* Submissions List Table */}
-              <div style={{
-                borderRadius: '12px',
-                border: '1px solid #e2e8f0',
-                overflow: 'hidden',
-                backgroundColor: '#ffffff',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
-              }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
-                  <thead>
-                    <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '1px solid #e2e8f0', textAlign: 'left', color: '#475569' }}>
-                      <th style={{ padding: '12px 16px', width: '130px' }}>Tracking ID</th>
-                      <th style={{ padding: '12px 16px' }}>Manuscript Title & Track</th>
-                      <th style={{ padding: '12px 16px' }}>Author / Submitter</th>
-                      <th style={{ padding: '12px 16px' }}>Assigned Reviewers</th>
-                      <th style={{ padding: '12px 16px' }}>Evaluations</th>
-                      <th style={{ padding: '12px 16px' }}>Review Status</th>
-                      <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(() => {
-                      const availableReviewers = allUsers.filter(u => u.roles.includes('reviewer'));
-                      const filtered = submissionsList.filter(sub => {
-                        const matchesTrack = submissionTrackFilter === 'All Tracks' || sub.track === submissionTrackFilter;
-                        const q = submissionSearch.toLowerCase().trim();
-                        const matchesSearch = !q || 
-                          sub.id.toLowerCase().includes(q) ||
-                          sub.title.toLowerCase().includes(q) ||
-                          sub.authorName.toLowerCase().includes(q) ||
-                          sub.authorEmail.toLowerCase().includes(q) ||
-                          sub.organization.toLowerCase().includes(q);
-                        return matchesTrack && matchesSearch;
-                      });
+                {/* Submissions List Table */}
+                <div style={{
+                  borderRadius: '12px',
+                  border: '1px solid #e2e8f0',
+                  overflow: 'hidden',
+                  backgroundColor: '#ffffff',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
+                }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+                    <thead>
+                      <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '1px solid #e2e8f0', textAlign: 'left', color: '#475569' }}>
+                        <th style={{ padding: '12px 16px', width: '130px' }}>Tracking ID</th>
+                        <th style={{ padding: '12px 16px' }}>Manuscript Title & Track</th>
+                        <th style={{ padding: '12px 16px' }}>Author / Submitter</th>
+                        <th style={{ padding: '12px 16px' }}>Assigned Reviewers</th>
+                        <th style={{ padding: '12px 16px' }}>Evaluations</th>
+                        <th style={{ padding: '12px 16px' }}>Review Status</th>
+                        <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const availableReviewers = allUsers.filter(u => u.roles.includes('reviewer'));
+                        const filtered = submissionsList.filter(sub => {
+                          const matchesTrack = submissionTrackFilter === 'All Tracks' || sub.track === submissionTrackFilter;
+                          const q = submissionSearch.toLowerCase().trim();
+                          const matchesSearch = !q || 
+                            sub.id.toLowerCase().includes(q) ||
+                            sub.title.toLowerCase().includes(q) ||
+                            sub.authorName.toLowerCase().includes(q) ||
+                            sub.authorEmail.toLowerCase().includes(q) ||
+                            sub.organization.toLowerCase().includes(q);
 
-                      if (filtered.length === 0) {
-                        return (
-                          <tr>
-                            <td colSpan={7} style={{ padding: '40px 16px', textAlign: 'center', color: '#94a3b8' }}>
-                              <FileText size={32} style={{ margin: '0 auto 8px auto', opacity: 0.5, display: 'block' }} />
-                              {submissionsList.length === 0 ? 'No manuscripts submitted yet. When authors submit papers, they will appear here.' : 'No submissions match your search query.'}
-                            </td>
-                          </tr>
-                        );
-                      }
+                          let matchesStatus = true;
+                          if (submissionStatusFilter === 'unassigned') {
+                            matchesStatus = !sub.assignedReviewers || sub.assignedReviewers.length === 0;
+                          } else if (submissionStatusFilter === 'evaluated') {
+                            matchesStatus = Boolean(sub.evaluations && sub.evaluations.length > 0);
+                          } else if (submissionStatusFilter !== 'all') {
+                            matchesStatus = sub.status === submissionStatusFilter;
+                          }
+
+                          return matchesTrack && matchesSearch && matchesStatus;
+                        });
+
+                        if (filtered.length === 0) {
+                          return (
+                            <tr>
+                              <td colSpan={7} style={{ padding: '40px 16px', textAlign: 'center', color: '#94a3b8' }}>
+                                <FileText size={32} style={{ margin: '0 auto 8px auto', opacity: 0.5, display: 'block' }} />
+                                {submissionsList.length === 0 ? 'No manuscripts submitted yet. When authors submit papers, they will appear here.' : 'No submissions match your active filter criteria.'}
+                              </td>
+                            </tr>
+                          );
+                        }
 
                       return filtered.map((sub) => {
                         const getStatusBadge = (status: string) => {
@@ -2222,7 +2486,8 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                 </table>
               </div>
             </div>
-          )}
+          );
+        })()}
 
           {/* TAB 7: USER DIRECTORY & REVIEWER ROLES + DIRECT EMAIL BUTTON */}
           {activeTab === 'users' && (
