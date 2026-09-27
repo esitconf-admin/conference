@@ -2400,19 +2400,22 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                   <div
                     key={speaker.id}
                     style={{
-                      padding: '20px',
-                      borderRadius: '12px',
-                      border: '1px solid #e2e8f0',
-                      backgroundColor: '#f8fafc',
+                      padding: '22px',
+                      borderRadius: '14px',
+                      border: '1px solid #cbd5e1',
+                      backgroundColor: '#ffffff',
                       display: 'grid',
-                      gap: '12px'
+                      gap: '14px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
                     }}
                   >
-                    <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 1fr auto', gap: '12px' }}>
+                    {/* Top Row: Name, Title/Role, Affiliation, Country & Delete */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1.1fr 1.3fr 0.9fr auto', gap: '12px', alignItems: 'flex-start' }}>
                       <div>
-                        <label style={labelStyle}>Speaker Name</label>
+                        <label style={labelStyle}>Speaker Full Name & Title *</label>
                         <input
                           type="text"
+                          required
                           value={speaker.name}
                           onChange={(e) => {
                             const updated = [...keynotesList];
@@ -2420,13 +2423,30 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                             setKeynotesList(updated);
                           }}
                           style={inputStyle}
+                          placeholder="e.g. Prof. Dr. Jane Doe"
                         />
                       </div>
 
                       <div>
-                        <label style={labelStyle}>Affiliation / University</label>
+                        <label style={labelStyle}>Role / Position</label>
                         <input
                           type="text"
+                          value={speaker.title || ''}
+                          onChange={(e) => {
+                            const updated = [...keynotesList];
+                            updated[idx].title = e.target.value;
+                            setKeynotesList(updated);
+                          }}
+                          style={inputStyle}
+                          placeholder="e.g. Professor & Chair"
+                        />
+                      </div>
+
+                      <div>
+                        <label style={labelStyle}>Affiliation / University *</label>
+                        <input
+                          type="text"
+                          required
                           value={speaker.affiliation}
                           onChange={(e) => {
                             const updated = [...keynotesList];
@@ -2434,13 +2454,15 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                             setKeynotesList(updated);
                           }}
                           style={inputStyle}
+                          placeholder="e.g. Technical University of Munich"
                         />
                       </div>
 
                       <div>
-                        <label style={labelStyle}>Country</label>
+                        <label style={labelStyle}>Country *</label>
                         <input
                           type="text"
+                          required
                           value={speaker.country}
                           onChange={(e) => {
                             const updated = [...keynotesList];
@@ -2448,10 +2470,12 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                             setKeynotesList(updated);
                           }}
                           style={inputStyle}
+                          placeholder="e.g. Germany"
                         />
                       </div>
 
                       <button
+                        type="button"
                         onClick={() => handleDeleteKeynote(speaker.id)}
                         style={{
                           background: 'none',
@@ -2459,17 +2483,20 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                           color: '#ef4444',
                           cursor: 'pointer',
                           padding: '6px',
-                          marginTop: '14px'
+                          marginTop: '22px'
                         }}
+                        title="Delete Speaker"
                       >
                         <Trash2 size={18} />
                       </button>
                     </div>
 
+                    {/* Presentation Topic */}
                     <div>
-                      <label style={labelStyle}>Presentation Topic / Title</label>
+                      <label style={labelStyle}>Presentation Topic / Keynote Title *</label>
                       <input
                         type="text"
+                        required
                         value={speaker.topic}
                         onChange={(e) => {
                           const updated = [...keynotesList];
@@ -2477,7 +2504,109 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                           setKeynotesList(updated);
                         }}
                         style={inputStyle}
+                        placeholder="e.g. AI-Driven Sustainable Smart Grids and Green Power Systems"
                       />
+                    </div>
+
+                    {/* Abstract & Bio */}
+                    <div>
+                      <label style={labelStyle}>Speech Abstract / Speaker Bio (Optional)</label>
+                      <textarea
+                        rows={2}
+                        value={speaker.abstract || ''}
+                        onChange={(e) => {
+                          const updated = [...keynotesList];
+                          updated[idx].abstract = e.target.value;
+                          setKeynotesList(updated);
+                        }}
+                        style={{ ...inputStyle, fontFamily: 'inherit' }}
+                        placeholder="Brief summary of the keynote speech or speaker's biographical background..."
+                      />
+                    </div>
+
+                    {/* Speaker Profile Picture URL & Google Drive Image Box */}
+                    <div style={{
+                      padding: '14px',
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '10px',
+                      display: 'grid',
+                      gap: '10px'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                        <label style={{ ...labelStyle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <ImageIcon size={15} color="#0f3d3e" />
+                          <span>Speaker Profile Picture URL (Google Drive Supported)</span>
+                        </label>
+                        {isGoogleDriveUrl(speaker.imageUrl) && (
+                          <span style={{
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            backgroundColor: '#ecfdf5',
+                            color: '#047857',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            border: '1px solid #a7f3d0'
+                          }}>
+                            ✨ Google Drive Link Detected & Auto-Converted
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '14px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <div style={{ flex: 1, minWidth: '260px' }}>
+                          <input
+                            type="text"
+                            value={speaker.imageUrl || ''}
+                            onChange={(e) => {
+                              const updated = [...keynotesList];
+                              updated[idx].imageUrl = e.target.value;
+                              setKeynotesList(updated);
+                            }}
+                            style={inputStyle}
+                            placeholder="Paste direct photo URL or Google Drive sharing link (e.g. https://drive.google.com/file/d/.../view)"
+                          />
+                          <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
+                            💡 Paste any Google Drive link directly (ensure sharing is set to <em>&quot;Anyone with the link can view&quot;</em>).
+                          </span>
+                        </div>
+
+                        {/* Live Photo Thumbnail Preview */}
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '6px 10px',
+                          backgroundColor: '#ffffff',
+                          borderRadius: '8px',
+                          border: '1px solid #cbd5e1'
+                        }}>
+                          <div style={{
+                            position: 'relative',
+                            width: '46px',
+                            height: '46px',
+                            borderRadius: '50%',
+                            overflow: 'hidden',
+                            backgroundColor: '#092c2c',
+                            border: '2px solid #f59e0b',
+                            flexShrink: 0
+                          }}>
+                            <Image
+                              src={formatGoogleDriveImageUrl(speaker.imageUrl) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'}
+                              alt={speaker.name || 'Keynote Speaker'}
+                              fill
+                              style={{ objectFit: 'cover' }}
+                              unoptimized
+                            />
+                          </div>
+                          <div style={{ fontSize: '0.75rem' }}>
+                            <div style={{ fontWeight: 700, color: '#0f3d3e' }}>Live Photo Preview</div>
+                            <div style={{ color: '#64748b', fontSize: '0.7rem' }}>
+                              {speaker.imageUrl ? 'Active Stream' : 'Default Avatar'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}

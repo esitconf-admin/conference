@@ -179,47 +179,51 @@ export default function HeroSection({ onOpenSubmission }: HeroSectionProps) {
               position: 'relative',
               backgroundColor: '#ffffff',
               borderRadius: '16px',
-              padding: '12px',
+              padding: '10px',
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-              border: '2px solid rgba(255, 255, 255, 0.2)',
+              border: '2px solid rgba(255, 255, 255, 0.25)',
               overflow: 'hidden',
               cursor: 'pointer',
               transition: 'transform 0.3s ease'
             }}
             onClick={() => setLightboxOpen(true)}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.015)'}
             onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
             >
-              {/* Poster Header */}
+              {/* Poster Container fitting full width */}
               <div style={{
                 position: 'relative',
                 width: '100%',
-                height: '380px',
                 borderRadius: '12px',
                 overflow: 'hidden',
                 backgroundColor: '#092c2c'
               }}>
-                <Image
+                {/* Responsive Image fitting 100% width */}
+                <img
                   src={formattedPosterUrl}
                   alt="ESIT Conference Poster"
-                  fill
                   style={{
-                    objectFit: 'cover'
+                    width: '100%',
+                    height: 'auto',
+                    display: 'block',
+                    borderRadius: '12px',
+                    objectFit: 'cover',
+                    maxHeight: '620px'
                   }}
-                  priority
-                  unoptimized
+                  loading="eager"
                 />
 
-                {/* Lightbox Trigger Overlay */}
+                {/* Lightbox Trigger Overlay on Bottom */}
                 <div style={{
                   position: 'absolute',
                   inset: 0,
-                  background: 'linear-gradient(to top, rgba(9, 44, 44, 0.9) 0%, rgba(9, 44, 44, 0.2) 60%, transparent 100%)',
+                  background: 'linear-gradient(to top, rgba(9, 44, 44, 0.92) 0%, rgba(9, 44, 44, 0.3) 40%, transparent 75%)',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'flex-end',
-                  padding: '20px',
-                  color: '#ffffff'
+                  padding: '16px 20px',
+                  color: '#ffffff',
+                  pointerEvents: 'none'
                 }}>
                   <div style={{
                     display: 'flex',
@@ -227,22 +231,23 @@ export default function HeroSection({ onOpenSubmission }: HeroSectionProps) {
                     justifyContent: 'space-between'
                   }}>
                     <div>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                         Official Announcement Poster
                       </span>
-                      <h4 style={{ margin: '2px 0 0 0', color: '#ffffff', fontSize: '1.1rem' }}>
+                      <h4 style={{ margin: '2px 0 0 0', color: '#ffffff', fontSize: '1.05rem', fontWeight: 700 }}>
                         {hero.edition} Call for Papers
                       </h4>
                     </div>
                     <div style={{
                       padding: '8px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.25)',
                       borderRadius: '50%',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center'
+                      justifyContent: 'center',
+                      backdropFilter: 'blur(4px)'
                     }}>
-                      <Maximize2 size={18} />
+                      <Maximize2 size={16} />
                     </div>
                   </div>
                 </div>
@@ -259,7 +264,7 @@ export default function HeroSection({ onOpenSubmission }: HeroSectionProps) {
           position: 'fixed',
           inset: 0,
           zIndex: 1000,
-          backgroundColor: 'rgba(0, 0, 0, 0.88)',
+          backgroundColor: 'rgba(0, 0, 0, 0.9)',
           backdropFilter: 'blur(8px)',
           display: 'flex',
           alignItems: 'center',
@@ -269,35 +274,40 @@ export default function HeroSection({ onOpenSubmission }: HeroSectionProps) {
         }}
         onClick={() => setLightboxOpen(false)}
         >
-          <div style={{ position: 'relative', maxWidth: '850px', width: '100%', maxHeight: '92vh', textAlign: 'center' }}
+          <div style={{ position: 'relative', maxWidth: '900px', width: '100%', maxHeight: '92vh', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
                onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setLightboxOpen(false)}
               style={{
-                position: 'absolute',
-                top: '-45px',
-                right: '0',
-                background: 'none',
-                border: 'none',
+                alignSelf: 'flex-end',
+                marginBottom: '10px',
+                background: 'rgba(255, 255, 255, 0.15)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                borderRadius: '8px',
                 color: '#ffffff',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                fontSize: '0.95rem'
+                padding: '6px 14px',
+                fontSize: '0.9rem',
+                fontWeight: 600
               }}
             >
-              <X size={24} /> Close
+              <X size={18} /> Close
             </button>
-            <div style={{ position: 'relative', width: '100%', height: '70vh', borderRadius: '12px', overflow: 'hidden' }}>
-              <Image
+            <div style={{ position: 'relative', maxWidth: '100%', maxHeight: '85vh', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 25px 50px rgba(0,0,0,0.5)' }}>
+              <img
                 src={formattedPosterUrl}
                 alt="ESIT Poster Enlarged"
-                fill
                 style={{
-                  objectFit: 'contain'
+                  maxWidth: '100%',
+                  maxHeight: '85vh',
+                  height: 'auto',
+                  objectFit: 'contain',
+                  display: 'block',
+                  borderRadius: '12px'
                 }}
-                unoptimized
               />
             </div>
           </div>
