@@ -10,7 +10,7 @@ import {
   onAuthStateChanged,
   User as FirebaseUser
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs } from 'firebase/firestore';
 import { sendConferenceEmail } from '../email/emailService';
 
 interface AuthContextType {
@@ -33,6 +33,8 @@ interface AuthContextType {
   }) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   toggleReviewerRole: (uid: string, makeReviewer: boolean) => Promise<boolean>;
+  toggleUserStatus: (uid: string, status: 'active' | 'suspended') => Promise<boolean>;
+  deleteUser: (uid: string) => Promise<boolean>;
   fetchAllUsers: () => Promise<UserProfile[]>;
 }
 
@@ -90,6 +92,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const userDoc = await getDoc(doc(db!, 'users', user.uid));
           if (userDoc.exists()) {
             const data = userDoc.data() as UserProfile;
+            if (data.status === 'suspended') {
+              await signOut(auth!);
+              setCurrentUser(null);
+              if (typeof window !== 'undefined') {
+                localStorage.removeItem(LOCAL_STORAGE_CURRENT_KEY);
+              }
+              setLoading(false);
+              return;
+            }
             setCurrentUser(data);
             if (typeof window !== 'undefined') {
               localStorage.setItem(LOCAL_STORAGE_CURRENT_KEY, JSON.stringify(data));
@@ -129,6 +140,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const userDoc = await getDoc(doc(db, 'users', cred.user.uid));
         if (userDoc.exists()) {
           const profile = userDoc.data() as UserProfile;
+          if (profile.status === 'suspended') {
+            await signOut(auth);
+            return {
+              success: false,
+              error: 'Your account has been blocked/suspended by the Conference Administrator. Please contact the Secretariat at esitconf@gmail.com.'
+            };
+          }
           setCurrentUser(profile);
           if (typeof window !== 'undefined') {
             localStorage.setItem(LOCAL_STORAGE_CURRENT_KEY, JSON.stringify(profile));
@@ -144,6 +162,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 2. Fallback local auth simulation
     const foundUser = allUsers.find(u => u.email.toLowerCase() === trimmedEmail);
     if (foundUser) {
+      if (foundUser.status === 'suspended') {
+        return {
+          success: false,
+          error: 'Your account has been blocked/suspended by the Conference Administrator. Please contact the Secretariat at esitconf@gmail.com.'
+        };
+      }
       setCurrentUser(foundUser);
       if (typeof window !== 'undefined') {
         localStorage.setItem(LOCAL_STORAGE_CURRENT_KEY, JSON.stringify(foundUser));
@@ -285,6 +309,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return true;
   };
 
+  const toggleUserStatus = async (uid: string, status: 'active' | 'suspended'): Promise<boolean> => {
+    const updated = allUsers.map(u => {
+      if (u.uid === uid) {
+        return { ...u, status, updatedAt: new Date().toISOString() };
+      }
+      return u;
+    });
+
+    setAllUsers(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(LOCAL_STORAGE_USERS_KEY, JSON.stringify(updated));
+    }
+
+    if (currentUser && currentUser.uid === uid) {
+      if (status === 'suspended') {
+        await logout();
+      } else {
+        const self = updated.find(u => u.uid === uid) || null;
+        setCurrentUser(self);
+        if (typeof window !== 'undefined' && self) {
+          localStorage.setItem(LOCAL_STORAGE_CURRENT_KEY, JSON.stringify(self));
+        }
+      }
+    }
+
+    if (isFirebaseConfigured && db) {
+      try {
+        await updateDoc(doc(db, 'users', uid), {
+          status,
+          updatedAt: new Date().toISOString()
+        });
+      } catch (e) {
+        console.error('Failed to update user status in Firestore:', e);
+      }
+    }
+
+    return true;
+  };
+
+  const deleteUser = async (uid: string): Promise<boolean> => {
+    const updated = allUsers.filter(u => u.uid !== uid);
+    setAllUsers(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(LOCAL_STORAGE_USERS_KEY, JSON.stringify(updated));
+    }
+
+    if (currentUser && currentUser.uid === uid) {
+      await logout();
+    }
+
+    if (isFirebaseConfigured && db) {
+      try {
+        await deleteDoc(doc(db, 'users', uid));
+      } catch (e) {
+        console.error('Failed to delete user in Firestore:', e);
+      }
+    }
+
+    return true;
+  };
+
   const isAdmin = currentUser ? currentUser.roles.includes('admin') : false;
   const isReviewer = currentUser ? currentUser.roles.includes('reviewer') : false;
   const isAuthor = currentUser ? currentUser.roles.includes('author') : false;
@@ -302,6 +387,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       register,
       logout,
       toggleReviewerRole,
+      toggleUserStatus,
+      deleteUser,
       fetchAllUsers
     }}>
       {children}

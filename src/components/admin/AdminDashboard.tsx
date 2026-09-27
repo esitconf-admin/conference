@@ -7,7 +7,8 @@ import {
   Sparkles, UserCheck, Eye, MessageSquare, LayoutTemplate, ArrowRight,
   Globe, Share2, Copy, CheckCheck, ExternalLink, BarChart3, Activity,
   ArrowUpRight, CheckCircle, Clock, Folder, Star, Award, Layers, FileCheck, Check, Link as LinkIcon,
-  Download, CreditCard, Building2, MapPin, Hotel, Plane, DollarSign, Navigation, Image as ImageIcon
+  Download, CreditCard, Building2, MapPin, Hotel, Plane, DollarSign, Navigation, Image as ImageIcon,
+  Ban, Unlock, Lock, UserX
 } from 'lucide-react';
 import { useAuth } from '../../lib/context/AuthContext';
 import { useConferenceData } from '../../lib/context/ConferenceDataContext';
@@ -34,7 +35,7 @@ const LOCAL_STORAGE_TEMPLATES_KEY = 'esit_conference_email_templates';
 const ESIT_DRIVE_FOLDER_URL = 'https://drive.google.com/drive/folders/1A7BPBWVm812p34MAwF06r5G-g-YRP9Od';
 
 export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: AdminDashboardProps) {
-  const { currentUser, isAdmin, allUsers, toggleReviewerRole, fetchAllUsers } = useAuth();
+  const { currentUser, isAdmin, allUsers, toggleReviewerRole, toggleUserStatus, deleteUser, fetchAllUsers } = useAuth();
   const {
     content,
     updateHero,
@@ -161,8 +162,9 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
   const [individualSending, setIndividualSending] = useState(false);
   const [individualSelectedTemplate, setIndividualSelectedTemplate] = useState<string>('custom_message');
 
-  // User search filter
+  // User search & status filters
   const [userSearch, setUserSearch] = useState('');
+  const [userStatusFilter, setUserStatusFilter] = useState<'all' | 'active' | 'suspended' | 'reviewer' | 'admin' | 'author'>('all');
 
   // Email test form in tester tab
   const [testEmailTo, setTestEmailTo] = useState('');
@@ -655,6 +657,55 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     showSuccess(`Updated user role. Reviewer role is now ${isNowReviewer ? 'ASSIGNED' : 'REVOKED'}.`);
   };
 
+  // User block/unblock handler
+  const handleToggleBlockUser = async (user: UserProfile) => {
+    if (currentUser && currentUser.uid === user.uid) {
+      alert("You cannot block or suspend your own administrator account.");
+      return;
+    }
+    const currentStatus = user.status || 'active';
+    const newStatus = currentStatus === 'suspended' ? 'active' : 'suspended';
+    const actionText = newStatus === 'suspended' ? 'BLOCK & SUSPEND' : 'UNBLOCK & ACTIVATE';
+
+    const confirmed = window.confirm(
+      `⚠️ ACCOUNT GOVERNANCE:\n\nAre you sure you want to ${actionText} user:\n• ${user.firstName} ${user.lastName}\n• Email: ${user.email}\n\n${
+        newStatus === 'suspended'
+          ? 'They will be immediately blocked from logging in, submitting papers, and reviewing.'
+          : 'They will be permitted to log in and use the portal again.'
+      }`
+    );
+
+    if (confirmed) {
+      const success = await toggleUserStatus(user.uid, newStatus);
+      if (success) {
+        showSuccess(`User ${user.email} is now ${newStatus === 'suspended' ? 'BLOCKED & SUSPENDED' : 'ACTIVE & UNBLOCKED'}.`);
+      } else {
+        alert("Failed to update user status. Please try again.");
+      }
+    }
+  };
+
+  // User remove / delete handler
+  const handleDeleteUser = async (user: UserProfile) => {
+    if (currentUser && currentUser.uid === user.uid) {
+      alert("You cannot delete your own administrator account from the database.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `🚨 PERMANENT DATABASE DELETION WARNING:\n\nAre you sure you want to permanently DELETE user:\n• ${user.firstName} ${user.lastName}\n• Email: ${user.email}\n• Organization: ${user.organization}\n\n⚠️ This action will permanently remove their profile record from the database. This action CANNOT be undone.`
+    );
+
+    if (confirmed) {
+      const success = await deleteUser(user.uid);
+      if (success) {
+        showSuccess(`User ${user.email} has been permanently deleted from the database.`);
+      } else {
+        alert("Failed to delete user from database. Please check your connection or permissions.");
+      }
+    }
+  };
+
   // Save Email Templates
   const handleSaveEmailTemplates = async () => {
     if (typeof window !== 'undefined') {
@@ -792,12 +843,24 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     setTestEmailStatus(res.message || 'Email sent successfully.');
   };
 
-  const filteredUsers = allUsers.filter(u =>
-    u.email.toLowerCase().includes(userSearch.toLowerCase()) ||
-    u.firstName.toLowerCase().includes(userSearch.toLowerCase()) ||
-    u.lastName.toLowerCase().includes(userSearch.toLowerCase()) ||
-    u.organization.toLowerCase().includes(userSearch.toLowerCase())
-  );
+  const filteredUsers = allUsers.filter(u => {
+    const matchesSearch = 
+      u.email.toLowerCase().includes(userSearch.toLowerCase()) ||
+      u.firstName.toLowerCase().includes(userSearch.toLowerCase()) ||
+      u.lastName.toLowerCase().includes(userSearch.toLowerCase()) ||
+      u.organization.toLowerCase().includes(userSearch.toLowerCase());
+
+    if (!matchesSearch) return false;
+
+    if (userStatusFilter === 'all') return true;
+    if (userStatusFilter === 'active') return (u.status || 'active') === 'active';
+    if (userStatusFilter === 'suspended') return u.status === 'suspended';
+    if (userStatusFilter === 'reviewer') return u.roles.includes('reviewer');
+    if (userStatusFilter === 'admin') return u.roles.includes('admin');
+    if (userStatusFilter === 'author') return u.roles.includes('author');
+
+    return true;
+  });
 
   const currentTemplate = emailTemplates[selectedTemplateIndex] || emailTemplates[0];
 
@@ -4327,34 +4390,184 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
           );
         })()}
 
-          {/* TAB 7: USER DIRECTORY & REVIEWER ROLES + DIRECT EMAIL BUTTON */}
+          {/* TAB: USER DIRECTORY, ROLE GOVERNANCE & ACCESS CONTROL */}
           {activeTab === 'users' && (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+              {/* Header & Description */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
-                  <h4 style={{ margin: 0, color: '#0f3d3e', fontSize: '1.1rem' }}>
-                    User Directory & Role Governance
+                  <h4 style={{ margin: 0, color: '#0f3d3e', fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Users size={20} color="#0f3d3e" />
+                    <span>User Directory & Access Governance</span>
                   </h4>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>
-                    Manage author registrations, appoint Reviewers with 1-click, and send direct individual emails.
+                  <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#64748b' }}>
+                    Monitor user accounts, appoint Peer Reviewers, block/suspend unauthorized accounts from logging in, or permanently remove users.
                   </p>
                 </div>
-
-                <input
-                  type="text"
-                  placeholder="Search user by name, email, university..."
-                  value={userSearch}
-                  onChange={(e) => setUserSearch(e.target.value)}
-                  style={{
-                    padding: '8px 14px',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '0.88rem',
-                    width: '280px'
-                  }}
-                />
               </div>
 
+              {/* KPI Summary Cards */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
+                gap: '12px',
+                marginBottom: '18px'
+              }}>
+                <div style={{
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '10px',
+                  padding: '12px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '8px', backgroundColor: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0369a1' }}>
+                    <Users size={20} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Total Registered</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a' }}>{allUsers.length}</div>
+                  </div>
+                </div>
+
+                <div style={{
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '10px',
+                  padding: '12px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '8px', backgroundColor: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669' }}>
+                    <CheckCircle2 size={20} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Active Accounts</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#059669' }}>
+                      {allUsers.filter(u => (u.status || 'active') === 'active').length}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '10px',
+                  padding: '12px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '8px', backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626' }}>
+                    <Ban size={20} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Blocked / Suspended</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#dc2626' }}>
+                      {allUsers.filter(u => u.status === 'suspended').length}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '10px',
+                  padding: '12px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '8px', backgroundColor: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b45309' }}>
+                    <UserCheck size={20} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Appointed Reviewers</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#b45309' }}>
+                      {allUsers.filter(u => u.roles.includes('reviewer')).length}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Filter Controls & Search */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '16px',
+                flexWrap: 'wrap',
+                gap: '12px',
+                backgroundColor: '#ffffff',
+                padding: '12px 16px',
+                borderRadius: '10px',
+                border: '1px solid #e2e8f0'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Filter:</span>
+                  {(['all', 'active', 'suspended', 'reviewer', 'author', 'admin'] as const).map(filterOption => (
+                    <button
+                      key={filterOption}
+                      type="button"
+                      onClick={() => setUserStatusFilter(filterOption)}
+                      style={{
+                        padding: '5px 12px',
+                        borderRadius: '6px',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        border: userStatusFilter === filterOption ? '1px solid #0f3d3e' : '1px solid #cbd5e1',
+                        backgroundColor: userStatusFilter === filterOption ? '#0f3d3e' : '#ffffff',
+                        color: userStatusFilter === filterOption ? '#ffffff' : '#475569',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {filterOption === 'all' && 'All Users'}
+                      {filterOption === 'active' && 'Active Only'}
+                      {filterOption === 'suspended' && 'Blocked Only'}
+                      {filterOption === 'reviewer' && 'Reviewers'}
+                      {filterOption === 'author' && 'Authors'}
+                      {filterOption === 'admin' && 'Admins'}
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="Search by name, email, institution..."
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.88rem',
+                      width: '260px'
+                    }}
+                  />
+                  {(userSearch || userStatusFilter !== 'all') && (
+                    <button
+                      onClick={() => { setUserSearch(''); setUserStatusFilter('all'); }}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid #e2e8f0',
+                        backgroundColor: '#f1f5f9',
+                        color: '#64748b',
+                        fontSize: '0.8rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* User Directory Table */}
               <div style={{
                 borderRadius: '12px',
                 border: '1px solid #e2e8f0',
@@ -4366,110 +4579,229 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                     <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '1px solid #e2e8f0', textAlign: 'left', color: '#475569' }}>
                       <th style={{ padding: '12px 16px' }}>User Details</th>
                       <th style={{ padding: '12px 16px' }}>Organization & Country</th>
-                      <th style={{ padding: '12px 16px' }}>Current Roles</th>
+                      <th style={{ padding: '12px 16px' }}>Account Status</th>
+                      <th style={{ padding: '12px 16px' }}>Roles</th>
                       <th style={{ padding: '12px 16px' }}>PDPA Consent</th>
-                      <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions & Communication</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'right' }}>Governance & Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredUsers.map((user) => {
-                      const isRev = user.roles.includes('reviewer');
-                      const isAdm = user.roles.includes('admin');
+                    {filteredUsers.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} style={{ padding: '36px 16px', textAlign: 'center', color: '#64748b' }}>
+                          <Users size={32} color="#94a3b8" style={{ marginBottom: '8px' }} />
+                          <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>No users found</div>
+                          <div style={{ fontSize: '0.82rem' }}>Try adjusting your search keywords or filter options.</div>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredUsers.map((user) => {
+                        const isRev = user.roles.includes('reviewer');
+                        const isAdm = user.roles.includes('admin');
+                        const isSuspended = user.status === 'suspended';
+                        const isSelf = currentUser?.uid === user.uid;
 
-                      return (
-                        <tr key={user.uid} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '12px 16px' }}>
-                            <div style={{ fontWeight: 700, color: '#0f172a' }}>
-                              {user.firstName} {user.lastName}
-                            </div>
-                            <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                              {user.email}
-                            </div>
-                          </td>
+                        return (
+                          <tr key={user.uid} style={{
+                            borderBottom: '1px solid #f1f5f9',
+                            backgroundColor: isSuspended ? '#fff5f5' : '#ffffff'
+                          }}>
+                            <td style={{ padding: '12px 16px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div style={{ fontWeight: 700, color: '#0f172a' }}>
+                                  {user.firstName} {user.lastName}
+                                </div>
+                                {isSelf && (
+                                  <span style={{
+                                    fontSize: '0.68rem',
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    backgroundColor: '#0f3d3e',
+                                    color: '#ffffff',
+                                    fontWeight: 600
+                                  }}>
+                                    You
+                                  </span>
+                                )}
+                              </div>
+                              <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                                {user.email}
+                              </div>
+                            </td>
 
-                          <td style={{ padding: '12px 16px', color: '#334155' }}>
-                            <div>{user.organization}</div>
-                            <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>{user.country}</span>
-                          </td>
+                            <td style={{ padding: '12px 16px', color: '#334155' }}>
+                              <div>{user.organization || '—'}</div>
+                              <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>{user.country || '—'}</span>
+                            </td>
 
-                          <td style={{ padding: '12px 16px' }}>
-                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                              {user.roles.map(r => (
-                                <span key={r} style={{
-                                  padding: '2px 8px',
-                                  borderRadius: '4px',
-                                  fontSize: '0.72rem',
+                            {/* Account Status Badge */}
+                            <td style={{ padding: '12px 16px' }}>
+                              {isSuspended ? (
+                                <span style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  padding: '3px 9px',
+                                  borderRadius: '9999px',
+                                  fontSize: '0.74rem',
                                   fontWeight: 700,
-                                  textTransform: 'uppercase',
-                                  backgroundColor: r === 'admin' ? '#fef3c7' : r === 'reviewer' ? '#e0f2fe' : '#ecfdf5',
-                                  color: r === 'admin' ? '#b45309' : r === 'reviewer' ? '#0369a1' : '#047857'
+                                  backgroundColor: '#fee2e2',
+                                  color: '#dc2626',
+                                  border: '1px solid #fecaca'
                                 }}>
-                                  {r}
+                                  <Ban size={12} />
+                                  <span>BLOCKED</span>
                                 </span>
-                              ))}
-                            </div>
-                          </td>
-
-                          <td style={{ padding: '12px 16px' }}>
-                            {user.pdpaConsent ? (
-                              <span style={{ color: '#059669', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <CheckCircle2 size={14} /> Consented
-                              </span>
-                            ) : (
-                              <span style={{ color: '#dc2626', fontSize: '0.8rem' }}>Pending</span>
-                            )}
-                          </td>
-
-                          <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
-                              {/* Direct Email Button */}
-                              <button
-                                onClick={() => openEmailUserModal(user)}
-                                style={{
+                              ) : (
+                                <span style={{
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   gap: '5px',
-                                  padding: '6px 12px',
-                                  borderRadius: '6px',
-                                  fontSize: '0.8rem',
-                                  fontWeight: 600,
-                                  cursor: 'pointer',
-                                  border: '1px solid #cbd5e1',
-                                  backgroundColor: '#ffffff',
-                                  color: '#0f3d3e'
-                                }}
-                                title={`Send Email to ${user.email}`}
-                              >
-                                <Mail size={13} color="#f59e0b" />
-                                <span>Email User</span>
-                              </button>
+                                  padding: '3px 9px',
+                                  borderRadius: '9999px',
+                                  fontSize: '0.74rem',
+                                  fontWeight: 700,
+                                  backgroundColor: '#ecfdf5',
+                                  color: '#059669',
+                                  border: '1px solid #a7f3d0'
+                                }}>
+                                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#059669' }} />
+                                  <span>ACTIVE</span>
+                                </span>
+                              )}
+                            </td>
 
-                              {isAdm ? (
-                                <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontStyle: 'italic' }}>
-                                  Admin
+                            {/* System Roles */}
+                            <td style={{ padding: '12px 16px' }}>
+                              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                {user.roles.map(r => (
+                                  <span key={r} style={{
+                                    padding: '2px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 700,
+                                    textTransform: 'uppercase',
+                                    backgroundColor: r === 'admin' ? '#fef3c7' : r === 'reviewer' ? '#e0f2fe' : '#f1f5f9',
+                                    color: r === 'admin' ? '#b45309' : r === 'reviewer' ? '#0369a1' : '#475569'
+                                  }}>
+                                    {r}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+
+                            <td style={{ padding: '12px 16px' }}>
+                              {user.pdpaConsent ? (
+                                <span style={{ color: '#059669', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <CheckCircle2 size={14} /> Consented
                                 </span>
                               ) : (
+                                <span style={{ color: '#dc2626', fontSize: '0.8rem' }}>Pending</span>
+                              )}
+                            </td>
+
+                            {/* Governance & Actions */}
+                            <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                              <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                {/* Direct Email Button */}
                                 <button
-                                  onClick={() => handleRoleToggle(user.uid, user.roles)}
+                                  type="button"
+                                  onClick={() => openEmailUserModal(user)}
                                   style={{
-                                    padding: '6px 12px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    padding: '6px 10px',
                                     borderRadius: '6px',
-                                    fontSize: '0.8rem',
+                                    fontSize: '0.78rem',
                                     fontWeight: 600,
                                     cursor: 'pointer',
-                                    border: isRev ? '1px solid #ef4444' : '1px solid #0f3d3e',
-                                    backgroundColor: isRev ? '#fef2f2' : '#0f3d3e',
-                                    color: isRev ? '#dc2626' : '#ffffff'
+                                    border: '1px solid #cbd5e1',
+                                    backgroundColor: '#ffffff',
+                                    color: '#0f3d3e'
                                   }}
+                                  title={`Send Email to ${user.email}`}
                                 >
-                                  {isRev ? 'Revoke Reviewer' : 'Appoint Reviewer'}
+                                  <Mail size={13} color="#f59e0b" />
+                                  <span>Email</span>
                                 </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
+
+                                {/* Reviewer Toggle (Only for non-admins) */}
+                                {!isAdm && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRoleToggle(user.uid, user.roles)}
+                                    style={{
+                                      padding: '6px 10px',
+                                      borderRadius: '6px',
+                                      fontSize: '0.78rem',
+                                      fontWeight: 600,
+                                      cursor: 'pointer',
+                                      border: isRev ? '1px solid #cbd5e1' : '1px solid #0f3d3e',
+                                      backgroundColor: isRev ? '#f8fafc' : '#0f3d3e',
+                                      color: isRev ? '#64748b' : '#ffffff'
+                                    }}
+                                    title={isRev ? 'Revoke Reviewer Role' : 'Appoint as Peer Reviewer'}
+                                  >
+                                    {isRev ? 'Revoke Reviewer' : 'Appoint Reviewer'}
+                                  </button>
+                                )}
+
+                                {/* Block / Unblock Button */}
+                                {!isSelf && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleBlockUser(user)}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                      padding: '6px 10px',
+                                      borderRadius: '6px',
+                                      fontSize: '0.78rem',
+                                      fontWeight: 600,
+                                      cursor: 'pointer',
+                                      border: isSuspended ? '1px solid #059669' : '1px solid #f59e0b',
+                                      backgroundColor: isSuspended ? '#ecfdf5' : '#fffbeb',
+                                      color: isSuspended ? '#059669' : '#b45309'
+                                    }}
+                                    title={isSuspended ? `Unblock ${user.email}` : `Block ${user.email} from logging in`}
+                                  >
+                                    {isSuspended ? <Unlock size={13} /> : <Ban size={13} />}
+                                    <span>{isSuspended ? 'Unblock' : 'Block'}</span>
+                                  </button>
+                                )}
+
+                                {/* Remove / Delete User from Database */}
+                                {!isSelf && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteUser(user)}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                      padding: '6px 8px',
+                                      borderRadius: '6px',
+                                      fontSize: '0.78rem',
+                                      fontWeight: 600,
+                                      cursor: 'pointer',
+                                      border: '1px solid #fecaca',
+                                      backgroundColor: '#fef2f2',
+                                      color: '#dc2626'
+                                    }}
+                                    title={`Permanently delete ${user.email} from database`}
+                                  >
+                                    <Trash2 size={13} />
+                                    <span>Delete</span>
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
                   </tbody>
                 </table>
               </div>
