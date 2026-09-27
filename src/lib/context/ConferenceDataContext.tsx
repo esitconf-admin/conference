@@ -15,6 +15,9 @@ interface ConferenceDataContextType {
   updateNewsList: (news: NewsItem[]) => Promise<boolean>;
   updateKeynotes: (keynotes: KeynoteSpeaker[]) => Promise<boolean>;
   updateCommittees: (committees: CommitteeGroup[]) => Promise<boolean>;
+  updatePricing: (pricing: ConferenceContent['pricing']) => Promise<boolean>;
+  updateBankInfo: (bankInfo: Partial<ConferenceContent['bankInfo']>) => Promise<boolean>;
+  updateVenue: (venue: Partial<NonNullable<ConferenceContent['venue']>>) => Promise<boolean>;
   updateTracks: (tracks: ConferenceContent['tracks']) => Promise<boolean>;
   updateGuidelines: (guidelines: { authorGuidelines?: (string | GuidelineItem)[]; reviewerGuidelines?: (string | GuidelineItem)[] }) => Promise<boolean>;
   updateTracksAndGuidelines: (tracks: ConferenceContent['tracks'], guidelines: { authorGuidelines?: (string | GuidelineItem)[]; reviewerGuidelines?: (string | GuidelineItem)[] }) => Promise<boolean>;
@@ -147,6 +150,52 @@ export function ConferenceDataProvider({ children }: { children: React.ReactNode
     return saveContent({ ...content, committees });
   };
 
+  const updatePricing = async (pricing: ConferenceContent['pricing']): Promise<boolean> => {
+    return saveContent({ ...content, pricing });
+  };
+
+  const updateBankInfo = async (bankUpdates: Partial<ConferenceContent['bankInfo']>): Promise<boolean> => {
+    return saveContent({
+      ...content,
+      bankInfo: {
+        ...content.bankInfo,
+        ...bankUpdates
+      }
+    });
+  };
+
+  const updateVenue = async (venueUpdates: Partial<NonNullable<ConferenceContent['venue']>>): Promise<boolean> => {
+    const currentVenue = content.venue || {
+      venueName: content.hero.venueName,
+      venueCityCountry: content.hero.venueCityCountry,
+      subLocation: `${content.hero.venueName}, ${content.hero.venueCityCountry}`,
+      badge: '5-Star Beachfront Luxury & International Convention Center',
+      address: '240 Beach Road, Pattaya City, Bang Lamung District, Chon Buri 20150, Thailand',
+      imageUrl: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80',
+      airportInfo: 'Convenient access from international airports with direct shuttle options.',
+      accommodationInfo: 'Exclusive negotiated room rates available for conference delegates.',
+      mapUrl: `https://maps.google.com/?q=${encodeURIComponent(content.hero.venueName)}`
+    };
+
+    const newVenue = {
+      ...currentVenue,
+      ...venueUpdates
+    };
+
+    // Also keep hero venue fields in sync
+    const newHero = {
+      ...content.hero,
+      venueName: venueUpdates.venueName || content.hero.venueName,
+      venueCityCountry: venueUpdates.venueCityCountry || content.hero.venueCityCountry
+    };
+
+    return saveContent({
+      ...content,
+      hero: newHero,
+      venue: newVenue
+    });
+  };
+
   const updateTracks = async (tracks: ConferenceContent['tracks']): Promise<boolean> => {
     return saveContent({ ...content, tracks });
   };
@@ -198,6 +247,9 @@ export function ConferenceDataProvider({ children }: { children: React.ReactNode
       updateNewsList,
       updateKeynotes,
       updateCommittees,
+      updatePricing,
+      updateBankInfo,
+      updateVenue,
       updateTracks,
       updateGuidelines,
       updateTracksAndGuidelines,

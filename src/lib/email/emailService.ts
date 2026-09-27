@@ -14,6 +14,7 @@ export interface SendEmailPayload {
     | 'reviewer_paper_assigned' 
     | 'password_reset' 
     | 'manuscript_submitted' 
+    | 'coauthor_submission_notification'
     | 'admin_alert' 
     | 'custom_message';
   data?: Record<string, string | number | boolean | undefined>;

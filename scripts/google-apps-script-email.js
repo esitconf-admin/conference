@@ -301,6 +301,34 @@ function doPost(e) {
           <p style="font-size: 12px; color: #94a3b8; text-align: center;">ESIT Scientific Committee</p>
         </div>
       `;
+    } else if (template === "coauthor_submission_notification" || template === "manuscript_submitted") {
+      htmlBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <div style="background-color: #0f3d3e; color: #ffffff; padding: 18px; border-radius: 6px; text-align: center;">
+            <h2 style="margin: 0; color: #ffffff;">ESIT International Conference</h2>
+            <span style="font-size: 13px; color: #fef3c7;">Co-Author Manuscript Submission Notification</span>
+          </div>
+          <div style="padding: 20px 0; color: #334155; line-height: 1.6;">
+            <p>Dear <strong>${recipientName}</strong>,</p>
+            <p>You have been listed as a <strong>Co-Author</strong> for a newly submitted manuscript for the <strong>ESIT Conference</strong>.</p>
+            
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #0f3d3e; border-radius: 6px; padding: 16px; margin: 20px 0;">
+              <p style="margin: 4px 0;"><strong>Submission Tracking ID:</strong> <span style="color: #0f3d3e; font-weight: bold;">${data && data.submissionId ? data.submissionId : 'N/A'}</span></p>
+              <p style="margin: 4px 0;"><strong>Paper Title:</strong> ${data && data.paperTitle ? data.paperTitle : 'Submitted Paper'}</p>
+              <p style="margin: 4px 0;"><strong>Conference Track:</strong> ${data && data.track ? data.track : 'General Track'}</p>
+              <p style="margin: 4px 0;"><strong>Primary Submitter:</strong> ${data && data.primaryAuthor ? data.primaryAuthor : 'Corresponding Author'}</p>
+            </div>
+
+            <p>The manuscript has entered the double-blind peer review process. You can monitor conference milestones on the online portal.</p>
+            
+            <div style="margin: 20px 0; text-align: center;">
+              <a href="${data && data.portalUrl ? data.portalUrl : '#'}" style="background-color: #f59e0b; color: #ffffff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 6px; display: inline-block;">Access Conference Portal</a>
+            </div>
+          </div>
+          <hr style="border: none; border-top: 1px solid #e2e8f0;" />
+          <p style="font-size: 12px; color: #94a3b8; text-align: center;">ESIT Conference Secretariat, KMUTNB</p>
+        </div>
+      `;
     } else {
       htmlBody = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px;">

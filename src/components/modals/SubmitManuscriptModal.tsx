@@ -1,10 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, UploadCloud, FileText, CheckCircle2, AlertCircle, Sparkles, ExternalLink, ShieldCheck, Check } from 'lucide-react';
+import {
+  X, UploadCloud, FileText, CheckCircle2, AlertCircle, Sparkles, ExternalLink,
+  ShieldCheck, Check, Users, UserPlus, Trash2, Mail, Building, Plus, Search
+} from 'lucide-react';
 import { useAuth } from '../../lib/context/AuthContext';
 import { useConferenceData } from '../../lib/context/ConferenceDataContext';
 import { submitManuscript } from '../../lib/submission/submissionService';
+import { CoAuthorInfo } from '../../lib/types';
 import confetti from 'canvas-confetti';
 
 interface SubmitManuscriptModalProps {
@@ -14,13 +18,22 @@ interface SubmitManuscriptModalProps {
 }
 
 export default function SubmitManuscriptModal({ isOpen, onClose, onRequireAuth }: SubmitManuscriptModalProps) {
-  const { currentUser } = useAuth();
+  const { currentUser, allUsers, fetchAllUsers } = useAuth();
   const { content } = useConferenceData();
 
   const [title, setTitle] = useState('');
   const [abstract, setAbstract] = useState('');
   const [track, setTrack] = useState(content.tracks[0]?.category || '');
-  const [coAuthors, setCoAuthors] = useState('');
+  
+  // Co-authors structured state
+  const [coAuthorsList, setCoAuthorsList] = useState<CoAuthorInfo[]>([]);
+  const [coAuthorMode, setCoAuthorMode] = useState<'registered' | 'manual'>('registered');
+  const [selectedRegisteredUid, setSelectedRegisteredUid] = useState<string>('');
+  const [manualName, setManualName] = useState('');
+  const [manualOrg, setManualOrg] = useState('');
+  const [manualEmail, setManualEmail] = useState('');
+  const [coAuthorError, setCoAuthorError] = useState<string | null>(null);
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   
@@ -39,6 +52,13 @@ export default function SubmitManuscriptModal({ isOpen, onClose, onRequireAuth }
       }
     }
   }, [content.tracks, isOpen, track]);
+
+  // Load all registered users when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchAllUsers();
+    }
+  }, [isOpen, fetchAllUsers]);
 
   if (!isOpen) return null;
 
@@ -113,6 +133,64 @@ export default function SubmitManuscriptModal({ isOpen, onClose, onRequireAuth }
     }
   };
 
+  const handleAddCoAuthor = () => {
+    setCoAuthorError(null);
+    let newCoAuthor: CoAuthorInfo | null = null;
+
+    if (coAuthorMode === 'registered') {
+      if (!selectedRegisteredUid) {
+        setCoAuthorError('Please select a registered user from the dropdown.');
+        return;
+      }
+      const found = allUsers.find(u => u.uid === selectedRegisteredUid);
+      if (!found) {
+        setCoAuthorError('Selected user profile was not found.');
+        return;
+      }
+      newCoAuthor = {
+        name: `${found.firstName} ${found.lastName}`.trim(),
+        email: found.email.trim(),
+        organization: found.organization.trim() || 'Academic / Research Institution'
+      };
+    } else {
+      if (!manualName.trim()) {
+        setCoAuthorError('Please enter co-author full name.');
+        return;
+      }
+      if (!manualEmail.trim() || !manualEmail.includes('@')) {
+        setCoAuthorError('Please enter a valid email address so the co-author receives notification.');
+        return;
+      }
+      newCoAuthor = {
+        name: manualName.trim(),
+        email: manualEmail.trim(),
+        organization: manualOrg.trim() || 'University / Institution'
+      };
+    }
+
+    // Validation: prevent adding the primary author
+    if (newCoAuthor.email.toLowerCase() === currentUser?.email.toLowerCase()) {
+      setCoAuthorError('The primary author cannot be added as a co-author.');
+      return;
+    }
+
+    // Validation: prevent duplicate co-author
+    if (coAuthorsList.some(c => c.email.toLowerCase() === newCoAuthor?.email.toLowerCase())) {
+      setCoAuthorError('This co-author is already in the list.');
+      return;
+    }
+
+    setCoAuthorsList([...coAuthorsList, newCoAuthor]);
+    setManualName('');
+    setManualOrg('');
+    setManualEmail('');
+    setSelectedRegisteredUid('');
+  };
+
+  const handleRemoveCoAuthor = (index: number) => {
+    setCoAuthorsList(coAuthorsList.filter((_, idx) => idx !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -134,7 +212,7 @@ export default function SubmitManuscriptModal({ isOpen, onClose, onRequireAuth }
       title: title.trim(),
       abstract: abstract.trim(),
       track,
-      coAuthors: coAuthors.trim(),
+      coAuthorsList,
       authorUid: currentUser.uid,
       authorName: `${currentUser.firstName} ${currentUser.lastName}`.trim(),
       authorEmail: currentUser.email,
@@ -442,23 +520,252 @@ export default function SubmitManuscriptModal({ isOpen, onClose, onRequireAuth }
                 />
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                  Co-Authors (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={coAuthors}
-                  onChange={(e) => setCoAuthors(e.target.value)}
-                  placeholder="e.g. Dr. John Doe (MIT), Prof. Sarah Lee (Cambridge)"
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '0.92rem'
-                  }}
-                />
+              {/* CO-AUTHORS SECTION */}
+              <div style={{
+                backgroundColor: '#f8fafc',
+                border: '1px solid #cbd5e1',
+                borderRadius: '10px',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.88rem', fontWeight: 700, color: '#0f3d3e', margin: 0 }}>
+                    <Users size={16} /> Co-Authors (Optional)
+                  </label>
+                  <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
+                    {coAuthorsList.length} {coAuthorsList.length === 1 ? 'co-author' : 'co-authors'} added
+                  </span>
+                </div>
+
+                <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b', lineHeight: '1.4' }}>
+                  Add contributing co-authors by choosing from registered user accounts or by typing their name, organization, and email. Automated submission notifications will be emailed to all listed co-authors.
+                </p>
+
+                {/* Mode Selector Tabs */}
+                <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => { setCoAuthorMode('registered'); setCoAuthorError(null); }}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: '6px',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      border: 'none',
+                      cursor: 'pointer',
+                      backgroundColor: coAuthorMode === 'registered' ? '#0f3d3e' : '#e2e8f0',
+                      color: coAuthorMode === 'registered' ? '#ffffff' : '#475569',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    Select from Registered Users
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setCoAuthorMode('manual'); setCoAuthorError(null); }}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: '6px',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      border: 'none',
+                      cursor: 'pointer',
+                      backgroundColor: coAuthorMode === 'manual' ? '#0f3d3e' : '#e2e8f0',
+                      color: coAuthorMode === 'manual' ? '#ffffff' : '#475569',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    Enter Manually (Name, Org, Email)
+                  </button>
+                </div>
+
+                {/* Mode A: Select from Registered Users */}
+                {coAuthorMode === 'registered' ? (
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <div style={{ flex: 1 }}>
+                      <select
+                        value={selectedRegisteredUid}
+                        onChange={(e) => {
+                          setSelectedRegisteredUid(e.target.value);
+                          setCoAuthorError(null);
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '8px 10px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '0.86rem',
+                          backgroundColor: '#ffffff',
+                          color: '#0f3d3e'
+                        }}
+                      >
+                        <option value="">-- Choose registered author / user --</option>
+                        {allUsers
+                          .filter(u => u.uid !== currentUser?.uid && !coAuthorsList.some(c => c.email.toLowerCase() === u.email.toLowerCase()))
+                          .map(u => (
+                            <option key={u.uid} value={u.uid}>
+                              {u.firstName} {u.lastName} ({u.email}) - {u.organization || 'Participant'}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddCoAuthor}
+                      disabled={!selectedRegisteredUid}
+                      className="btn btn-primary btn-sm"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '8px 14px',
+                        fontSize: '0.82rem',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      <Plus size={14} /> Add Co-Author
+                    </button>
+                  </div>
+                ) : (
+                  /* Mode B: Manual Input */
+                  <div style={{ display: 'grid', gap: '8px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      <input
+                        type="text"
+                        value={manualName}
+                        onChange={(e) => { setManualName(e.target.value); setCoAuthorError(null); }}
+                        placeholder="Full Name (e.g. Dr. Jane Smith)"
+                        style={{
+                          padding: '8px 10px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '0.86rem',
+                          backgroundColor: '#ffffff'
+                        }}
+                      />
+                      <input
+                        type="text"
+                        value={manualOrg}
+                        onChange={(e) => setManualOrg(e.target.value)}
+                        placeholder="Affiliation / University"
+                        style={{
+                          padding: '8px 10px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '0.86rem',
+                          backgroundColor: '#ffffff'
+                        }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        type="email"
+                        value={manualEmail}
+                        onChange={(e) => { setManualEmail(e.target.value); setCoAuthorError(null); }}
+                        placeholder="Email Address (for notification receipt)"
+                        style={{
+                          flex: 1,
+                          padding: '8px 10px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '0.86rem',
+                          backgroundColor: '#ffffff'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddCoAuthor}
+                        className="btn btn-primary btn-sm"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '8px 16px',
+                          fontSize: '0.82rem',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        <Plus size={14} /> Add
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Co-Author validation alert */}
+                {coAuthorError && (
+                  <div style={{
+                    padding: '6px 10px',
+                    backgroundColor: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    borderRadius: '6px',
+                    color: '#dc2626',
+                    fontSize: '0.8rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <AlertCircle size={14} />
+                    <span>{coAuthorError}</span>
+                  </div>
+                )}
+
+                {/* List of Added Co-Authors */}
+                {coAuthorsList.length > 0 && (
+                  <div style={{ marginTop: '4px', display: 'grid', gap: '6px' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#475569' }}>
+                      Added Co-Authors ({coAuthorsList.length}):
+                    </span>
+                    {coAuthorsList.map((ca, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '8px 12px',
+                          backgroundColor: '#ffffff',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '6px',
+                          fontSize: '0.84rem'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <span style={{
+                            backgroundColor: '#e0f2fe',
+                            color: '#0284c7',
+                            padding: '1px 6px',
+                            borderRadius: '4px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700
+                          }}>
+                            #{idx + 1}
+                          </span>
+                          <strong style={{ color: '#0f3d3e' }}>{ca.name}</strong>
+                          <span style={{ color: '#64748b', fontSize: '0.78rem' }}>({ca.organization})</span>
+                          <span style={{ color: '#0369a1', fontSize: '0.78rem' }}>&lt;{ca.email}&gt;</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveCoAuthor(idx)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            padding: '2px 4px',
+                            display: 'flex',
+                            alignItems: 'center'
+                          }}
+                          title="Remove Co-Author"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* PDF Upload Box */}

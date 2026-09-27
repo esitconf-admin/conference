@@ -23,6 +23,17 @@ export const initialConferenceData: ConferenceContent = {
     submissionDeadlineBadge: 'Full Paper Submission Deadline: November 30 (Extended)',
     cfpDownloadUrl: '#'
   },
+  venue: {
+    venueName: 'Furama Resort Danang',
+    venueCityCountry: 'Danang, Vietnam',
+    subLocation: 'Furama Resort & International Convention Centre, Danang',
+    badge: '5-Star Beachfront Luxury & International Convention Center',
+    address: '105 Vo Nguyen Giap Street, Khue My Ward, Ngu Hanh Son District, Danang City, Vietnam',
+    imageUrl: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80',
+    airportInfo: 'Approximately 15 minutes expressway drive from Danang International Airport (DAD). Direct international flights connect from Bangkok, Singapore, Seoul, Tokyo, Taipei, and major hubs. Airport shuttle taxis and ride-hailing services are readily available.',
+    accommodationInfo: 'Conference delegates enjoy exclusive negotiated corporate room discounts at Furama Resort Danang and partner hotels using the reservation code ESIT2027.',
+    mapUrl: 'https://maps.google.com/?q=Furama+Resort+Danang'
+  },
   dates: [
     {
       id: 'd1',

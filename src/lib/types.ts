@@ -114,12 +114,25 @@ export interface GuidelineItem {
   linkLabel?: string;
 }
 
+export interface VenueInfo {
+  venueName: string;
+  venueCityCountry: string;
+  subLocation?: string;
+  badge?: string;
+  address: string;
+  imageUrl?: string;
+  airportInfo: string;
+  accommodationInfo: string;
+  mapUrl?: string;
+}
+
 export interface ConferenceContent {
   id: string;
   updatedAt: string;
   updatedBy?: string;
   seo?: ConferenceSEOMetadata;
   hero: ConferenceHeroData;
+  venue?: VenueInfo;
   dates: ImportantDateItem[];
   news: NewsItem[];
   keynotes: KeynoteSpeaker[];
@@ -170,6 +183,12 @@ export interface ReviewEvaluation {
   submittedAt: string;
 }
 
+export interface CoAuthorInfo {
+  name: string;
+  email: string;
+  organization: string;
+}
+
 export interface ManuscriptSubmission {
   id: string;
   title: string;
@@ -180,6 +199,7 @@ export interface ManuscriptSubmission {
   authorEmail: string;
   organization: string;
   coAuthors?: string;
+  coAuthorsList?: CoAuthorInfo[];
   pdfUrl?: string;
   fileName?: string;
   status: 'submitted' | 'under_review' | 'revision_requested' | 'accepted' | 'rejected';

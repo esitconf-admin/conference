@@ -7,7 +7,16 @@ import Image from 'next/image';
 
 export default function VenueSection() {
   const { content } = useConferenceData();
-  const { hero } = content;
+  const { hero, venue } = content;
+
+  const venueName = venue?.venueName || hero.venueName;
+  const venueCityCountry = venue?.venueCityCountry || hero.venueCityCountry;
+  const venueBadge = venue?.badge || '5-Star Beachfront Luxury & International Convention Center';
+  const venueAddress = venue?.address || '240 Beach Road, Pattaya City, Bang Lamung District, Chon Buri 20150, Thailand';
+  const venueImage = venue?.imageUrl || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80';
+  const airportInfo = venue?.airportInfo || 'Approximately 90 minutes direct expressway drive from international airports. Shuttle vans and airport taxis are readily available.';
+  const accommodationInfo = venue?.accommodationInfo || 'Conference delegates enjoy exclusive negotiated corporate room discounts at partner hotels.';
+  const mapUrl = venue?.mapUrl || `https://maps.google.com/?q=${encodeURIComponent(venueName)}`;
 
   return (
     <section id="venue" className="section" style={{ backgroundColor: '#ffffff' }}>
@@ -18,7 +27,7 @@ export default function VenueSection() {
           </div>
           <h2 className="section-title">Conference Venue</h2>
           <p className="section-description">
-            Experience world-class hospitality, beachside ambiance, and state-of-the-art conference facilities at {hero.venueName}, {hero.venueCityCountry}.
+            Experience world-class hospitality, beachside ambiance, and state-of-the-art conference facilities at {venueName}, {venueCityCountry}.
           </p>
         </div>
 
@@ -39,8 +48,8 @@ export default function VenueSection() {
             border: '1px solid #e2e8f0'
           }}>
             <Image
-              src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80"
-              alt="Amari Pattaya Conference Venue"
+              src={venueImage}
+              alt={`${venueName} Conference Venue`}
               fill
               style={{
                 objectFit: 'cover'
@@ -58,13 +67,13 @@ export default function VenueSection() {
               color: '#ffffff'
             }}>
               <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase' }}>
-                5-Star Beachfront Luxury & Grand Ballroom
+                {venueBadge}
               </span>
               <h3 style={{ margin: '4px 0 6px 0', color: '#ffffff', fontSize: '1.4rem' }}>
-                {hero.venueName}, Pattaya
+                {venueName}, {venueCityCountry.split(',')[0]}
               </h3>
               <p style={{ margin: 0, fontSize: '0.9rem', color: '#cbd5e1' }}>
-                240 Beach Road, Pattaya City, Bang Lamung District, Chon Buri 20150, Thailand
+                {venueAddress}
               </p>
             </div>
           </div>
@@ -87,7 +96,7 @@ export default function VenueSection() {
                     Airport & Transportation
                   </h4>
                   <p style={{ margin: 0, fontSize: '0.88rem', color: '#475569', lineHeight: '1.5' }}>
-                    Approximately 90 minutes direct expressway drive from Suvarnabhumi International Airport (BKK) and 45 minutes from U-Tapao Rayong-Pattaya International Airport (UTP). Airport shuttle vans and taxis are readily available.
+                    {airportInfo}
                   </p>
                 </div>
               </div>
@@ -107,7 +116,7 @@ export default function VenueSection() {
                     Special Delegate Accommodation Rates
                   </h4>
                   <p style={{ margin: 0, fontSize: '0.88rem', color: '#475569', lineHeight: '1.5' }}>
-                    Conference delegates enjoy exclusive negotiated corporate room discounts at Amari Pattaya and partner hotels using the reservation code <strong>ESIT2025</strong>.
+                    {accommodationInfo}
                   </p>
                 </div>
               </div>
@@ -115,7 +124,7 @@ export default function VenueSection() {
 
             <div style={{ marginTop: '28px', display: 'flex', gap: '12px' }}>
               <a
-                href="https://maps.google.com/?q=Amari+Pattaya"
+                href={mapUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="btn btn-secondary"

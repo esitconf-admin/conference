@@ -6,13 +6,15 @@ import {
   Trash2, Plus, RefreshCw, Send, Mail, AlertCircle, FileText,
   Sparkles, UserCheck, Eye, MessageSquare, LayoutTemplate, ArrowRight,
   Globe, Share2, Copy, CheckCheck, ExternalLink, BarChart3, Activity,
-  ArrowUpRight, CheckCircle, Clock, Folder, Star, Award, Layers, FileCheck, Check, Link as LinkIcon
+  ArrowUpRight, CheckCircle, Clock, Folder, Star, Award, Layers, FileCheck, Check, Link as LinkIcon,
+  Download, CreditCard, Building2, MapPin, Hotel, Plane, DollarSign, Navigation, Image as ImageIcon
 } from 'lucide-react';
 import { useAuth } from '../../lib/context/AuthContext';
 import { useConferenceData } from '../../lib/context/ConferenceDataContext';
 import {
   ImportantDateItem, NewsItem, KeynoteSpeaker, UserProfile,
-  EmailTemplateConfig, ConferenceSEOMetadata, ManuscriptSubmission, ReviewEvaluation, GuidelineItem
+  EmailTemplateConfig, ConferenceSEOMetadata, ManuscriptSubmission, ReviewEvaluation, GuidelineItem,
+  PricingTier, BankPaymentInfo, CommitteeGroup, VenueInfo
 } from '../../lib/types';
 import { sendConferenceEmail } from '../../lib/email/emailService';
 import { getAllSubmissions, updateSubmissionStatus } from '../../lib/submission/submissionService';
@@ -40,13 +42,17 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     updateImportantDates,
     updateNewsList,
     updateKeynotes,
+    updateCommittees,
+    updatePricing,
+    updateBankInfo,
+    updateVenue,
     updateTracks,
     updateGuidelines,
     updateTracksAndGuidelines,
     updateContactInfo
   } = useConferenceData();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'hero' | 'dates' | 'news' | 'keynotes' | 'tracks' | 'submissions' | 'users' | 'templates' | 'seo' | 'email'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'hero' | 'dates' | 'news' | 'keynotes' | 'tracks' | 'pricing' | 'bank' | 'committees' | 'venue' | 'submissions' | 'users' | 'templates' | 'seo' | 'email'>('overview');
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Submissions State (Firestore & Google Drive)
@@ -62,6 +68,29 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
   const [newsList, setNewsList] = useState<NewsItem[]>(content.news);
   const [keynotesList, setKeynotesList] = useState<KeynoteSpeaker[]>(content.keynotes);
   const [tracksList, setTracksList] = useState(content.tracks || []);
+  const [pricingList, setPricingList] = useState<PricingTier[]>(content.pricing || []);
+  const [bankForm, setBankForm] = useState<BankPaymentInfo>(content.bankInfo || {
+    bankName: '',
+    branch: '',
+    accountNameEn: '',
+    accountNameTh: '',
+    accountNumber: '',
+    swiftCode: '',
+    address: '',
+    beneficiaryName: ''
+  });
+  const [committeesList, setCommitteesList] = useState<CommitteeGroup[]>(content.committees || []);
+  const [venueForm, setVenueForm] = useState<VenueInfo>(content.venue || {
+    venueName: content.hero.venueName,
+    venueCityCountry: content.hero.venueCityCountry,
+    subLocation: `${content.hero.venueName}, ${content.hero.venueCityCountry}`,
+    badge: '5-Star Beachfront Luxury & International Convention Center',
+    address: '240 Beach Road, Pattaya City, Bang Lamung District, Chon Buri 20150, Thailand',
+    imageUrl: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80',
+    airportInfo: 'Approximately 90 minutes direct expressway drive from Suvarnabhumi International Airport (BKK) and 45 minutes from U-Tapao Rayong-Pattaya International Airport (UTP). Airport shuttle vans and taxis are readily available.',
+    accommodationInfo: 'Conference delegates enjoy exclusive negotiated corporate room discounts at partner hotels.',
+    mapUrl: `https://maps.google.com/?q=${encodeURIComponent(content.hero.venueName)}`
+  });
 
   const normalizeGuidelineItems = (list?: (string | GuidelineItem)[]): GuidelineItem[] => {
     if (!list || list.length === 0) return [];
@@ -153,6 +182,99 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     setLoadingSubmissions(false);
   };
 
+  // Export all submissions to CSV for conference management
+  const handleExportSubmissionsCSV = () => {
+    if (submissionsList.length === 0) {
+      alert('No manuscript submissions to export.');
+      return;
+    }
+
+    const headers = [
+      'Submission ID',
+      'Manuscript Title',
+      'Conference Track',
+      'Primary Author Name',
+      'Primary Author Email',
+      'Primary Author Organization',
+      'Co-Authors',
+      'Review Status',
+      'Submission Date',
+      'Assigned Reviewers',
+      'Review Count',
+      'Average Score (out of 5)',
+      'Review Recommendations',
+      'Review Summary & Comments',
+      'Google Drive PDF URL'
+    ];
+
+    const escapeCSV = (val: string | number | undefined | null) => {
+      if (val === null || val === undefined) return '""';
+      const clean = String(val).replace(/"/g, '""');
+      return `"${clean}"`;
+    };
+
+    const rows = submissionsList.map(sub => {
+      const coAuthorsStr = (sub.coAuthorsList && sub.coAuthorsList.length > 0)
+        ? sub.coAuthorsList.map(c => `${c.name}${c.organization ? ` (${c.organization})` : ''}${c.email ? ` <${c.email}>` : ''}`).join('; ')
+        : (sub.coAuthors || 'None');
+
+      const reviewersStr = (sub.assignedReviewers && sub.assignedReviewers.length > 0)
+        ? sub.assignedReviewers.map(uid => {
+            const reviewer = allUsers.find(u => u.uid === uid);
+            return reviewer ? `${reviewer.firstName} ${reviewer.lastName} (${reviewer.email})` : uid;
+          }).join('; ')
+        : 'None Assigned';
+
+      const evaluations = sub.evaluations || [];
+      const reviewCount = evaluations.length;
+      const avgScore = reviewCount > 0
+        ? (evaluations.reduce((acc, ev) => acc + (ev.overallScore || 0), 0) / reviewCount).toFixed(1)
+        : 'N/A';
+
+      const recommendationsStr = reviewCount > 0
+        ? evaluations.map((ev, i) => `Reviewer ${i + 1} (${ev.reviewerName}): ${ev.recommendation || 'N/A'}`).join('; ')
+        : 'Pending Evaluation';
+
+      const reviewSummaryStr = reviewCount > 0
+        ? evaluations.map((ev, i) => `[Reviewer ${i + 1}: ${ev.reviewerName} (Rec: ${ev.recommendation || 'N/A'}, Score: ${ev.overallScore}/5)]: Feedback: ${ev.commentsForAuthor || 'No feedback'}${ev.confidentialCommentsForAdmin ? ` | Confidential for Admin: ${ev.confidentialCommentsForAdmin}` : ''}`).join(' || ')
+        : 'No reviews submitted yet';
+
+      const submittedDateStr = sub.submittedAt 
+        ? new Date(sub.submittedAt).toLocaleString()
+        : 'N/A';
+
+      return [
+        escapeCSV(sub.id),
+        escapeCSV(sub.title),
+        escapeCSV(sub.track),
+        escapeCSV(sub.authorName),
+        escapeCSV(sub.authorEmail),
+        escapeCSV(sub.organization),
+        escapeCSV(coAuthorsStr),
+        escapeCSV(sub.status),
+        escapeCSV(submittedDateStr),
+        escapeCSV(reviewersStr),
+        escapeCSV(reviewCount),
+        escapeCSV(avgScore),
+        escapeCSV(recommendationsStr),
+        escapeCSV(reviewSummaryStr),
+        escapeCSV(sub.pdfUrl || '')
+      ].join(',');
+    });
+
+    const csvContent = '\uFEFF' + [headers.map(h => `"${h}"`).join(','), ...rows].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const dateStr = new Date().toISOString().slice(0, 10);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `ESIT_Manuscript_Submissions_${dateStr}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   // Keep form synced when content loads
   useEffect(() => {
     setHeroForm(content.hero);
@@ -167,6 +289,18 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     }
     if (content.tracks) {
       setTracksList(content.tracks);
+    }
+    if (content.pricing) {
+      setPricingList(content.pricing);
+    }
+    if (content.bankInfo) {
+      setBankForm(content.bankInfo);
+    }
+    if (content.committees) {
+      setCommitteesList(content.committees);
+    }
+    if (content.venue) {
+      setVenueForm(content.venue);
     }
     if (content.authorGuidelines) {
       setAuthorGuidelinesList(normalizeGuidelineItems(content.authorGuidelines));
@@ -422,6 +556,96 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
 
   const handleDeleteKeynote = (id: string) => {
     setKeynotesList(keynotesList.filter(k => k.id !== id));
+  };
+
+  // Pricing Handlers
+  const handleSavePricing = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    await updatePricing(pricingList);
+    showSuccess('Registration pricing tiers updated successfully!');
+  };
+
+  const handleAddPricingTier = () => {
+    const newTier: PricingTier = {
+      id: 'p_' + Date.now(),
+      category: 'New Delegate / Author Category',
+      earlyBirdFee: '350 USD / 10,000 THB',
+      regularFee: '400 USD / 12,000 THB',
+      currency: 'USD / THB',
+      features: [
+        'Presentation of 1 Accepted Manuscript',
+        'Inclusion in Conference Proceedings',
+        'Conference Kit & Bag',
+        'Lunch, Coffee Breaks & Gala Access',
+        'Official Certificate of Presentation'
+      ]
+    };
+    setPricingList([...pricingList, newTier]);
+  };
+
+  const handleDeletePricingTier = (id: string) => {
+    setPricingList(pricingList.filter(p => p.id !== id));
+  };
+
+  // Bank Payment Info Handlers
+  const handleSaveBankInfo = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    await updateBankInfo(bankForm);
+    showSuccess('Bank transfer and payment details updated successfully!');
+  };
+
+  // Committee Handlers
+  const handleSaveCommittees = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    await updateCommittees(committeesList);
+    showSuccess('Conference committee groups and members updated successfully!');
+  };
+
+  const handleAddCommitteeGroup = () => {
+    const newGroup: CommitteeGroup = {
+      id: 'c_' + Date.now(),
+      title: 'New Committee Group',
+      subtitle: 'Leadership & Sub-Committee Role',
+      members: [
+        { name: 'Prof. Dr. Firstname Lastname', affiliation: 'University / Institution, Country', role: 'Chair' }
+      ]
+    };
+    setCommitteesList([...committeesList, newGroup]);
+  };
+
+  const handleDeleteCommitteeGroup = (id: string) => {
+    setCommitteesList(committeesList.filter(c => c.id !== id));
+  };
+
+  const handleAddMemberToGroup = (groupId: string) => {
+    setCommitteesList(committeesList.map(g => {
+      if (g.id === groupId) {
+        return {
+          ...g,
+          members: [...g.members, { name: 'Dr. New Member', affiliation: 'University / Institution, Country', role: '' }]
+        };
+      }
+      return g;
+    }));
+  };
+
+  const handleDeleteMemberFromGroup = (groupId: string, memberIdx: number) => {
+    setCommitteesList(committeesList.map(g => {
+      if (g.id === groupId) {
+        return {
+          ...g,
+          members: g.members.filter((_, idx) => idx !== memberIdx)
+        };
+      }
+      return g;
+    }));
+  };
+
+  // Venue Handlers
+  const handleSaveVenue = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    await updateVenue(venueForm);
+    showSuccess('Conference venue, travel, accommodation, and map details updated successfully!');
   };
 
   // Reviewer role toggler
@@ -730,6 +954,40 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
           </button>
 
           <button
+            onClick={() => setActiveTab('pricing')}
+            style={getButtonTabStyle(activeTab === 'pricing')}
+          >
+            <CreditCard size={15} />
+            <span>Registration Fees</span>
+            <span style={getTabBadgeStyle(activeTab === 'pricing')}>{pricingList.length}</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('bank')}
+            style={getButtonTabStyle(activeTab === 'bank')}
+          >
+            <Building2 size={15} />
+            <span>Bank & Payment</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('committees')}
+            style={getButtonTabStyle(activeTab === 'committees')}
+          >
+            <Users size={15} />
+            <span>Committees</span>
+            <span style={getTabBadgeStyle(activeTab === 'committees')}>{committeesList.length}</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('venue')}
+            style={getButtonTabStyle(activeTab === 'venue')}
+          >
+            <MapPin size={15} />
+            <span>Venue & Travel</span>
+          </button>
+
+          <button
             onClick={() => { setActiveTab('submissions'); loadSubmissions(); }}
             style={getButtonTabStyle(activeTab === 'submissions')}
           >
@@ -801,7 +1059,16 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                   </p>
                 </div>
 
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={handleExportSubmissionsCSV}
+                    className="btn btn-outline-primary btn-sm"
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                    title="Export all submissions to CSV"
+                  >
+                    <Download size={14} color="#0f3d3e" />
+                    <span>Export CSV</span>
+                  </button>
                   <button
                     onClick={() => { fetchAllUsers(); loadSubmissions(); }}
                     className="btn btn-outline-primary btn-sm"
@@ -2491,6 +2758,911 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
             </div>
           )}
 
+          {/* TAB: REGISTRATION PRICING & FEES */}
+          {activeTab === 'pricing' && (
+            <div style={{ display: 'grid', gap: '20px' }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '12px',
+                paddingBottom: '16px',
+                borderBottom: '1px solid #e2e8f0'
+              }}>
+                <div>
+                  <h3 style={{ margin: 0, color: '#0f3d3e', fontSize: '1.3rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <CreditCard size={22} color="#0f3d3e" /> Registration Fees & Pricing Categories
+                  </h3>
+                  <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.88rem' }}>
+                    Configure registration tiers, early-bird and regular fees, and package inclusions displayed on the public landing page.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button onClick={handleAddPricingTier} className="btn btn-outline-primary btn-sm">
+                    <Plus size={16} /> Add Pricing Tier
+                  </button>
+                  <button onClick={handleSavePricing} className="btn btn-primary btn-sm">
+                    <Save size={16} /> Save Registration Fees
+                  </button>
+                </div>
+              </div>
+
+              {/* Pricing Cards Grid */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                gap: '20px'
+              }}>
+                {pricingList.map((tier, idx) => (
+                  <div
+                    key={tier.id || idx}
+                    style={{
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '12px',
+                      padding: '20px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '14px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{
+                        backgroundColor: '#0f3d3e',
+                        color: '#ffffff',
+                        padding: '3px 10px',
+                        borderRadius: '6px',
+                        fontSize: '0.76rem',
+                        fontWeight: 700
+                      }}>
+                        Tier #{idx + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleDeletePricingTier(tier.id)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                          padding: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontSize: '0.78rem'
+                        }}
+                        title="Delete Pricing Tier"
+                      >
+                        <Trash2 size={16} />
+                        <span>Delete</span>
+                      </button>
+                    </div>
+
+                    <div>
+                      <label style={labelStyle}>Category Title *</label>
+                      <input
+                        type="text"
+                        value={tier.category}
+                        onChange={(e) => {
+                          const updated = [...pricingList];
+                          updated[idx] = { ...updated[idx], category: e.target.value };
+                          setPricingList(updated);
+                        }}
+                        placeholder="e.g. Regular Author (International)"
+                        style={{ ...inputStyle, fontWeight: 700 }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                      <div>
+                        <label style={labelStyle}>Early-Bird Fee *</label>
+                        <input
+                          type="text"
+                          value={tier.earlyBirdFee}
+                          onChange={(e) => {
+                            const updated = [...pricingList];
+                            updated[idx] = { ...updated[idx], earlyBirdFee: e.target.value };
+                            setPricingList(updated);
+                          }}
+                          placeholder="e.g. 450 USD"
+                          style={inputStyle}
+                        />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Regular Fee *</label>
+                        <input
+                          type="text"
+                          value={tier.regularFee}
+                          onChange={(e) => {
+                            const updated = [...pricingList];
+                            updated[idx] = { ...updated[idx], regularFee: e.target.value };
+                            setPricingList(updated);
+                          }}
+                          placeholder="e.g. 500 USD"
+                          style={inputStyle}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={labelStyle}>Currency Unit</label>
+                      <input
+                        type="text"
+                        value={tier.currency}
+                        onChange={(e) => {
+                          const updated = [...pricingList];
+                          updated[idx] = { ...updated[idx], currency: e.target.value };
+                          setPricingList(updated);
+                        }}
+                        placeholder="e.g. USD or THB or USD / THB"
+                        style={inputStyle}
+                      />
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <label style={labelStyle}>Features & Inclusions (One per line)</label>
+                        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                          {tier.features.length} points
+                        </span>
+                      </div>
+                      <textarea
+                        rows={4}
+                        value={tier.features.join('\n')}
+                        onChange={(e) => {
+                          const lines = e.target.value.split('\n');
+                          const updated = [...pricingList];
+                          updated[idx] = { ...updated[idx], features: lines };
+                          setPricingList(updated);
+                        }}
+                        placeholder="Presentation of 1 Accepted Manuscript&#10;Inclusion in Conference Proceedings&#10;Lunch & Gala Dinner Access"
+                        style={{ ...inputStyle, fontFamily: 'inherit', resize: 'vertical', lineHeight: '1.4' }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Sticky bottom save bar */}
+              <div style={{
+                position: 'sticky',
+                bottom: 0,
+                backgroundColor: '#ffffff',
+                border: '1px solid #cbd5e1',
+                padding: '16px 24px',
+                borderRadius: '12px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '12px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '0.85rem' }}>
+                  <CheckCircle size={16} color="#059669" />
+                  <span>Changes will be instantly published to both Firestore and local storage.</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSavePricing}
+                  className="btn btn-primary"
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px' }}
+                >
+                  <Save size={18} />
+                  <span>Save Registration Fees</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: BANK TRANSFER & PAYMENT DETAILS */}
+          {activeTab === 'bank' && (
+            <div style={{ display: 'grid', gap: '20px' }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '12px',
+                paddingBottom: '16px',
+                borderBottom: '1px solid #e2e8f0'
+              }}>
+                <div>
+                  <h3 style={{ margin: 0, color: '#0f3d3e', fontSize: '1.3rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Building2 size={22} color="#0f3d3e" /> Bank Transfer & Payment Information
+                  </h3>
+                  <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.88rem' }}>
+                    Configure the official conference beneficiary account, SWIFT code, and bank branch details shown in the payment section.
+                  </p>
+                </div>
+                <button onClick={handleSaveBankInfo} className="btn btn-primary btn-sm">
+                  <Save size={16} /> Save Bank Details
+                </button>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '24px' }}>
+                {/* Form Fields Card */}
+                <div style={{
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '12px',
+                  padding: '24px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+                }}>
+                  <div>
+                    <label style={labelStyle}>Bank Name *</label>
+                    <input
+                      type="text"
+                      value={bankForm.bankName}
+                      onChange={(e) => setBankForm({ ...bankForm, bankName: e.target.value })}
+                      placeholder="e.g. Bangkok Bank Public Company Limited (BBL)"
+                      style={{ ...inputStyle, fontWeight: 600 }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>Bank Branch *</label>
+                    <input
+                      type="text"
+                      value={bankForm.branch}
+                      onChange={(e) => setBankForm({ ...bankForm, branch: e.target.value })}
+                      placeholder="e.g. King Mongkut's University of Technology North Bangkok"
+                      style={inputStyle}
+                    />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={labelStyle}>Account Name (English) *</label>
+                      <input
+                        type="text"
+                        value={bankForm.accountNameEn}
+                        onChange={(e) => setBankForm({ ...bankForm, accountNameEn: e.target.value })}
+                        placeholder="e.g. College of Industrial Technology Conference Fund"
+                        style={inputStyle}
+                      />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Account Name (Thai / Local Optional)</label>
+                      <input
+                        type="text"
+                        value={bankForm.accountNameTh || ''}
+                        onChange={(e) => setBankForm({ ...bankForm, accountNameTh: e.target.value })}
+                        placeholder="e.g. กองทุนการศึกษา วทอ."
+                        style={inputStyle}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={labelStyle}>Account Number *</label>
+                      <input
+                        type="text"
+                        value={bankForm.accountNumber}
+                        onChange={(e) => setBankForm({ ...bankForm, accountNumber: e.target.value })}
+                        placeholder="e.g. 907-7-54865-0"
+                        style={{ ...inputStyle, fontWeight: 700, fontSize: '1rem', color: '#0f3d3e' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>SWIFT Code / BIC *</label>
+                      <input
+                        type="text"
+                        value={bankForm.swiftCode}
+                        onChange={(e) => setBankForm({ ...bankForm, swiftCode: e.target.value })}
+                        placeholder="e.g. BKKBTHBK"
+                        style={{ ...inputStyle, fontWeight: 700 }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>Bank Physical Address</label>
+                    <textarea
+                      rows={2}
+                      value={bankForm.address}
+                      onChange={(e) => setBankForm({ ...bankForm, address: e.target.value })}
+                      placeholder="1518 Pracharat 1 Rd, Wongsawang, Bangsue, Bangkok 10800, Thailand"
+                      style={{ ...inputStyle, fontFamily: 'inherit' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Live Bank Box Preview Card */}
+                <div style={{
+                  backgroundColor: '#f0fdf9',
+                  borderRadius: '16px',
+                  padding: '24px',
+                  border: '1px solid rgba(15, 61, 62, 0.2)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between'
+                }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                      <div style={{
+                        width: '38px',
+                        height: '38px',
+                        borderRadius: '8px',
+                        backgroundColor: '#0f3d3e',
+                        color: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <Building2 size={20} color="#f59e0b" />
+                      </div>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: '1.05rem', color: '#0f3d3e', fontWeight: 800 }}>
+                          Live Preview: Public Payment Box
+                        </h4>
+                        <span style={{ fontSize: '0.78rem', color: '#475569' }}>
+                          How this information appears to attendees on the website
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{
+                      backgroundColor: '#ffffff',
+                      padding: '20px',
+                      borderRadius: '12px',
+                      border: '1px solid #e2e8f0',
+                      display: 'grid',
+                      gap: '14px'
+                    }}>
+                      <div>
+                        <span style={{ fontSize: '0.74rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>
+                          Bank Name & Branch
+                        </span>
+                        <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.92rem', marginTop: '2px' }}>
+                          {bankForm.bankName || 'Bank Name Not Set'}
+                        </div>
+                        <div style={{ fontSize: '0.82rem', color: '#64748b' }}>
+                          Branch: {bankForm.branch || 'Branch Name'}
+                        </div>
+                      </div>
+
+                      <div>
+                        <span style={{ fontSize: '0.74rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>
+                          Account Name
+                        </span>
+                        <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.92rem', marginTop: '2px' }}>
+                          {bankForm.accountNameEn || 'Beneficiary Account Name'}
+                        </div>
+                        {bankForm.accountNameTh && (
+                          <div style={{ fontSize: '0.82rem', color: '#64748b' }}>
+                            ({bankForm.accountNameTh})
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <span style={{ fontSize: '0.74rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>
+                          Account Number & SWIFT
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                          <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f3d3e', letterSpacing: '0.5px' }}>
+                            {bankForm.accountNumber || '000-0-00000-0'}
+                          </span>
+                          <span style={{ fontSize: '0.72rem', backgroundColor: '#e2e8f0', padding: '2px 6px', borderRadius: '4px', color: '#334155', fontWeight: 600 }}>
+                            Copyable
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
+                          SWIFT Code: <strong>{bankForm.swiftCode || 'N/A'}</strong>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: '20px', padding: '12px', backgroundColor: '#ffffff', borderRadius: '8px', border: '1px dashed #a7f3d0', fontSize: '0.78rem', color: '#047857' }}>
+                    💡 Authors & Attendees receive this bank account number and SWIFT code in their automatic manuscript submission acknowledgment email.
+                  </div>
+                </div>
+              </div>
+
+              {/* Sticky bottom save bar */}
+              <div style={{
+                position: 'sticky',
+                bottom: 0,
+                backgroundColor: '#ffffff',
+                border: '1px solid #cbd5e1',
+                padding: '16px 24px',
+                borderRadius: '12px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '12px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '0.85rem' }}>
+                  <CheckCircle size={16} color="#059669" />
+                  <span>Changes will be instantly published to both Firestore and local storage.</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSaveBankInfo}
+                  className="btn btn-primary"
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px' }}
+                >
+                  <Save size={18} />
+                  <span>Save Bank Details</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: COMMITTEES */}
+          {activeTab === 'committees' && (
+            <div style={{ display: 'grid', gap: '20px' }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '12px',
+                paddingBottom: '16px',
+                borderBottom: '1px solid #e2e8f0'
+              }}>
+                <div>
+                  <h3 style={{ margin: 0, color: '#0f3d3e', fontSize: '1.3rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Users size={22} color="#0f3d3e" /> Conference Committees & Leadership
+                  </h3>
+                  <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.88rem' }}>
+                    Manage advisory boards, scientific chairs, organizing committee members and international institutional affiliations.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button onClick={handleAddCommitteeGroup} className="btn btn-outline-primary btn-sm">
+                    <Plus size={16} /> Add Committee Group
+                  </button>
+                  <button onClick={handleSaveCommittees} className="btn btn-primary btn-sm">
+                    <Save size={16} /> Save Committees
+                  </button>
+                </div>
+              </div>
+
+              {/* Committee Groups */}
+              <div style={{ display: 'grid', gap: '24px' }}>
+                {committeesList.map((group, gIdx) => (
+                  <div
+                    key={group.id || gIdx}
+                    style={{
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '12px',
+                      padding: '24px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '16px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
+                      <div style={{ flex: 1, minWidth: '280px', display: 'grid', gap: '10px' }}>
+                        <div>
+                          <label style={labelStyle}>Committee Group Title *</label>
+                          <input
+                            type="text"
+                            value={group.title}
+                            onChange={(e) => {
+                              const updated = [...committeesList];
+                              updated[gIdx] = { ...updated[gIdx], title: e.target.value };
+                              setCommitteesList(updated);
+                            }}
+                            placeholder="e.g. International Advisory Board"
+                            style={{ ...inputStyle, fontWeight: 700, fontSize: '1rem' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Subtitle / Description</label>
+                          <input
+                            type="text"
+                            value={group.subtitle || ''}
+                            onChange={(e) => {
+                              const updated = [...committeesList];
+                              updated[gIdx] = { ...updated[gIdx], subtitle: e.target.value };
+                              setCommitteesList(updated);
+                            }}
+                            placeholder="e.g. Global Academic & Research Partners"
+                            style={inputStyle}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleAddMemberToGroup(group.id)}
+                          className="btn btn-outline-primary btn-sm"
+                          style={{ fontSize: '0.8rem' }}
+                        >
+                          <Plus size={14} /> Add Member
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteCommitteeGroup(group.id)}
+                          style={{
+                            background: 'none',
+                            border: '1px solid #fecaca',
+                            borderRadius: '6px',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            padding: '6px 10px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '0.8rem',
+                            backgroundColor: '#fef2f2'
+                          }}
+                          title="Delete Group"
+                        >
+                          <Trash2 size={15} />
+                          <span>Delete Group</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Members List */}
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>
+                          Members in this Group ({group.members.length})
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'grid', gap: '8px' }}>
+                        {group.members.map((member, mIdx) => (
+                          <div
+                            key={mIdx}
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: '1.2fr 1.5fr auto',
+                              gap: '10px',
+                              alignItems: 'center',
+                              padding: '10px 14px',
+                              backgroundColor: '#f8fafc',
+                              borderRadius: '8px',
+                              border: '1px solid #e2e8f0'
+                            }}
+                          >
+                            <input
+                              type="text"
+                              value={member.name}
+                              onChange={(e) => {
+                                const updated = [...committeesList];
+                                const groupMembers = [...updated[gIdx].members];
+                                groupMembers[mIdx] = { ...groupMembers[mIdx], name: e.target.value };
+                                updated[gIdx] = { ...updated[gIdx], members: groupMembers };
+                                setCommitteesList(updated);
+                              }}
+                              placeholder="Member Name (e.g. Prof. Dr. Jane Smith)"
+                              style={{ ...inputStyle, padding: '6px 10px', fontSize: '0.86rem' }}
+                            />
+                            <input
+                              type="text"
+                              value={member.affiliation}
+                              onChange={(e) => {
+                                const updated = [...committeesList];
+                                const groupMembers = [...updated[gIdx].members];
+                                groupMembers[mIdx] = { ...groupMembers[mIdx], affiliation: e.target.value };
+                                updated[gIdx] = { ...updated[gIdx], members: groupMembers };
+                                setCommitteesList(updated);
+                              }}
+                              placeholder="Affiliation (e.g. KMUTNB, Thailand)"
+                              style={{ ...inputStyle, padding: '6px 10px', fontSize: '0.86rem' }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteMemberFromGroup(group.id, mIdx)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#ef4444',
+                                cursor: 'pointer',
+                                padding: '4px'
+                              }}
+                              title="Remove Member"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Sticky bottom save bar */}
+              <div style={{
+                position: 'sticky',
+                bottom: 0,
+                backgroundColor: '#ffffff',
+                border: '1px solid #cbd5e1',
+                padding: '16px 24px',
+                borderRadius: '12px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '12px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '0.85rem' }}>
+                  <CheckCircle size={16} color="#059669" />
+                  <span>Changes will be instantly published to both Firestore and local storage.</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSaveCommittees}
+                  className="btn btn-primary"
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px' }}
+                >
+                  <Save size={18} />
+                  <span>Save Committees</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: CONFERENCE VENUE */}
+          {activeTab === 'venue' && (
+            <div style={{ display: 'grid', gap: '20px' }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '12px',
+                paddingBottom: '16px',
+                borderBottom: '1px solid #e2e8f0'
+              }}>
+                <div>
+                  <h3 style={{ margin: 0, color: '#0f3d3e', fontSize: '1.3rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <MapPin size={22} color="#0f3d3e" /> Conference Venue, Travel & Accommodation
+                  </h3>
+                  <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.88rem' }}>
+                    Configure the conference resort location, physical address, airport transportation directions, and hotel discount codes.
+                  </p>
+                </div>
+                <button onClick={handleSaveVenue} className="btn btn-primary btn-sm">
+                  <Save size={16} /> Save Venue Details
+                </button>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '24px' }}>
+                {/* Form Fields Card */}
+                <div style={{
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '12px',
+                  padding: '24px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+                }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={labelStyle}>Venue / Hotel Name *</label>
+                      <input
+                        type="text"
+                        value={venueForm.venueName}
+                        onChange={(e) => setVenueForm({ ...venueForm, venueName: e.target.value })}
+                        placeholder="e.g. Furama Resort Danang"
+                        style={{ ...inputStyle, fontWeight: 700 }}
+                      />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>City & Country *</label>
+                      <input
+                        type="text"
+                        value={venueForm.venueCityCountry}
+                        onChange={(e) => setVenueForm({ ...venueForm, venueCityCountry: e.target.value })}
+                        placeholder="e.g. Danang, Vietnam"
+                        style={inputStyle}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>Venue Highlights Badge</label>
+                    <input
+                      type="text"
+                      value={venueForm.badge || ''}
+                      onChange={(e) => setVenueForm({ ...venueForm, badge: e.target.value })}
+                      placeholder="e.g. 5-Star Beachfront Luxury & International Convention Center"
+                      style={inputStyle}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>Full Physical Address *</label>
+                    <textarea
+                      rows={2}
+                      value={venueForm.address}
+                      onChange={(e) => setVenueForm({ ...venueForm, address: e.target.value })}
+                      placeholder="e.g. 105 Vo Nguyen Giap Street, Khue My Ward, Ngu Hanh Son District, Danang City, Vietnam"
+                      style={{ ...inputStyle, fontFamily: 'inherit' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>Venue Photo Image URL</label>
+                    <input
+                      type="url"
+                      value={venueForm.imageUrl || ''}
+                      onChange={(e) => setVenueForm({ ...venueForm, imageUrl: e.target.value })}
+                      placeholder="https://images.unsplash.com/..."
+                      style={inputStyle}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>Airport & Transportation Guide</label>
+                    <textarea
+                      rows={3}
+                      value={venueForm.airportInfo}
+                      onChange={(e) => setVenueForm({ ...venueForm, airportInfo: e.target.value })}
+                      placeholder="e.g. Approximately 15 minutes drive from Danang International Airport (DAD)..."
+                      style={{ ...inputStyle, fontFamily: 'inherit' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>Special Delegate Accommodation & Discount Codes</label>
+                    <textarea
+                      rows={3}
+                      value={venueForm.accommodationInfo}
+                      onChange={(e) => setVenueForm({ ...venueForm, accommodationInfo: e.target.value })}
+                      placeholder="e.g. Conference delegates enjoy exclusive negotiated corporate room discounts with code ESIT2027."
+                      style={{ ...inputStyle, fontFamily: 'inherit' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>Google Maps Link URL</label>
+                    <input
+                      type="url"
+                      value={venueForm.mapUrl || ''}
+                      onChange={(e) => setVenueForm({ ...venueForm, mapUrl: e.target.value })}
+                      placeholder="https://maps.google.com/?q=..."
+                      style={inputStyle}
+                    />
+                  </div>
+                </div>
+
+                {/* Live Venue Card Preview */}
+                <div style={{
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '16px',
+                  padding: '24px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <MapPin size={20} color="#0f3d3e" />
+                    <h4 style={{ margin: 0, fontSize: '1.05rem', color: '#0f3d3e', fontWeight: 800 }}>
+                      Live Preview: Venue Card
+                    </h4>
+                  </div>
+
+                  {/* Visual Image Box Preview */}
+                  <div style={{
+                    position: 'relative',
+                    height: '200px',
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    border: '1px solid #cbd5e1',
+                    backgroundColor: '#0f3d3e'
+                  }}>
+                    {venueForm.imageUrl ? (
+                      <Image
+                        src={venueForm.imageUrl}
+                        alt="Venue Preview"
+                        fill
+                        style={{ objectFit: 'cover' }}
+                        unoptimized
+                      />
+                    ) : null}
+                    <div style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: 'linear-gradient(to top, rgba(9, 44, 44, 0.95) 0%, rgba(9, 44, 44, 0.3) 60%, transparent 100%)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'flex-end',
+                      padding: '16px',
+                      color: '#ffffff'
+                    }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase' }}>
+                        {venueForm.badge || 'Convention & Venue'}
+                      </span>
+                      <h4 style={{ margin: '2px 0 4px 0', color: '#ffffff', fontSize: '1.15rem' }}>
+                        {venueForm.venueName || 'Conference Venue'}
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: '#cbd5e1' }}>
+                        {venueForm.address || 'Address'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gap: '10px' }}>
+                    <div style={{ padding: '12px', backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                      <Plane size={18} color="#0f3d3e" style={{ flexShrink: 0, marginTop: '2px' }} />
+                      <div>
+                        <strong style={{ fontSize: '0.82rem', color: '#0f3d3e', display: 'block' }}>Airport & Transportation</strong>
+                        <p style={{ margin: 0, fontSize: '0.78rem', color: '#475569' }}>{venueForm.airportInfo}</p>
+                      </div>
+                    </div>
+
+                    <div style={{ padding: '12px', backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                      <Hotel size={18} color="#f59e0b" style={{ flexShrink: 0, marginTop: '2px' }} />
+                      <div>
+                        <strong style={{ fontSize: '0.82rem', color: '#0f3d3e', display: 'block' }}>Accommodation Rates</strong>
+                        <p style={{ margin: 0, fontSize: '0.78rem', color: '#475569' }}>{venueForm.accommodationInfo}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {venueForm.mapUrl && (
+                    <a
+                      href={venueForm.mapUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-secondary btn-sm"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', alignSelf: 'flex-start', textDecoration: 'none' }}
+                    >
+                      <Navigation size={14} />
+                      <span>Open in Google Maps</span>
+                      <ExternalLink size={12} />
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {/* Sticky bottom save bar */}
+              <div style={{
+                position: 'sticky',
+                bottom: 0,
+                backgroundColor: '#ffffff',
+                border: '1px solid #cbd5e1',
+                padding: '16px 24px',
+                borderRadius: '12px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '12px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '0.85rem' }}>
+                  <CheckCircle size={16} color="#059669" />
+                  <span>Changes will be instantly published to both Firestore and local storage.</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSaveVenue}
+                  className="btn btn-primary"
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px' }}
+                >
+                  <Save size={18} />
+                  <span>Save Venue Details</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* TAB 6: MANUSCRIPT SUBMISSIONS (GOOGLE DRIVE & FIRESTORE) */}
           {activeTab === 'submissions' && (() => {
             const totalSubmissions = submissionsList.length;
@@ -2529,6 +3701,16 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                   </div>
 
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <button
+                      onClick={handleExportSubmissionsCSV}
+                      className="btn btn-outline-primary btn-sm"
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                      title="Export all submissions, author info, reviewers, status, scores, and review summaries to CSV"
+                    >
+                      <Download size={14} color="#0f3d3e" />
+                      <span>Export All Data (CSV)</span>
+                    </button>
+
                     <a
                       href={ESIT_DRIVE_FOLDER_URL}
                       target="_blank"

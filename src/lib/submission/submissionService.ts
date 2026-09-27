@@ -1,6 +1,7 @@
-import { ManuscriptSubmission } from '../types';
+import { ManuscriptSubmission, CoAuthorInfo } from '../types';
 import { db, isFirebaseConfigured } from '../firebase/config';
 import { collection, doc, getDocs, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { sendConferenceEmail } from '../email/emailService';
 
 const LOCAL_STORAGE_SUBMISSIONS_KEY = 'esit_conference_manuscript_submissions';
 const DEFAULT_DRIVE_FOLDER_URL = 'https://drive.google.com/drive/folders/1A7BPBWVm812p34MAwF06r5G-g-YRP9Od';
@@ -11,6 +12,7 @@ export interface UploadManuscriptParams {
   abstract: string;
   track: string;
   coAuthors?: string;
+  coAuthorsList?: CoAuthorInfo[];
   authorUid: string;
   authorName: string;
   authorEmail: string;
@@ -78,13 +80,22 @@ export async function submitManuscript(
       console.warn('API route upload warning, proceeding with Firestore save:', apiErr);
     }
 
-    // 3. Prepare complete submission document
+    // 3. Format co-authors text summary and list
+    let coAuthorsText = params.coAuthors ? params.coAuthors.trim() : '';
+    if (!coAuthorsText && params.coAuthorsList && params.coAuthorsList.length > 0) {
+      coAuthorsText = params.coAuthorsList.map(c => `${c.name} (${c.organization})`).join(', ');
+    }
+
+    const coAuthorsList = params.coAuthorsList || [];
+
+    // 4. Prepare complete submission document
     const submissionDoc: ManuscriptSubmission = {
       id: submissionId,
       title: params.title.trim(),
       abstract: params.abstract.trim(),
       track: params.track,
-      coAuthors: params.coAuthors ? params.coAuthors.trim() : '',
+      coAuthors: coAuthorsText,
+      coAuthorsList: coAuthorsList,
       authorUid: params.authorUid,
       authorName: params.authorName,
       authorEmail: params.authorEmail,
@@ -96,7 +107,7 @@ export async function submitManuscript(
       assignedReviewers: []
     };
 
-    // 4. Save to Firebase Firestore
+    // 5. Save to Firebase Firestore
     if (isFirebaseConfigured && db) {
       try {
         await setDoc(doc(db, 'submissions', submissionId), submissionDoc);
@@ -105,7 +116,7 @@ export async function submitManuscript(
       }
     }
 
-    // 5. Save to LocalStorage fallback
+    // 6. Save to LocalStorage fallback
     if (typeof window !== 'undefined') {
       try {
         const stored = localStorage.getItem(LOCAL_STORAGE_SUBMISSIONS_KEY);
@@ -114,6 +125,28 @@ export async function submitManuscript(
         localStorage.setItem(LOCAL_STORAGE_SUBMISSIONS_KEY, JSON.stringify(list));
       } catch (lsErr) {
         console.warn('LocalStorage save error:', lsErr);
+      }
+    }
+
+    // 7. Send automated email notification to all co-authors
+    if (coAuthorsList.length > 0) {
+      const portalUrl = typeof window !== 'undefined' ? window.location.origin : 'https://esit-conference.vercel.app';
+      for (const coAuthor of coAuthorsList) {
+        if (coAuthor.email && coAuthor.email.includes('@')) {
+          sendConferenceEmail({
+            to: coAuthor.email.trim(),
+            recipientName: coAuthor.name.trim() || 'Co-Author',
+            subject: `[${submissionId}] Co-Author Notice: Manuscript Submission - ESIT Conference`,
+            template: 'coauthor_submission_notification',
+            data: {
+              submissionId,
+              paperTitle: params.title.trim(),
+              track: params.track,
+              primaryAuthor: `${params.authorName} (${params.authorOrganization})`,
+              portalUrl
+            }
+          }).catch(err => console.warn(`Co-author notification to ${coAuthor.email} warning:`, err));
+        }
       }
     }
 
