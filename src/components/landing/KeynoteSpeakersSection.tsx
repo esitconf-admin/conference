@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Mic, Award, BookOpen, Globe } from 'lucide-react';
 import { useConferenceData } from '../../lib/context/ConferenceDataContext';
+import { formatGoogleDriveImageUrl } from '../../lib/utils/imageUtils';
 import Image from 'next/image';
 
 export default function KeynoteSpeakersSection() {
@@ -28,35 +29,37 @@ export default function KeynoteSpeakersSection() {
           gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
           gap: '30px'
         }}>
-          {keynotes.map((speaker) => (
-            <div
-              key={speaker.id}
-              className="card"
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                padding: '0',
-                overflow: 'hidden',
-                borderRadius: '16px'
-              }}
-            >
-              {/* Speaker Top Banner & Photo */}
-              <div style={{
-                position: 'relative',
-                height: '240px',
-                width: '100%',
-                backgroundColor: '#092c2c'
-              }}>
-                <Image
-                  src={speaker.imageUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'}
-                  alt={speaker.name}
-                  fill
-                  style={{
-                    objectFit: 'cover'
-                  }}
-                  unoptimized
-                />
+          {keynotes.map((speaker) => {
+            const photoUrl = formatGoogleDriveImageUrl(speaker.imageUrl) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80';
+            return (
+              <div
+                key={speaker.id}
+                className="card"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  padding: '0',
+                  overflow: 'hidden',
+                  borderRadius: '16px'
+                }}
+              >
+                {/* Speaker Top Banner & Photo */}
+                <div style={{
+                  position: 'relative',
+                  height: '240px',
+                  width: '100%',
+                  backgroundColor: '#092c2c'
+                }}>
+                  <Image
+                    src={photoUrl}
+                    alt={speaker.name}
+                    fill
+                    style={{
+                      objectFit: 'cover'
+                    }}
+                    unoptimized
+                  />
                 <div style={{
                   position: 'absolute',
                   inset: 0,
@@ -152,7 +155,8 @@ export default function KeynoteSpeakersSection() {
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>

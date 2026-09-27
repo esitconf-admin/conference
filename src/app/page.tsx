@@ -20,6 +20,7 @@ import MySubmissionsModal from '../components/modals/MySubmissionsModal';
 import ReviewerPortalModal from '../components/modals/ReviewerPortalModal';
 import AdminDashboard from '../components/admin/AdminDashboard';
 import { useConferenceData } from '../lib/context/ConferenceDataContext';
+import { formatGoogleDriveImageUrl } from '../lib/utils/imageUtils';
 
 export default function HomePage() {
   const { content } = useConferenceData();
@@ -64,8 +65,9 @@ export default function HomePage() {
         setMeta('keywords', content.seo.keywords);
       }
       if (content.seo.ogImageUrl) {
-        setMeta('og:image', content.seo.ogImageUrl, true);
-        setMeta('twitter:image', content.seo.ogImageUrl);
+        const formattedOgImage = formatGoogleDriveImageUrl(content.seo.ogImageUrl);
+        setMeta('og:image', formattedOgImage, true);
+        setMeta('twitter:image', formattedOgImage);
       }
     }
   }, [content.seo, content.hero?.edition]);

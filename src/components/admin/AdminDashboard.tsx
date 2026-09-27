@@ -24,6 +24,7 @@ import { defaultEmailTemplates } from '../../lib/data/initialEmailTemplates';
 import { db, isFirebaseConfigured } from '../../lib/firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import Image from 'next/image';
+import { formatGoogleDriveImageUrl, isGoogleDriveUrl } from '../../lib/utils/imageUtils';
 
 interface AdminDashboardProps {
   isOpen: boolean;
@@ -424,14 +425,24 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
   // Handle Saves
   const handleSaveHero = async (e: React.FormEvent) => {
     e.preventDefault();
-    await updateHero(heroForm);
+    const cleanHero = {
+      ...heroForm,
+      posterImageUrl: formatGoogleDriveImageUrl(heroForm.posterImageUrl)
+    };
+    setHeroForm(cleanHero);
+    await updateHero(cleanHero);
     await updateContactInfo(contactForm);
-    showSuccess('Hero banner, venue details, and secretariat contact info updated successfully!');
+    showSuccess('Hero banner, poster image, and secretariat contact info updated successfully!');
   };
 
   const handleSaveSEO = async (e: React.FormEvent) => {
     e.preventDefault();
-    await updateSEO(seoForm);
+    const cleanSEO = {
+      ...seoForm,
+      ogImageUrl: formatGoogleDriveImageUrl(seoForm.ogImageUrl)
+    };
+    setSeoForm(cleanSEO);
+    await updateSEO(cleanSEO);
     showSuccess('SEO & Social Share Preview metadata updated successfully!');
   };
 
@@ -446,7 +457,12 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
   };
 
   const handleSaveKeynotes = async () => {
-    await updateKeynotes(keynotesList);
+    const cleanKeynotes = keynotesList.map(k => ({
+      ...k,
+      imageUrl: formatGoogleDriveImageUrl(k.imageUrl)
+    }));
+    setKeynotesList(cleanKeynotes);
+    await updateKeynotes(cleanKeynotes);
     showSuccess('Keynote speakers updated successfully!');
   };
 
@@ -646,7 +662,12 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
   // Venue Handlers
   const handleSaveVenue = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    await updateVenue(venueForm);
+    const cleanVenue = {
+      ...venueForm,
+      imageUrl: formatGoogleDriveImageUrl(venueForm.imageUrl)
+    };
+    setVenueForm(cleanVenue);
+    await updateVenue(cleanVenue);
     showSuccess('Conference venue, travel, accommodation, and map details updated successfully!');
   };
 
@@ -1674,6 +1695,108 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                 </div>
               </div>
 
+              {/* OFFICIAL ANNOUNCEMENT POSTER (HERO BANNER) */}
+              <div style={{
+                padding: '18px',
+                backgroundColor: '#f8fafc',
+                border: '1px solid #cbd5e1',
+                borderRadius: '10px',
+                display: 'grid',
+                gap: '12px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  <label style={{ ...labelStyle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <ImageIcon size={16} color="#0f3d3e" />
+                    <span>Official Announcement Poster Image URL *</span>
+                  </label>
+                  {seoForm.ogImageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setHeroForm({ ...heroForm, posterImageUrl: seoForm.ogImageUrl })}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#0f3d3e',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        textDecoration: 'underline'
+                      }}
+                    >
+                      ⚡ Copy from SEO Banner URL
+                    </button>
+                  )}
+                </div>
+
+                <input
+                  type="text"
+                  required
+                  value={heroForm.posterImageUrl || ''}
+                  onChange={(e) => setHeroForm({ ...heroForm, posterImageUrl: e.target.value })}
+                  style={inputStyle}
+                  placeholder="Paste direct image URL or Google Drive sharing link (e.g. https://drive.google.com/file/d/.../view)"
+                />
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    💡 <strong>Google Drive Supported:</strong> Paste any Google Drive link directly. Ensure sharing is set to <em>"Anyone with the link can view"</em>.
+                  </span>
+                  {isGoogleDriveUrl(heroForm.posterImageUrl) && (
+                    <span style={{
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
+                      backgroundColor: '#ecfdf5',
+                      color: '#047857',
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      border: '1px solid #a7f3d0'
+                    }}>
+                      ✨ Google Drive Link Detected & Auto-Converted
+                    </span>
+                  )}
+                </div>
+
+                {/* Poster Live Preview */}
+                {heroForm.posterImageUrl && (
+                  <div style={{
+                    marginTop: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '14px',
+                    backgroundColor: '#ffffff',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid #e2e8f0'
+                  }}>
+                    <div style={{
+                      position: 'relative',
+                      width: '70px',
+                      height: '90px',
+                      borderRadius: '6px',
+                      overflow: 'hidden',
+                      backgroundColor: '#092c2c',
+                      flexShrink: 0
+                    }}>
+                      <Image
+                        src={formatGoogleDriveImageUrl(heroForm.posterImageUrl) || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80'}
+                        alt="Poster Preview"
+                        fill
+                        style={{ objectFit: 'cover' }}
+                        unoptimized
+                      />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f3d3e' }}>
+                        Live Hero Poster Preview
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: '#64748b', wordBreak: 'break-all', marginTop: '2px' }}>
+                        Converted Direct URL: <span style={{ fontFamily: 'monospace', color: '#0284c7' }}>{formatGoogleDriveImageUrl(heroForm.posterImageUrl)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* SECRETARIAT & CONTACT INFORMATION (FOOTER & INQUIRIES) */}
               <div style={{
                 marginTop: '10px',
@@ -1835,10 +1958,26 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                       value={seoForm.ogImageUrl}
                       onChange={(e) => setSeoForm({ ...seoForm, ogImageUrl: e.target.value })}
                       style={inputStyle}
+                      placeholder="Paste image URL or Google Drive sharing link (e.g. https://drive.google.com/file/d/.../view)"
                     />
-                    <span style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', display: 'block' }}>
-                      Image shown in link preview bubbles (Recommended: 1200x630px JPG/PNG).
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                        Image shown in link preview bubbles (Recommended: 1200x630px JPG/PNG). Google Drive sharing links supported!
+                      </span>
+                      {isGoogleDriveUrl(seoForm.ogImageUrl) && (
+                        <span style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          backgroundColor: '#ecfdf5',
+                          color: '#047857',
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          border: '1px solid #a7f3d0'
+                        }}>
+                          ✨ Google Drive Link Detected & Auto-Converted
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -1940,7 +2079,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                       {seoForm.ogImageUrl && (
                         <div style={{ position: 'relative', width: '100%', height: '180px', backgroundColor: '#092c2c' }}>
                           <Image
-                            src={seoForm.ogImageUrl}
+                            src={formatGoogleDriveImageUrl(seoForm.ogImageUrl) || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80'}
                             alt="Social Share Thumbnail"
                             fill
                             style={{ objectFit: 'cover' }}
@@ -3551,14 +3690,32 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                   </div>
 
                   <div>
-                    <label style={labelStyle}>Venue Photo Image URL</label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <label style={{ ...labelStyle, marginBottom: 0 }}>Venue Photo Image URL</label>
+                      {isGoogleDriveUrl(venueForm.imageUrl) && (
+                        <span style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          backgroundColor: '#ecfdf5',
+                          color: '#047857',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                          border: '1px solid #a7f3d0'
+                        }}>
+                          ✨ Google Drive Converted
+                        </span>
+                      )}
+                    </div>
                     <input
-                      type="url"
+                      type="text"
                       value={venueForm.imageUrl || ''}
                       onChange={(e) => setVenueForm({ ...venueForm, imageUrl: e.target.value })}
-                      placeholder="https://images.unsplash.com/..."
+                      placeholder="Paste direct URL or Google Drive sharing link"
                       style={inputStyle}
                     />
+                    <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
+                      💡 Google Drive links (anyone with the link) and standard image URLs supported.
+                    </span>
                   </div>
 
                   <div>
@@ -3586,7 +3743,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                   <div>
                     <label style={labelStyle}>Google Maps Link URL</label>
                     <input
-                      type="url"
+                      type="text"
                       value={venueForm.mapUrl || ''}
                       onChange={(e) => setVenueForm({ ...venueForm, mapUrl: e.target.value })}
                       placeholder="https://maps.google.com/?q=..."
@@ -3623,7 +3780,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                   }}>
                     {venueForm.imageUrl ? (
                       <Image
-                        src={venueForm.imageUrl}
+                        src={formatGoogleDriveImageUrl(venueForm.imageUrl) || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80'}
                         alt="Venue Preview"
                         fill
                         style={{ objectFit: 'cover' }}

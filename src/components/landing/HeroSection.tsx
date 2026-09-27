@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Calendar, MapPin, Sparkles, FileText, Download, Maximize2, X } from 'lucide-react';
 import { useConferenceData } from '../../lib/context/ConferenceDataContext';
+import { formatGoogleDriveImageUrl } from '../../lib/utils/imageUtils';
 import Image from 'next/image';
 
 interface HeroSectionProps {
@@ -13,6 +14,8 @@ export default function HeroSection({ onOpenSubmission }: HeroSectionProps) {
   const { content } = useConferenceData();
   const { hero } = content;
   const [lightboxOpen, setLightboxOpen] = useState(false);
+
+  const formattedPosterUrl = formatGoogleDriveImageUrl(hero.posterImageUrl) || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80';
 
   return (
     <section id="hero" style={{
@@ -197,7 +200,7 @@ export default function HeroSection({ onOpenSubmission }: HeroSectionProps) {
                 backgroundColor: '#092c2c'
               }}>
                 <Image
-                  src={hero.posterImageUrl}
+                  src={formattedPosterUrl}
                   alt="ESIT Conference Poster"
                   fill
                   style={{
@@ -288,7 +291,7 @@ export default function HeroSection({ onOpenSubmission }: HeroSectionProps) {
             </button>
             <div style={{ position: 'relative', width: '100%', height: '70vh', borderRadius: '12px', overflow: 'hidden' }}>
               <Image
-                src={hero.posterImageUrl}
+                src={formattedPosterUrl}
                 alt="ESIT Poster Enlarged"
                 fill
                 style={{

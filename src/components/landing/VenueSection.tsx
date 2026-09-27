@@ -3,6 +3,7 @@
 import React from 'react';
 import { MapPin, Navigation, Hotel, Plane, ExternalLink } from 'lucide-react';
 import { useConferenceData } from '../../lib/context/ConferenceDataContext';
+import { formatGoogleDriveImageUrl } from '../../lib/utils/imageUtils';
 import Image from 'next/image';
 
 export default function VenueSection() {
@@ -13,7 +14,8 @@ export default function VenueSection() {
   const venueCityCountry = venue?.venueCityCountry || hero.venueCityCountry;
   const venueBadge = venue?.badge || '5-Star Beachfront Luxury & International Convention Center';
   const venueAddress = venue?.address || '240 Beach Road, Pattaya City, Bang Lamung District, Chon Buri 20150, Thailand';
-  const venueImage = venue?.imageUrl || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80';
+  const rawVenueImage = venue?.imageUrl || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80';
+  const venueImage = formatGoogleDriveImageUrl(rawVenueImage) || rawVenueImage;
   const airportInfo = venue?.airportInfo || 'Approximately 90 minutes direct expressway drive from international airports. Shuttle vans and airport taxis are readily available.';
   const accommodationInfo = venue?.accommodationInfo || 'Conference delegates enjoy exclusive negotiated corporate room discounts at partner hotels.';
   const mapUrl = venue?.mapUrl || `https://maps.google.com/?q=${encodeURIComponent(venueName)}`;
