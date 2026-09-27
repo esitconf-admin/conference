@@ -2418,9 +2418,8 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                           required
                           value={speaker.name}
                           onChange={(e) => {
-                            const updated = [...keynotesList];
-                            updated[idx].name = e.target.value;
-                            setKeynotesList(updated);
+                            const val = e.target.value;
+                            setKeynotesList(prev => prev.map((k, i) => i === idx ? { ...k, name: val } : k));
                           }}
                           style={inputStyle}
                           placeholder="e.g. Prof. Dr. Jane Doe"
@@ -2433,9 +2432,8 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                           type="text"
                           value={speaker.title || ''}
                           onChange={(e) => {
-                            const updated = [...keynotesList];
-                            updated[idx].title = e.target.value;
-                            setKeynotesList(updated);
+                            const val = e.target.value;
+                            setKeynotesList(prev => prev.map((k, i) => i === idx ? { ...k, title: val } : k));
                           }}
                           style={inputStyle}
                           placeholder="e.g. Professor & Chair"
@@ -2449,9 +2447,8 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                           required
                           value={speaker.affiliation}
                           onChange={(e) => {
-                            const updated = [...keynotesList];
-                            updated[idx].affiliation = e.target.value;
-                            setKeynotesList(updated);
+                            const val = e.target.value;
+                            setKeynotesList(prev => prev.map((k, i) => i === idx ? { ...k, affiliation: val } : k));
                           }}
                           style={inputStyle}
                           placeholder="e.g. Technical University of Munich"
@@ -2465,9 +2462,8 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                           required
                           value={speaker.country}
                           onChange={(e) => {
-                            const updated = [...keynotesList];
-                            updated[idx].country = e.target.value;
-                            setKeynotesList(updated);
+                            const val = e.target.value;
+                            setKeynotesList(prev => prev.map((k, i) => i === idx ? { ...k, country: val } : k));
                           }}
                           style={inputStyle}
                           placeholder="e.g. Germany"
@@ -2499,9 +2495,8 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                         required
                         value={speaker.topic}
                         onChange={(e) => {
-                          const updated = [...keynotesList];
-                          updated[idx].topic = e.target.value;
-                          setKeynotesList(updated);
+                          const val = e.target.value;
+                          setKeynotesList(prev => prev.map((k, i) => i === idx ? { ...k, topic: val } : k));
                         }}
                         style={inputStyle}
                         placeholder="e.g. AI-Driven Sustainable Smart Grids and Green Power Systems"
@@ -2515,9 +2510,8 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                         rows={2}
                         value={speaker.abstract || ''}
                         onChange={(e) => {
-                          const updated = [...keynotesList];
-                          updated[idx].abstract = e.target.value;
-                          setKeynotesList(updated);
+                          const val = e.target.value;
+                          setKeynotesList(prev => prev.map((k, i) => i === idx ? { ...k, abstract: val } : k));
                         }}
                         style={{ ...inputStyle, fontFamily: 'inherit' }}
                         placeholder="Brief summary of the keynote speech or speaker's biographical background..."
@@ -2559,9 +2553,8 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                             type="text"
                             value={speaker.imageUrl || ''}
                             onChange={(e) => {
-                              const updated = [...keynotesList];
-                              updated[idx].imageUrl = e.target.value;
-                              setKeynotesList(updated);
+                              const val = e.target.value;
+                              setKeynotesList(prev => prev.map((k, i) => i === idx ? { ...k, imageUrl: val } : k));
                             }}
                             style={inputStyle}
                             placeholder="Paste direct photo URL or Google Drive sharing link (e.g. https://drive.google.com/file/d/.../view)"
