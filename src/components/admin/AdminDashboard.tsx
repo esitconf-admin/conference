@@ -903,18 +903,10 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
 
           <button
             onClick={() => setActiveTab('seo')}
-            style={getButtonTabStyle(activeTab === 'seo', true)}
+            style={getButtonTabStyle(activeTab === 'seo')}
           >
             <Globe size={15} />
             <span>SEO & Social Share Preview</span>
-            <span style={{
-              backgroundColor: activeTab === 'seo' ? '#ffffff' : '#059669',
-              color: activeTab === 'seo' ? '#047857' : '#ffffff',
-              padding: '1px 6px',
-              borderRadius: '9999px',
-              fontSize: '0.72rem',
-              fontWeight: 800
-            }}>NEW</span>
           </button>
 
           <button
@@ -5178,19 +5170,15 @@ const inputStyle: React.CSSProperties = {
   fontSize: '0.9rem'
 };
 
-const getButtonTabStyle = (active: boolean, highlight?: boolean): React.CSSProperties => ({
+const getButtonTabStyle = (active: boolean): React.CSSProperties => ({
   display: 'inline-flex',
   alignItems: 'center',
   gap: '8px',
   padding: '9px 16px',
   borderRadius: '8px',
-  border: active
-    ? '2px solid #0f3d3e'
-    : highlight
-      ? '1px solid #10b981'
-      : '1px solid #cbd5e1',
+  border: active ? '2px solid #0f3d3e' : '1px solid #cbd5e1',
   backgroundColor: active ? '#0f3d3e' : '#ffffff',
-  color: active ? '#ffffff' : highlight ? '#047857' : '#334155',
+  color: active ? '#ffffff' : '#334155',
   fontWeight: active ? 700 : 600,
   cursor: 'pointer',
   fontSize: '0.88rem',
