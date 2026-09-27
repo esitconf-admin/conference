@@ -430,8 +430,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
       posterImageUrl: formatGoogleDriveImageUrl(heroForm.posterImageUrl)
     };
     setHeroForm(cleanHero);
-    await updateHero(cleanHero);
-    await updateContactInfo(contactForm);
+    await updateHero(cleanHero, contactForm);
     showSuccess('Hero banner, poster image, and secretariat contact info updated successfully!');
   };
 

@@ -9,7 +9,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 interface ConferenceDataContextType {
   content: ConferenceContent;
   loading: boolean;
-  updateHero: (hero: Partial<ConferenceContent['hero']>) => Promise<boolean>;
+  updateHero: (hero: Partial<ConferenceContent['hero']>, contactInfo?: Partial<ConferenceContent['contactInfo']>) => Promise<boolean>;
   updateSEO: (seo: Partial<NonNullable<ConferenceContent['seo']>>) => Promise<boolean>;
   updateImportantDates: (dates: ImportantDateItem[]) => Promise<boolean>;
   updateNewsList: (news: NewsItem[]) => Promise<boolean>;
@@ -82,155 +82,160 @@ export function ConferenceDataProvider({ children }: { children: React.ReactNode
     loadData();
   }, []);
 
-  const saveContent = async (newContent: ConferenceContent): Promise<boolean> => {
-    const updated = {
-      ...newContent,
-      updatedAt: new Date().toISOString()
-    };
-    setContent(updated);
+  const saveContent = async (
+    updater: ConferenceContent | ((prev: ConferenceContent) => ConferenceContent)
+  ): Promise<boolean> => {
+    return new Promise<boolean>((resolve) => {
+      setContent(prev => {
+        const next = typeof updater === 'function' ? updater(prev) : updater;
+        const updated: ConferenceContent = {
+          ...next,
+          updatedAt: new Date().toISOString()
+        };
 
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(LOCAL_STORAGE_CMS_KEY, JSON.stringify(updated));
-    }
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(LOCAL_STORAGE_CMS_KEY, JSON.stringify(updated));
+        }
 
-    if (isFirebaseConfigured && db) {
-      try {
-        await setDoc(doc(db, 'conference_content', 'main'), updated, { merge: true });
-      } catch (err) {
-        console.error('Error writing to Firestore:', err);
-      }
-    }
-    return true;
-  };
+        if (isFirebaseConfigured && db) {
+          setDoc(doc(db, 'conference_content', 'main'), updated, { merge: true })
+            .catch(err => console.error('Error writing to Firestore:', err));
+        }
 
-  const updateHero = async (heroUpdates: Partial<ConferenceContent['hero']>): Promise<boolean> => {
-    const newContent = {
-      ...content,
-      hero: { ...content.hero, ...heroUpdates }
-    };
-    return saveContent(newContent);
-  };
-
-  const updateSEO = async (seoUpdates: Partial<NonNullable<ConferenceContent['seo']>>): Promise<boolean> => {
-    const currentSeo = content.seo || {
-      pageTitle: content.hero.title,
-      metaDescription: content.hero.fullTheme,
-      keywords: 'ESIT, Conference, KMUTNB',
-      ogImageUrl: content.hero.posterImageUrl,
-      siteUrl: 'https://esit-conference.vercel.app',
-      siteName: 'ESIT Conference'
-    };
-
-    const newContent = {
-      ...content,
-      seo: { ...currentSeo, ...seoUpdates }
-    };
-
-    // Update live browser title if in window
-    if (typeof document !== 'undefined' && seoUpdates.pageTitle) {
-      document.title = seoUpdates.pageTitle;
-    }
-
-    return saveContent(newContent);
-  };
-
-  const updateImportantDates = async (dates: ImportantDateItem[]): Promise<boolean> => {
-    return saveContent({ ...content, dates });
-  };
-
-  const updateNewsList = async (news: NewsItem[]): Promise<boolean> => {
-    return saveContent({ ...content, news });
-  };
-
-  const updateKeynotes = async (keynotes: KeynoteSpeaker[]): Promise<boolean> => {
-    return saveContent({ ...content, keynotes });
-  };
-
-  const updateCommittees = async (committees: CommitteeGroup[]): Promise<boolean> => {
-    return saveContent({ ...content, committees });
-  };
-
-  const updatePricing = async (pricing: ConferenceContent['pricing']): Promise<boolean> => {
-    return saveContent({ ...content, pricing });
-  };
-
-  const updateBankInfo = async (bankUpdates: Partial<ConferenceContent['bankInfo']>): Promise<boolean> => {
-    return saveContent({
-      ...content,
-      bankInfo: {
-        ...content.bankInfo,
-        ...bankUpdates
-      }
+        resolve(true);
+        return updated;
+      });
     });
   };
 
+  const updateHero = async (
+    heroUpdates: Partial<ConferenceContent['hero']>,
+    contactUpdates?: Partial<ConferenceContent['contactInfo']>
+  ): Promise<boolean> => {
+    return saveContent(prev => ({
+      ...prev,
+      hero: { ...prev.hero, ...heroUpdates },
+      contactInfo: contactUpdates ? { ...prev.contactInfo, ...contactUpdates } : prev.contactInfo
+    }));
+  };
+
+  const updateSEO = async (seoUpdates: Partial<NonNullable<ConferenceContent['seo']>>): Promise<boolean> => {
+    return saveContent(prev => {
+      const currentSeo = prev.seo || {
+        pageTitle: prev.hero.title,
+        metaDescription: prev.hero.fullTheme,
+        keywords: 'ESIT, Conference, KMUTNB',
+        ogImageUrl: prev.hero.posterImageUrl,
+        siteUrl: 'https://esit-conference.vercel.app',
+        siteName: 'ESIT Conference'
+      };
+
+      if (typeof document !== 'undefined' && seoUpdates.pageTitle) {
+        document.title = seoUpdates.pageTitle;
+      }
+
+      return {
+        ...prev,
+        seo: { ...currentSeo, ...seoUpdates }
+      };
+    });
+  };
+
+  const updateImportantDates = async (dates: ImportantDateItem[]): Promise<boolean> => {
+    return saveContent(prev => ({ ...prev, dates }));
+  };
+
+  const updateNewsList = async (news: NewsItem[]): Promise<boolean> => {
+    return saveContent(prev => ({ ...prev, news }));
+  };
+
+  const updateKeynotes = async (keynotes: KeynoteSpeaker[]): Promise<boolean> => {
+    return saveContent(prev => ({ ...prev, keynotes }));
+  };
+
+  const updateCommittees = async (committees: CommitteeGroup[]): Promise<boolean> => {
+    return saveContent(prev => ({ ...prev, committees }));
+  };
+
+  const updatePricing = async (pricing: ConferenceContent['pricing']): Promise<boolean> => {
+    return saveContent(prev => ({ ...prev, pricing }));
+  };
+
+  const updateBankInfo = async (bankUpdates: Partial<ConferenceContent['bankInfo']>): Promise<boolean> => {
+    return saveContent(prev => ({
+      ...prev,
+      bankInfo: {
+        ...prev.bankInfo,
+        ...bankUpdates
+      }
+    }));
+  };
+
   const updateVenue = async (venueUpdates: Partial<NonNullable<ConferenceContent['venue']>>): Promise<boolean> => {
-    const currentVenue = content.venue || {
-      venueName: content.hero.venueName,
-      venueCityCountry: content.hero.venueCityCountry,
-      subLocation: `${content.hero.venueName}, ${content.hero.venueCityCountry}`,
-      badge: '5-Star Beachfront Luxury & International Convention Center',
-      address: '240 Beach Road, Pattaya City, Bang Lamung District, Chon Buri 20150, Thailand',
-      imageUrl: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80',
-      airportInfo: 'Convenient access from international airports with direct shuttle options.',
-      accommodationInfo: 'Exclusive negotiated room rates available for conference delegates.',
-      mapUrl: `https://maps.google.com/?q=${encodeURIComponent(content.hero.venueName)}`
-    };
+    return saveContent(prev => {
+      const currentVenue = prev.venue || {
+        venueName: prev.hero.venueName,
+        venueCityCountry: prev.hero.venueCityCountry,
+        subLocation: `${prev.hero.venueName}, ${prev.hero.venueCityCountry}`,
+        badge: '5-Star Beachfront Luxury & International Convention Center',
+        address: '240 Beach Road, Pattaya City, Bang Lamung District, Chon Buri 20150, Thailand',
+        imageUrl: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80',
+        airportInfo: 'Convenient access from international airports with direct shuttle options.',
+        accommodationInfo: 'Exclusive negotiated room rates available for conference delegates.',
+        mapUrl: `https://maps.google.com/?q=${encodeURIComponent(prev.hero.venueName)}`
+      };
 
-    const newVenue = {
-      ...currentVenue,
-      ...venueUpdates
-    };
+      const newVenue = {
+        ...currentVenue,
+        ...venueUpdates
+      };
 
-    // Also keep hero venue fields in sync
-    const newHero = {
-      ...content.hero,
-      venueName: venueUpdates.venueName || content.hero.venueName,
-      venueCityCountry: venueUpdates.venueCityCountry || content.hero.venueCityCountry
-    };
+      const newHero = {
+        ...prev.hero,
+        venueName: venueUpdates.venueName || prev.hero.venueName,
+        venueCityCountry: venueUpdates.venueCityCountry || prev.hero.venueCityCountry
+      };
 
-    return saveContent({
-      ...content,
-      hero: newHero,
-      venue: newVenue
+      return {
+        ...prev,
+        hero: newHero,
+        venue: newVenue
+      };
     });
   };
 
   const updateTracks = async (tracks: ConferenceContent['tracks']): Promise<boolean> => {
-    return saveContent({ ...content, tracks });
+    return saveContent(prev => ({ ...prev, tracks }));
   };
 
   const updateGuidelines = async (guidelines: { authorGuidelines?: (string | GuidelineItem)[]; reviewerGuidelines?: (string | GuidelineItem)[] }): Promise<boolean> => {
-    const newContent = {
-      ...content,
-      authorGuidelines: guidelines.authorGuidelines ?? content.authorGuidelines,
-      reviewerGuidelines: guidelines.reviewerGuidelines ?? content.reviewerGuidelines
-    };
-    return saveContent(newContent);
+    return saveContent(prev => ({
+      ...prev,
+      authorGuidelines: guidelines.authorGuidelines ?? prev.authorGuidelines,
+      reviewerGuidelines: guidelines.reviewerGuidelines ?? prev.reviewerGuidelines
+    }));
   };
 
   const updateTracksAndGuidelines = async (
     tracks: ConferenceContent['tracks'],
     guidelines: { authorGuidelines?: (string | GuidelineItem)[]; reviewerGuidelines?: (string | GuidelineItem)[] }
   ): Promise<boolean> => {
-    const newContent = {
-      ...content,
+    return saveContent(prev => ({
+      ...prev,
       tracks,
-      authorGuidelines: guidelines.authorGuidelines ?? content.authorGuidelines,
-      reviewerGuidelines: guidelines.reviewerGuidelines ?? content.reviewerGuidelines
-    };
-    return saveContent(newContent);
+      authorGuidelines: guidelines.authorGuidelines ?? prev.authorGuidelines,
+      reviewerGuidelines: guidelines.reviewerGuidelines ?? prev.reviewerGuidelines
+    }));
   };
 
   const updateContactInfo = async (contactUpdates: Partial<ConferenceContent['contactInfo']>): Promise<boolean> => {
-    const newContent = {
-      ...content,
+    return saveContent(prev => ({
+      ...prev,
       contactInfo: {
-        ...content.contactInfo,
+        ...prev.contactInfo,
         ...contactUpdates
       }
-    };
-    return saveContent(newContent);
+    }));
   };
 
   const resetToDefault = async (): Promise<boolean> => {
