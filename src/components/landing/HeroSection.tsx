@@ -51,7 +51,7 @@ export default function HeroSection({ onOpenSubmission }: HeroSectionProps) {
         width: '400px',
         height: '400px',
         borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(22, 91, 92, 0.4) 0%, rgba(15, 61, 62, 0) 70%)',
+        background: 'radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 70%)',
         pointerEvents: 'none'
       }} />
 
@@ -224,7 +224,7 @@ export default function HeroSection({ onOpenSubmission }: HeroSectionProps) {
                 <div style={{
                   position: 'absolute',
                   inset: 0,
-                  background: 'linear-gradient(to top, rgba(9, 44, 44, 0.92) 0%, rgba(9, 44, 44, 0.3) 40%, transparent 75%)',
+                  background: 'linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.35) 40%, transparent 75%)',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'flex-end',
