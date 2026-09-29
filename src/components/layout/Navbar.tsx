@@ -93,7 +93,8 @@ export default function Navbar({
                   textDecoration: 'none',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '12px'
+                  gap: '12px',
+                  flexShrink: 0
                 }}
               >
                 <div style={{
@@ -115,17 +116,18 @@ export default function Navbar({
                     style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                   />
                 </div>
-                <div>
+                <div style={{ display: 'flex', flexDirection: 'column', whiteSpace: 'nowrap' }}>
                   <div style={{
                     fontSize: '1.25rem',
                     fontWeight: 800,
                     color: '#0f3d3e',
                     letterSpacing: '-0.5px',
-                    lineHeight: 1.1
+                    lineHeight: 1.1,
+                    whiteSpace: 'nowrap'
                   }}>
                     {content.hero.edition}
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>
                     {content.hero.venueCityCountry}
                   </div>
                 </div>
@@ -137,7 +139,7 @@ export default function Navbar({
           <div style={{
             display: 'none',
             alignItems: 'center',
-            gap: '24px'
+            gap: '18px'
           }} className="desktop-menu">
             <a href="#author-guide" style={navLinkStyle}>For Author</a>
             <a href="#reviewer-guide" style={navLinkStyle}>For Reviewer</a>
@@ -148,15 +150,23 @@ export default function Navbar({
           </div>
 
           {/* Action CTAs */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
             {/* Submit Manuscript CTA (Prominent Gold Button matching ref) */}
             <button
               onClick={onOpenSubmission}
               className="btn btn-primary btn-sm"
-              style={{ fontWeight: 700, borderRadius: '8px' }}
+              style={{
+                fontWeight: 700,
+                borderRadius: '8px',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
             >
-              <FileUp size={16} />
-              <span>Submit Your Manuscript</span>
+              <FileUp size={16} style={{ flexShrink: 0 }} />
+              <span style={{ whiteSpace: 'nowrap' }}>Submit Your Manuscript</span>
             </button>
 
             {/* Auth / Profile Area */}
@@ -383,12 +393,17 @@ export default function Navbar({
       </nav>
 
       <style jsx>{`
-        @media (min-width: 900px) {
+        @media (min-width: 1040px) {
           .desktop-menu {
             display: flex !important;
           }
           .mobile-toggle {
             display: none !important;
+          }
+        }
+        @media (min-width: 1040px) and (max-width: 1240px) {
+          .desktop-menu {
+            gap: 12px !important;
           }
         }
       `}</style>
@@ -400,9 +415,11 @@ const navLinkStyle: React.CSSProperties = {
   textDecoration: 'none',
   color: '#334155',
   fontWeight: 600,
-  fontSize: '0.92rem',
+  fontSize: '0.88rem',
   transition: 'color 0.2s',
-  padding: '6px 0'
+  padding: '6px 0',
+  whiteSpace: 'nowrap',
+  flexShrink: 0
 };
 
 const mobileNavLinkStyle: React.CSSProperties = {
