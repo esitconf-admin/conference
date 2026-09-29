@@ -8,7 +8,7 @@ import {
   Globe, Share2, Copy, CheckCheck, ExternalLink, BarChart3, Activity,
   ArrowUpRight, CheckCircle, Clock, Folder, Star, Award, Layers, FileCheck, Check, Link as LinkIcon,
   Download, CreditCard, Building2, MapPin, Hotel, Plane, DollarSign, Navigation, Image as ImageIcon,
-  Ban, Unlock, Lock, UserX
+  Ban, Unlock, Lock, UserX, Palette
 } from 'lucide-react';
 import { useAuth } from '../../lib/context/AuthContext';
 import { useConferenceData } from '../../lib/context/ConferenceDataContext';
@@ -427,11 +427,15 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     e.preventDefault();
     const cleanHero = {
       ...heroForm,
-      posterImageUrl: formatGoogleDriveImageUrl(heroForm.posterImageUrl)
+      posterImageUrl: formatGoogleDriveImageUrl(heroForm.posterImageUrl),
+      heroBgGradientStart: heroForm.heroBgGradientStart || '#092c2c',
+      heroBgGradientEnd: heroForm.heroBgGradientEnd || '#165b5c',
+      posterBgColor: heroForm.posterBgColor || '#ffffff',
+      posterContainerBgColor: heroForm.posterContainerBgColor || '#092c2c'
     };
     setHeroForm(cleanHero);
     await updateHero(cleanHero, contactForm);
-    showSuccess('Hero banner, poster image, and secretariat contact info updated successfully!');
+    showSuccess('Hero banner, background colors, poster image, and contact info updated successfully!');
   };
 
   const handleSaveSEO = async (e: React.FormEvent) => {
@@ -1691,6 +1695,415 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                     style={inputStyle}
                     placeholder="e.g. Full Paper Submission: Nov 30 (Extended)"
                   />
+                </div>
+              </div>
+
+              {/* HERO & POSTER BACKGROUND COLOR CUSTOMIZATION WITH COLOR PICKER TOOL */}
+              <div style={{
+                padding: '20px',
+                backgroundColor: '#ffffff',
+                border: '1px solid #cbd5e1',
+                borderRadius: '12px',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                display: 'grid',
+                gap: '18px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
+                      backgroundColor: '#f0fdf4',
+                      color: '#0f3d3e',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <Palette size={18} />
+                    </div>
+                    <div>
+                      <strong style={{ color: '#0f3d3e', fontSize: '1rem', display: 'block' }}>
+                        Hero Banner & Poster Background Colors
+                      </strong>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                        Use the color picker tool or curated palettes to customize the background colors
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setHeroForm({
+                      ...heroForm,
+                      heroBgGradientStart: '#092c2c',
+                      heroBgGradientEnd: '#165b5c',
+                      posterBgColor: '#ffffff',
+                      posterContainerBgColor: '#092c2c'
+                    })}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      background: '#f1f5f9',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      color: '#475569',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      padding: '4px 10px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <RefreshCw size={12} />
+                    <span>Reset to Defaults</span>
+                  </button>
+                </div>
+
+                {/* Hero Section Gradient Color Pickers */}
+                <div>
+                  <label style={{ ...labelStyle, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>Hero Section Background Gradient</span>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 400 }}>
+                      (Blends Start Color into End Color at 135°)
+                    </span>
+                  </label>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginBottom: '12px' }}>
+                    {/* Start Color Picker */}
+                    <div style={{
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      padding: '12px'
+                    }}>
+                      <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                        Gradient Start Color (Top / Left)
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <input
+                          type="color"
+                          value={heroForm.heroBgGradientStart || '#092c2c'}
+                          onChange={(e) => setHeroForm({ ...heroForm, heroBgGradientStart: e.target.value })}
+                          style={{
+                            width: '42px',
+                            height: '38px',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            padding: '2px',
+                            backgroundColor: '#ffffff'
+                          }}
+                        />
+                        <input
+                          type="text"
+                          value={heroForm.heroBgGradientStart || '#092c2c'}
+                          onChange={(e) => setHeroForm({ ...heroForm, heroBgGradientStart: e.target.value })}
+                          style={{ ...inputStyle, fontFamily: 'monospace', fontWeight: 600 }}
+                          placeholder="#092c2c"
+                        />
+                      </div>
+                    </div>
+
+                    {/* End Color Picker */}
+                    <div style={{
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      padding: '12px'
+                    }}>
+                      <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                        Gradient End Color (Bottom / Right)
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <input
+                          type="color"
+                          value={heroForm.heroBgGradientEnd || '#165b5c'}
+                          onChange={(e) => setHeroForm({ ...heroForm, heroBgGradientEnd: e.target.value })}
+                          style={{
+                            width: '42px',
+                            height: '38px',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            padding: '2px',
+                            backgroundColor: '#ffffff'
+                          }}
+                        />
+                        <input
+                          type="text"
+                          value={heroForm.heroBgGradientEnd || '#165b5c'}
+                          onChange={(e) => setHeroForm({ ...heroForm, heroBgGradientEnd: e.target.value })}
+                          style={{ ...inputStyle, fontFamily: 'monospace', fontWeight: 600 }}
+                          placeholder="#165b5c"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 1-Click Curated Theme Palettes */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b', display: 'block', marginBottom: '6px' }}>
+                      ⚡ 1-Click Curated Color Themes:
+                    </span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {[
+                        { name: 'ESIT Forest Teal', start: '#092c2c', end: '#165b5c' },
+                        { name: 'Ocean Navy', start: '#0a192f', end: '#1e3a8a' },
+                        { name: 'Royal Emerald', start: '#064e3b', end: '#047857' },
+                        { name: 'Midnight Violet', start: '#2e1065', end: '#581c87' },
+                        { name: 'Cyber Indigo', start: '#0f172a', end: '#312e81' },
+                        { name: 'Crimson Sunset', start: '#4c0519', end: '#881337' },
+                        { name: 'Pitch Onyx', start: '#09090b', end: '#27272a' }
+                      ].map((t) => {
+                        const isCurrent =
+                          (heroForm.heroBgGradientStart || '#092c2c').toLowerCase() === t.start.toLowerCase() &&
+                          (heroForm.heroBgGradientEnd || '#165b5c').toLowerCase() === t.end.toLowerCase();
+                        return (
+                          <button
+                            key={t.name}
+                            type="button"
+                            onClick={() => setHeroForm({ ...heroForm, heroBgGradientStart: t.start, heroBgGradientEnd: t.end })}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '5px 10px',
+                              borderRadius: '6px',
+                              backgroundColor: isCurrent ? '#0f3d3e' : '#f8fafc',
+                              color: isCurrent ? '#ffffff' : '#334155',
+                              border: isCurrent ? '1px solid #0f3d3e' : '1px solid #cbd5e1',
+                              fontSize: '0.74rem',
+                              fontWeight: isCurrent ? 700 : 500,
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <span style={{
+                              width: '12px',
+                              height: '12px',
+                              borderRadius: '50%',
+                              background: `linear-gradient(135deg, ${t.start}, ${t.end})`,
+                              border: '1px solid rgba(255, 255, 255, 0.5)',
+                              display: 'inline-block'
+                            }} />
+                            <span>{t.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Poster Background Colors */}
+                <div style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '14px' }}>
+                  <label style={{ ...labelStyle, marginBottom: '8px' }}>
+                    Poster Frame & Container Background Colors
+                  </label>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginBottom: '12px' }}>
+                    {/* Poster Card Frame Background */}
+                    <div style={{
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      padding: '12px'
+                    }}>
+                      <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                        Poster Outer Card / Frame Background
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                        <input
+                          type="color"
+                          value={heroForm.posterBgColor || '#ffffff'}
+                          onChange={(e) => setHeroForm({ ...heroForm, posterBgColor: e.target.value })}
+                          style={{
+                            width: '42px',
+                            height: '38px',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            padding: '2px',
+                            backgroundColor: '#ffffff'
+                          }}
+                        />
+                        <input
+                          type="text"
+                          value={heroForm.posterBgColor || '#ffffff'}
+                          onChange={(e) => setHeroForm({ ...heroForm, posterBgColor: e.target.value })}
+                          style={{ ...inputStyle, fontFamily: 'monospace', fontWeight: 600 }}
+                          placeholder="#ffffff"
+                        />
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                        {[
+                          { name: 'White', color: '#ffffff' },
+                          { name: 'Pearl', color: '#f8fafc' },
+                          { name: 'Slate', color: '#1e293b' },
+                          { name: 'Teal', color: '#092c2c' },
+                          { name: 'Amber', color: '#f59e0b' },
+                          { name: 'Black', color: '#000000' }
+                        ].map((swatch) => (
+                          <button
+                            key={swatch.name}
+                            type="button"
+                            onClick={() => setHeroForm({ ...heroForm, posterBgColor: swatch.color })}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              fontSize: '0.68rem',
+                              border: (heroForm.posterBgColor || '#ffffff').toLowerCase() === swatch.color.toLowerCase() ? '1px solid #0f3d3e' : '1px solid #cbd5e1',
+                              backgroundColor: (heroForm.posterBgColor || '#ffffff').toLowerCase() === swatch.color.toLowerCase() ? '#e0f2fe' : '#ffffff',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: swatch.color, border: '1px solid #94a3b8' }} />
+                            <span>{swatch.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Poster Inner Container Background */}
+                    <div style={{
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      padding: '12px'
+                    }}>
+                      <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                        Poster Inner Image Background
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                        <input
+                          type="color"
+                          value={heroForm.posterContainerBgColor || '#092c2c'}
+                          onChange={(e) => setHeroForm({ ...heroForm, posterContainerBgColor: e.target.value })}
+                          style={{
+                            width: '42px',
+                            height: '38px',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            padding: '2px',
+                            backgroundColor: '#ffffff'
+                          }}
+                        />
+                        <input
+                          type="text"
+                          value={heroForm.posterContainerBgColor || '#092c2c'}
+                          onChange={(e) => setHeroForm({ ...heroForm, posterContainerBgColor: e.target.value })}
+                          style={{ ...inputStyle, fontFamily: 'monospace', fontWeight: 600 }}
+                          placeholder="#092c2c"
+                        />
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                        {[
+                          { name: 'Teal', color: '#092c2c' },
+                          { name: 'Black', color: '#000000' },
+                          { name: 'Navy', color: '#0f172a' },
+                          { name: 'Slate', color: '#1e293b' }
+                        ].map((swatch) => (
+                          <button
+                            key={swatch.name}
+                            type="button"
+                            onClick={() => setHeroForm({ ...heroForm, posterContainerBgColor: swatch.color })}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              fontSize: '0.68rem',
+                              border: (heroForm.posterContainerBgColor || '#092c2c').toLowerCase() === swatch.color.toLowerCase() ? '1px solid #0f3d3e' : '1px solid #cbd5e1',
+                              backgroundColor: (heroForm.posterContainerBgColor || '#092c2c').toLowerCase() === swatch.color.toLowerCase() ? '#e0f2fe' : '#ffffff',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: swatch.color, border: '1px solid #94a3b8' }} />
+                            <span>{swatch.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Real-time Miniature Hero & Poster Live Preview */}
+                <div style={{
+                  background: `linear-gradient(135deg, ${heroForm.heroBgGradientStart || '#092c2c'} 0%, ${heroForm.heroBgGradientEnd || '#165b5c'} 100%)`,
+                  borderRadius: '10px',
+                  padding: '16px 20px',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '16px',
+                  boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.2)'
+                }}>
+                  <div style={{ maxWidth: '420px' }}>
+                    <div style={{
+                      display: 'inline-block',
+                      padding: '2px 8px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                      borderRadius: '9999px',
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      color: '#fef3c7',
+                      marginBottom: '6px'
+                    }}>
+                      ✨ {heroForm.badgeText || 'ESIT 2027 · Danang, Vietnam'}
+                    </div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 800, lineHeight: 1.3, color: '#ffffff' }}>
+                      {heroForm.title || 'Conference Title'}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#cbd5e1', marginTop: '4px' }}>
+                      Live Background Color Preview
+                    </div>
+                  </div>
+
+                  {/* Mini Poster Card */}
+                  <div style={{
+                    backgroundColor: heroForm.posterBgColor || '#ffffff',
+                    borderRadius: '8px',
+                    padding: '4px',
+                    boxShadow: '0 8px 16px rgba(0, 0, 0, 0.35)',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center'
+                  }}>
+                    <div style={{
+                      width: '60px',
+                      height: '75px',
+                      backgroundColor: heroForm.posterContainerBgColor || '#092c2c',
+                      borderRadius: '6px',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      {heroForm.posterImageUrl ? (
+                        <Image
+                          src={formatGoogleDriveImageUrl(heroForm.posterImageUrl) || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80'}
+                          alt="Poster Preview"
+                          fill
+                          style={{ objectFit: 'cover' }}
+                          unoptimized
+                        />
+                      ) : (
+                        <span style={{ fontSize: '0.6rem', color: '#94a3b8' }}>Poster</span>
+                      )}
+                    </div>
+                    <span style={{ fontSize: '0.58rem', fontWeight: 700, color: (heroForm.posterBgColor || '#ffffff').toLowerCase() === '#ffffff' || (heroForm.posterBgColor || '#ffffff').toLowerCase() === '#f8fafc' ? '#0f3d3e' : '#ffffff', marginTop: '2px' }}>
+                      Poster Card
+                    </span>
+                  </div>
                 </div>
               </div>
 

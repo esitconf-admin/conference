@@ -96,6 +96,10 @@ export interface ConferenceHeroData {
   posterImageUrl: string;
   submissionDeadlineBadge: string;
   cfpDownloadUrl?: string;
+  heroBgGradientStart?: string;
+  heroBgGradientEnd?: string;
+  posterBgColor?: string;
+  posterContainerBgColor?: string;
 }
 
 export interface ConferenceSEOMetadata {

@@ -17,9 +17,16 @@ export default function HeroSection({ onOpenSubmission }: HeroSectionProps) {
 
   const formattedPosterUrl = formatGoogleDriveImageUrl(hero.posterImageUrl) || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80';
 
+  const heroBackgroundStyle = (hero.heroBgGradientStart && hero.heroBgGradientEnd)
+    ? `linear-gradient(135deg, ${hero.heroBgGradientStart} 0%, ${hero.heroBgGradientEnd} 100%)`
+    : (hero.heroBgGradientStart || 'var(--hero-gradient)');
+
+  const posterCardBg = hero.posterBgColor || '#ffffff';
+  const posterInnerBg = hero.posterContainerBgColor || '#092c2c';
+
   return (
     <section id="hero" style={{
-      background: 'var(--hero-gradient)',
+      background: heroBackgroundStyle,
       color: '#ffffff',
       padding: '70px 0 80px 0',
       position: 'relative',
@@ -177,7 +184,7 @@ export default function HeroSection({ onOpenSubmission }: HeroSectionProps) {
           <div style={{ position: 'relative' }}>
             <div style={{
               position: 'relative',
-              backgroundColor: '#ffffff',
+              backgroundColor: posterCardBg,
               borderRadius: '16px',
               padding: '10px',
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
@@ -196,7 +203,7 @@ export default function HeroSection({ onOpenSubmission }: HeroSectionProps) {
                 width: '100%',
                 borderRadius: '12px',
                 overflow: 'hidden',
-                backgroundColor: '#092c2c'
+                backgroundColor: posterInnerBg
               }}>
                 {/* Responsive Image fitting 100% width */}
                 <img

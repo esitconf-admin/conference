@@ -21,7 +21,11 @@ export const initialConferenceData: ConferenceContent = {
     badgeText: 'ESIT 2027 · Danang, Vietnam',
     posterImageUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80',
     submissionDeadlineBadge: 'Full Paper Submission Deadline: November 30 (Extended)',
-    cfpDownloadUrl: '#'
+    cfpDownloadUrl: '#',
+    heroBgGradientStart: '#092c2c',
+    heroBgGradientEnd: '#165b5c',
+    posterBgColor: '#ffffff',
+    posterContainerBgColor: '#092c2c'
   },
   venue: {
     venueName: 'Furama Resort Danang',
