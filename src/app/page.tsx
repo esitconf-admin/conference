@@ -11,6 +11,7 @@ import TracksTopicsSection from '../components/landing/TracksTopicsSection';
 import RegistrationPricingSection from '../components/landing/RegistrationPricingSection';
 import CommitteeSection from '../components/landing/CommitteeSection';
 import VenueSection from '../components/landing/VenueSection';
+import SponsorsSection from '../components/landing/SponsorsSection';
 import Footer from '../components/layout/Footer';
 import FloatingScrollTop from '../components/common/FloatingScrollTop';
 import AuthModal from '../components/modals/AuthModal';
@@ -99,6 +100,7 @@ export default function HomePage() {
         <RegistrationPricingSection />
         <CommitteeSection />
         <VenueSection />
+        <SponsorsSection />
       </main>
 
       {/* 3. Footer */}

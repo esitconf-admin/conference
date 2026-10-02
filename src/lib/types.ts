@@ -130,6 +130,15 @@ export interface VenueInfo {
   mapUrl?: string;
 }
 
+export interface SponsorItem {
+  id: string;
+  name: string;
+  logoUrl: string;
+  websiteUrl?: string;
+  tier?: string; // e.g., 'Organized by' | 'Co-Organized by' | 'Technical Co-Sponsor' | 'Diamond' | 'Platinum' | 'Gold' | 'Silver' | 'Supporting Partner' | 'Academic Partner' | 'General'
+  description?: string;
+}
+
 export interface ConferenceContent {
   id: string;
   updatedAt: string;
@@ -149,6 +158,7 @@ export interface ConferenceContent {
   }[];
   authorGuidelines?: (string | GuidelineItem)[];
   reviewerGuidelines?: (string | GuidelineItem)[];
+  sponsors?: SponsorItem[];
   contactInfo: {
     chairperson: string;
     chairpersonEmail: string;

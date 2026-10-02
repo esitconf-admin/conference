@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { ConferenceContent, ImportantDateItem, NewsItem, CommitteeGroup, KeynoteSpeaker, GuidelineItem } from '../types';
+import { ConferenceContent, ImportantDateItem, NewsItem, CommitteeGroup, KeynoteSpeaker, GuidelineItem, SponsorItem } from '../types';
 import { initialConferenceData } from '../data/initialConferenceData';
 import { db, isFirebaseConfigured } from '../firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -21,6 +21,7 @@ interface ConferenceDataContextType {
   updateTracks: (tracks: ConferenceContent['tracks']) => Promise<boolean>;
   updateGuidelines: (guidelines: { authorGuidelines?: (string | GuidelineItem)[]; reviewerGuidelines?: (string | GuidelineItem)[] }) => Promise<boolean>;
   updateTracksAndGuidelines: (tracks: ConferenceContent['tracks'], guidelines: { authorGuidelines?: (string | GuidelineItem)[]; reviewerGuidelines?: (string | GuidelineItem)[] }) => Promise<boolean>;
+  updateSponsors: (sponsors: SponsorItem[]) => Promise<boolean>;
   updateContactInfo: (contactInfo: Partial<ConferenceContent['contactInfo']>) => Promise<boolean>;
   resetToDefault: () => Promise<boolean>;
 }
@@ -228,6 +229,10 @@ export function ConferenceDataProvider({ children }: { children: React.ReactNode
     }));
   };
 
+  const updateSponsors = async (sponsors: SponsorItem[]): Promise<boolean> => {
+    return saveContent(prev => ({ ...prev, sponsors }));
+  };
+
   const updateContactInfo = async (contactUpdates: Partial<ConferenceContent['contactInfo']>): Promise<boolean> => {
     return saveContent(prev => ({
       ...prev,
@@ -258,6 +263,7 @@ export function ConferenceDataProvider({ children }: { children: React.ReactNode
       updateTracks,
       updateGuidelines,
       updateTracksAndGuidelines,
+      updateSponsors,
       updateContactInfo,
       resetToDefault
     }}>

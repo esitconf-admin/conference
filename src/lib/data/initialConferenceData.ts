@@ -335,6 +335,48 @@ Prof. Dr. David T.W. Lin (National University of Tainan, Taiwan) – Low Grade W
       text: 'Reviewers receive an official Certificate of Reviewing Service endorsed by the KMUTNB College of Industrial Technology.'
     }
   ],
+  sponsors: [
+    {
+      id: 'sp1',
+      name: "King Mongkut's University of Technology North Bangkok (KMUTNB)",
+      logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/KMUTNB_Logo.svg/512px-KMUTNB_Logo.svg.png',
+      websiteUrl: 'https://www.kmutnb.ac.th',
+      tier: 'Organized by',
+      description: 'Host Academic Institution & Organizer'
+    },
+    {
+      id: 'sp2',
+      name: 'College of Industrial Technology (CIT)',
+      logoUrl: 'https://cit.kmutnb.ac.th/web/wp-content/uploads/2021/08/CIT-Logo-Header.png',
+      websiteUrl: 'https://cit.kmutnb.ac.th',
+      tier: 'Organized by',
+      description: 'Faculty of Industrial Technology & Research'
+    },
+    {
+      id: 'sp3',
+      name: 'IEEE Thailand Section',
+      logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/IEEE_logo.svg/512px-IEEE_logo.svg.png',
+      websiteUrl: 'https://www.ieee.org',
+      tier: 'Technical Co-Sponsor',
+      description: 'Technical Co-Sponsorship & Digital Library Publishing'
+    },
+    {
+      id: 'sp4',
+      name: 'Scopus / Elsevier',
+      logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Scopus_logo.svg/512px-Scopus_logo.svg.png',
+      websiteUrl: 'https://www.scopus.com',
+      tier: 'Technical Co-Sponsor',
+      description: 'Citation & Abstract Database Indexing'
+    },
+    {
+      id: 'sp5',
+      name: 'ECTI Association Thailand',
+      logoUrl: 'https://ecti.or.th/wp-content/uploads/2020/03/logo-ecti-01.png',
+      websiteUrl: 'https://ecti.or.th',
+      tier: 'Academic Partner',
+      description: 'Electrical Engineering/Electronics, Computer, Telecommunications and Information Technology'
+    }
+  ],
   contactInfo: {
     chairperson: 'Assoc. Prof. Dr. Rattanakorn Phadungthin',
     chairpersonEmail: 'esitconf@gmail.com',

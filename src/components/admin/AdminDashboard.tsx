@@ -8,14 +8,14 @@ import {
   Globe, Share2, Copy, CheckCheck, ExternalLink, BarChart3, Activity,
   ArrowUpRight, CheckCircle, Clock, Folder, Star, Award, Layers, FileCheck, Check, Link as LinkIcon,
   Download, CreditCard, Building2, MapPin, Hotel, Plane, DollarSign, Navigation, Image as ImageIcon,
-  Ban, Unlock, Lock, UserX, Palette
+  Ban, Unlock, Lock, UserX, Palette, ChevronUp, ChevronDown
 } from 'lucide-react';
 import { useAuth } from '../../lib/context/AuthContext';
 import { useConferenceData } from '../../lib/context/ConferenceDataContext';
 import {
   ImportantDateItem, NewsItem, KeynoteSpeaker, UserProfile,
   EmailTemplateConfig, ConferenceSEOMetadata, ManuscriptSubmission, ReviewEvaluation, GuidelineItem,
-  PricingTier, BankPaymentInfo, CommitteeGroup, VenueInfo
+  PricingTier, BankPaymentInfo, CommitteeGroup, VenueInfo, SponsorItem
 } from '../../lib/types';
 import { sendConferenceEmail } from '../../lib/email/emailService';
 import { getAllSubmissions, updateSubmissionStatus } from '../../lib/submission/submissionService';
@@ -51,10 +51,11 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     updateTracks,
     updateGuidelines,
     updateTracksAndGuidelines,
+    updateSponsors,
     updateContactInfo
   } = useConferenceData();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'hero' | 'dates' | 'news' | 'keynotes' | 'tracks' | 'pricing' | 'bank' | 'committees' | 'venue' | 'submissions' | 'users' | 'templates' | 'seo' | 'email'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'hero' | 'dates' | 'news' | 'keynotes' | 'tracks' | 'pricing' | 'bank' | 'committees' | 'venue' | 'sponsors' | 'submissions' | 'users' | 'templates' | 'seo' | 'email'>('overview');
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Submissions State (Firestore & Google Drive)
@@ -93,6 +94,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     accommodationInfo: 'Conference delegates enjoy exclusive negotiated corporate room discounts at partner hotels.',
     mapUrl: `https://maps.google.com/?q=${encodeURIComponent(content.hero.venueName)}`
   });
+  const [sponsorsList, setSponsorsList] = useState<SponsorItem[]>(content.sponsors || []);
 
   const normalizeGuidelineItems = (list?: (string | GuidelineItem)[]): GuidelineItem[] => {
     if (!list || list.length === 0) return [];
@@ -310,6 +312,9 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     }
     if (content.reviewerGuidelines) {
       setReviewerGuidelinesList(normalizeGuidelineItems(content.reviewerGuidelines));
+    }
+    if (content.sponsors) {
+      setSponsorsList(content.sponsors);
     }
   }, [content]);
 
@@ -672,6 +677,44 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     setVenueForm(cleanVenue);
     await updateVenue(cleanVenue);
     showSuccess('Conference venue, travel, accommodation, and map details updated successfully!');
+  };
+
+  // Sponsor Handlers
+  const handleSaveSponsors = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const cleanSponsors = sponsorsList.map(s => ({
+      ...s,
+      logoUrl: formatGoogleDriveImageUrl(s.logoUrl)
+    }));
+    setSponsorsList(cleanSponsors);
+    await updateSponsors(cleanSponsors);
+    showSuccess('Sponsors, organizers, and partner logos updated successfully!');
+  };
+
+  const handleAddSponsor = () => {
+    const newSponsor: SponsorItem = {
+      id: 'sp_' + Date.now(),
+      name: 'New Sponsor / Academic Partner',
+      logoUrl: '',
+      websiteUrl: '',
+      tier: 'Supporting Partner',
+      description: ''
+    };
+    setSponsorsList([...sponsorsList, newSponsor]);
+  };
+
+  const handleDeleteSponsor = (id: string) => {
+    setSponsorsList(sponsorsList.filter(s => s.id !== id));
+  };
+
+  const handleMoveSponsor = (idx: number, dir: -1 | 1) => {
+    const targetIdx = idx + dir;
+    if (targetIdx < 0 || targetIdx >= sponsorsList.length) return;
+    const updated = [...sponsorsList];
+    const temp = updated[idx];
+    updated[idx] = updated[targetIdx];
+    updated[targetIdx] = temp;
+    setSponsorsList(updated);
   };
 
   // Reviewer role toggler
@@ -1064,6 +1107,15 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
           >
             <MapPin size={15} />
             <span>Venue & Travel</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('sponsors')}
+            style={getButtonTabStyle(activeTab === 'sponsors')}
+          >
+            <Award size={15} />
+            <span>Sponsors & Partners</span>
+            <span style={getTabBadgeStyle(activeTab === 'sponsors')}>{sponsorsList.length}</span>
           </button>
 
           <button
@@ -1501,6 +1553,27 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                       >
                         <Globe size={16} color="#f59e0b" />
                         <span>SEO & Social Preview</span>
+                      </button>
+
+                      <button
+                        onClick={() => setActiveTab('sponsors')}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '12px',
+                          backgroundColor: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          color: '#0f3d3e',
+                          fontWeight: 600,
+                          fontSize: '0.84rem',
+                          cursor: 'pointer',
+                          textAlign: 'left'
+                        }}
+                      >
+                        <Award size={16} color="#0f3d3e" />
+                        <span>Sponsors & Partners</span>
                       </button>
 
                       <a
@@ -4404,6 +4477,405 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                 >
                   <Save size={18} />
                   <span>Save Venue Details</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: SPONSORS & STRATEGIC PARTNERS */}
+          {activeTab === 'sponsors' && (
+            <div style={{ display: 'grid', gap: '20px' }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '12px',
+                paddingBottom: '16px',
+                borderBottom: '1px solid #e2e8f0'
+              }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#0f3d3e', fontWeight: 800 }}>
+                    Sponsors, Organizers & Strategic Partners
+                  </h3>
+                  <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.85rem' }}>
+                    Showcase academic institutions, technical societies, and corporate sponsors on the landing page. Google Drive shared logo links are automatically converted.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={handleAddSponsor}
+                    className="btn btn-secondary btn-sm"
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <Plus size={16} /> Add New Sponsor Logo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveSponsors}
+                    className="btn btn-primary btn-sm"
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <Save size={16} /> Save Sponsors
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick Info Box */}
+              <div style={{
+                backgroundColor: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                borderRadius: '10px',
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                color: '#166534',
+                fontSize: '0.84rem'
+              }}>
+                <Award size={18} color="#16a34a" style={{ flexShrink: 0 }} />
+                <div>
+                  <strong>Google Drive Logo Support:</strong> Paste any Google Drive shared link. Make sure the file sharing setting is set to <em>&quot;Anyone with the link can view&quot;</em>.
+                </div>
+              </div>
+
+              {/* Sponsors List */}
+              <div style={{ display: 'grid', gap: '16px' }}>
+                {sponsorsList.length === 0 ? (
+                  <div style={{
+                    padding: '40px 20px',
+                    textAlign: 'center',
+                    backgroundColor: '#f8fafc',
+                    border: '2px dashed #cbd5e1',
+                    borderRadius: '12px',
+                    color: '#64748b'
+                  }}>
+                    <Award size={36} color="#94a3b8" style={{ marginBottom: '8px' }} />
+                    <p style={{ fontWeight: 600, margin: '0 0 8px 0' }}>No sponsors or partner logos configured yet.</p>
+                    <button
+                      type="button"
+                      onClick={handleAddSponsor}
+                      className="btn btn-secondary btn-sm"
+                    >
+                      <Plus size={14} /> Add First Sponsor Logo
+                    </button>
+                  </div>
+                ) : (
+                  sponsorsList.map((sponsor, idx) => {
+                    const formattedLogo = formatGoogleDriveImageUrl(sponsor.logoUrl);
+                    return (
+                      <div
+                        key={sponsor.id || idx}
+                        style={{
+                          backgroundColor: '#ffffff',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '12px',
+                          padding: '18px',
+                          display: 'grid',
+                          gap: '14px',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                          position: 'relative'
+                        }}
+                      >
+                        {/* Header with index, tier, and controls */}
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: '8px',
+                          borderBottom: '1px solid #f1f5f9',
+                          paddingBottom: '10px'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{
+                              width: '24px',
+                              height: '24px',
+                              borderRadius: '50%',
+                              backgroundColor: '#0f3d3e',
+                              color: '#ffffff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '0.75rem',
+                              fontWeight: 700
+                            }}>
+                              {idx + 1}
+                            </span>
+                            <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>
+                              {sponsor.name || `Sponsor #${idx + 1}`}
+                            </span>
+                            {sponsor.tier && (
+                              <span style={{
+                                backgroundColor: '#f1f5f9',
+                                color: '#475569',
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                fontSize: '0.72rem',
+                                fontWeight: 600
+                              }}>
+                                {sponsor.tier}
+                              </span>
+                            )}
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleMoveSponsor(idx, -1)}
+                              disabled={idx === 0}
+                              style={{
+                                background: 'none',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '6px',
+                                padding: '4px 8px',
+                                cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                                opacity: idx === 0 ? 0.4 : 1
+                              }}
+                              title="Move Up"
+                            >
+                              <ChevronUp size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleMoveSponsor(idx, 1)}
+                              disabled={idx === sponsorsList.length - 1}
+                              style={{
+                                background: 'none',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '6px',
+                                padding: '4px 8px',
+                                cursor: idx === sponsorsList.length - 1 ? 'not-allowed' : 'pointer',
+                                opacity: idx === sponsorsList.length - 1 ? 0.4 : 1
+                              }}
+                              title="Move Down"
+                            >
+                              <ChevronDown size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteSponsor(sponsor.id)}
+                              style={{
+                                background: 'none',
+                                border: '1px solid #fecaca',
+                                borderRadius: '6px',
+                                color: '#ef4444',
+                                padding: '4px 8px',
+                                cursor: 'pointer',
+                                backgroundColor: '#fef2f2'
+                              }}
+                              title="Delete Sponsor"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Sponsor Fields Grid */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
+                          <div>
+                            <label style={labelStyle}>Sponsor / Organization Name *</label>
+                            <input
+                              type="text"
+                              required
+                              value={sponsor.name}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setSponsorsList(prev => prev.map((s, i) => i === idx ? { ...s, name: val } : s));
+                              }}
+                              placeholder="e.g. King Mongkut's University of Technology North Bangkok"
+                              style={inputStyle}
+                            />
+                          </div>
+
+                          <div>
+                            <label style={labelStyle}>Sponsorship Tier / Category</label>
+                            <input
+                              type="text"
+                              value={sponsor.tier || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setSponsorsList(prev => prev.map((s, i) => i === idx ? { ...s, tier: val } : s));
+                              }}
+                              list="sponsor-tier-suggestions"
+                              placeholder="e.g. Organized by, Technical Co-Sponsor, Academic Partner, Gold Sponsor..."
+                              style={inputStyle}
+                            />
+                            <datalist id="sponsor-tier-suggestions">
+                              <option value="Organized by" />
+                              <option value="Co-Organized by" />
+                              <option value="Technical Co-Sponsor" />
+                              <option value="Diamond Sponsor" />
+                              <option value="Platinum Sponsor" />
+                              <option value="Gold Sponsor" />
+                              <option value="Silver Sponsor" />
+                              <option value="Bronze Sponsor" />
+                              <option value="Academic Partner" />
+                              <option value="Supporting Partner" />
+                              <option value="Media Partner" />
+                              <option value="General Sponsor" />
+                            </datalist>
+                          </div>
+                        </div>
+
+                        {/* Logo Image URL & Google Drive Section */}
+                        <div style={{
+                          padding: '14px',
+                          backgroundColor: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '10px',
+                          display: 'grid',
+                          gap: '10px'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                            <label style={{ ...labelStyle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <ImageIcon size={15} color="#0f3d3e" />
+                              <span>Sponsor Logo URL * (Google Drive Supported)</span>
+                            </label>
+                            {isGoogleDriveUrl(sponsor.logoUrl) && (
+                              <span style={{
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                backgroundColor: '#ecfdf5',
+                                color: '#047857',
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                border: '1px solid #a7f3d0'
+                              }}>
+                                ✨ Google Drive Link Detected & Auto-Converted
+                              </span>
+                            )}
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '14px', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <div style={{ flex: 1, minWidth: '260px' }}>
+                              <input
+                                type="text"
+                                required
+                                value={sponsor.logoUrl || ''}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setSponsorsList(prev => prev.map((s, i) => i === idx ? { ...s, logoUrl: val } : s));
+                                }}
+                                style={inputStyle}
+                                placeholder="Paste logo image URL or Google Drive sharing link (e.g. https://drive.google.com/file/d/.../view)"
+                              />
+                              <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
+                                💡 Supports Google Drive sharing links, PNG, SVG, JPG, and webp logo files.
+                              </span>
+                            </div>
+
+                            {/* Live Logo Thumbnail Preview */}
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              padding: '8px 12px',
+                              backgroundColor: '#ffffff',
+                              borderRadius: '8px',
+                              border: '1px solid #cbd5e1'
+                            }}>
+                              <div style={{
+                                position: 'relative',
+                                width: '60px',
+                                height: '40px',
+                                borderRadius: '4px',
+                                overflow: 'hidden',
+                                backgroundColor: '#ffffff',
+                                border: '1px solid #e2e8f0',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: '2px',
+                                flexShrink: 0
+                              }}>
+                                {formattedLogo ? (
+                                  <img
+                                    src={formattedLogo}
+                                    alt={sponsor.name || 'Sponsor Logo'}
+                                    style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                                    onError={(e) => {
+                                      (e.target as HTMLElement).style.display = 'none';
+                                    }}
+                                  />
+                                ) : (
+                                  <Building2 size={20} color="#94a3b8" />
+                                )}
+                              </div>
+                              <div style={{ fontSize: '0.75rem' }}>
+                                <div style={{ fontWeight: 700, color: '#0f3d3e' }}>Live Logo Preview</div>
+                                <div style={{ color: '#64748b', fontSize: '0.7rem' }}>
+                                  {sponsor.logoUrl ? (isGoogleDriveUrl(sponsor.logoUrl) ? 'Google Drive Active' : 'Direct Link Active') : 'No Logo Provided'}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Website URL & Description */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
+                          <div>
+                            <label style={labelStyle}>Official Website URL (Optional)</label>
+                            <input
+                              type="text"
+                              value={sponsor.websiteUrl || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setSponsorsList(prev => prev.map((s, i) => i === idx ? { ...s, websiteUrl: val } : s));
+                              }}
+                              placeholder="e.g. https://www.kmutnb.ac.th"
+                              style={inputStyle}
+                            />
+                          </div>
+
+                          <div>
+                            <label style={labelStyle}>Short Description / Subtitle (Optional)</label>
+                            <input
+                              type="text"
+                              value={sponsor.description || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setSponsorsList(prev => prev.map((s, i) => i === idx ? { ...s, description: val } : s));
+                              }}
+                              placeholder="e.g. Host Academic Institution & Organizer"
+                              style={inputStyle}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Sticky bottom save bar */}
+              <div style={{
+                position: 'sticky',
+                bottom: 0,
+                backgroundColor: '#ffffff',
+                border: '1px solid #cbd5e1',
+                padding: '16px 24px',
+                borderRadius: '12px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '12px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '0.85rem' }}>
+                  <CheckCircle size={16} color="#059669" />
+                  <span>Changes will be instantly published to both Firestore and local storage.</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSaveSponsors}
+                  className="btn btn-primary"
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px' }}
+                >
+                  <Save size={18} />
+                  <span>Save Sponsors & Partners</span>
                 </button>
               </div>
             </div>

@@ -101,6 +101,7 @@ export default function Footer({ onOpenPDPA, onOpenAdmin, onOpenAuth }: FooterPr
               <li><a href="#registration" style={footerLinkStyle}>Registration & Payment</a></li>
               <li><a href="#committee" style={footerLinkStyle}>Conference Committee</a></li>
               <li><a href="#venue" style={footerLinkStyle}>Venue: {hero.venueName}</a></li>
+              <li><a href="#sponsors" style={footerLinkStyle}>Sponsors & Partners</a></li>
             </ul>
           </div>
 
