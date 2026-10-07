@@ -139,6 +139,20 @@ export interface SponsorItem {
   description?: string;
 }
 
+export interface PreviousConferenceItem {
+  id: string;
+  title: string;
+  edition?: string;
+  theme?: string;
+  location?: string;
+  dateRange?: string;
+  coverImageUrl?: string;
+  programScheduleUrl?: string; // Google Drive shared link / PDF
+  proceedingUrl?: string;      // Google Drive shared link / Proceedings
+  imageFolderUrl?: string;     // Google Drive shared folder link (photos/gallery)
+  description?: string;
+}
+
 export interface ConferenceContent {
   id: string;
   updatedAt: string;
@@ -159,6 +173,7 @@ export interface ConferenceContent {
   authorGuidelines?: (string | GuidelineItem)[];
   reviewerGuidelines?: (string | GuidelineItem)[];
   sponsors?: SponsorItem[];
+  previousConferences?: PreviousConferenceItem[];
   contactInfo: {
     chairperson: string;
     chairpersonEmail: string;

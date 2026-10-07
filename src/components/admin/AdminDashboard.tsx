@@ -8,14 +8,14 @@ import {
   Globe, Share2, Copy, CheckCheck, ExternalLink, BarChart3, Activity,
   ArrowUpRight, CheckCircle, Clock, Folder, Star, Award, Layers, FileCheck, Check, Link as LinkIcon,
   Download, CreditCard, Building2, MapPin, Hotel, Plane, DollarSign, Navigation, Image as ImageIcon,
-  Ban, Unlock, Lock, UserX, Palette, ChevronUp, ChevronDown
+  Ban, Unlock, Lock, UserX, Palette, ChevronUp, ChevronDown, History, BookOpen
 } from 'lucide-react';
 import { useAuth } from '../../lib/context/AuthContext';
 import { useConferenceData } from '../../lib/context/ConferenceDataContext';
 import {
   ImportantDateItem, NewsItem, KeynoteSpeaker, UserProfile,
   EmailTemplateConfig, ConferenceSEOMetadata, ManuscriptSubmission, ReviewEvaluation, GuidelineItem,
-  PricingTier, BankPaymentInfo, CommitteeGroup, VenueInfo, SponsorItem
+  PricingTier, BankPaymentInfo, CommitteeGroup, VenueInfo, SponsorItem, PreviousConferenceItem
 } from '../../lib/types';
 import { sendConferenceEmail } from '../../lib/email/emailService';
 import { getAllSubmissions, updateSubmissionStatus } from '../../lib/submission/submissionService';
@@ -52,10 +52,11 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     updateGuidelines,
     updateTracksAndGuidelines,
     updateSponsors,
+    updatePreviousConferences,
     updateContactInfo
   } = useConferenceData();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'hero' | 'dates' | 'news' | 'keynotes' | 'tracks' | 'pricing' | 'bank' | 'committees' | 'venue' | 'sponsors' | 'submissions' | 'users' | 'templates' | 'seo' | 'email'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'hero' | 'dates' | 'news' | 'keynotes' | 'tracks' | 'pricing' | 'bank' | 'committees' | 'venue' | 'sponsors' | 'previousConferences' | 'submissions' | 'users' | 'templates' | 'seo' | 'email'>('overview');
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Submissions State (Firestore & Google Drive)
@@ -95,6 +96,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     mapUrl: `https://maps.google.com/?q=${encodeURIComponent(content.hero.venueName)}`
   });
   const [sponsorsList, setSponsorsList] = useState<SponsorItem[]>(content.sponsors || []);
+  const [previousConferencesList, setPreviousConferencesList] = useState<PreviousConferenceItem[]>(content.previousConferences || []);
 
   const normalizeGuidelineItems = (list?: (string | GuidelineItem)[]): GuidelineItem[] => {
     if (!list || list.length === 0) return [];
@@ -315,6 +317,9 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     }
     if (content.sponsors) {
       setSponsorsList(content.sponsors);
+    }
+    if (content.previousConferences) {
+      setPreviousConferencesList(content.previousConferences);
     }
   }, [content]);
 
@@ -717,6 +722,52 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     setSponsorsList(updated);
   };
 
+  // Previous Conferences Handlers
+  const handleSavePreviousConferences = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const cleanList = previousConferencesList.map(c => ({
+      ...c,
+      coverImageUrl: formatGoogleDriveImageUrl(c.coverImageUrl),
+      programScheduleUrl: c.programScheduleUrl?.trim() || '',
+      proceedingUrl: c.proceedingUrl?.trim() || '',
+      imageFolderUrl: c.imageFolderUrl?.trim() || ''
+    }));
+    setPreviousConferencesList(cleanList);
+    await updatePreviousConferences(cleanList);
+    showSuccess('Previous conferences and proceedings archive updated successfully!');
+  };
+
+  const handleAddPreviousConference = () => {
+    const newItem: PreviousConferenceItem = {
+      id: 'prev_' + Date.now(),
+      title: 'International Conference on Engineering Science and Innovative Technology',
+      edition: 'ESIT ' + (new Date().getFullYear() - 2),
+      theme: 'Emerging Technologies & Engineering Innovation',
+      location: 'Bangkok, Thailand',
+      dateRange: 'February 15-17, ' + (new Date().getFullYear() - 2),
+      coverImageUrl: '',
+      programScheduleUrl: '',
+      proceedingUrl: '',
+      imageFolderUrl: '',
+      description: ''
+    };
+    setPreviousConferencesList([...previousConferencesList, newItem]);
+  };
+
+  const handleDeletePreviousConference = (id: string) => {
+    setPreviousConferencesList(previousConferencesList.filter(c => c.id !== id));
+  };
+
+  const handleMovePreviousConference = (idx: number, dir: -1 | 1) => {
+    const targetIdx = idx + dir;
+    if (targetIdx < 0 || targetIdx >= previousConferencesList.length) return;
+    const updated = [...previousConferencesList];
+    const temp = updated[idx];
+    updated[idx] = updated[targetIdx];
+    updated[targetIdx] = temp;
+    setPreviousConferencesList(updated);
+  };
+
   // Reviewer role toggler
   const handleRoleToggle = async (uid: string, currentRoles: string[]) => {
     const isNowReviewer = !currentRoles.includes('reviewer');
@@ -1116,6 +1167,15 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
             <Award size={15} />
             <span>Sponsors & Partners</span>
             <span style={getTabBadgeStyle(activeTab === 'sponsors')}>{sponsorsList.length}</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('previousConferences')}
+            style={getButtonTabStyle(activeTab === 'previousConferences')}
+          >
+            <History size={15} />
+            <span>Past Conferences</span>
+            <span style={getTabBadgeStyle(activeTab === 'previousConferences')}>{previousConferencesList.length}</span>
           </button>
 
           <button
@@ -4877,6 +4937,516 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                   <Save size={18} />
                   <span>Save Sponsors & Partners</span>
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: PREVIOUS CONFERENCES ARCHIVE */}
+          {activeTab === 'previousConferences' && (
+            <div style={{ display: 'grid', gap: '20px', maxWidth: '1000px' }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '12px',
+                paddingBottom: '16px',
+                borderBottom: '1px solid #e2e8f0'
+              }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#0f3d3e', fontWeight: 800 }}>
+                    Past Conferences & Proceedings Archive
+                  </h3>
+                  <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.85rem' }}>
+                    Manage historical conference editions, themes, dates, cover photos, and Google Drive links for program schedules, proceedings, and photo galleries.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={handleAddPreviousConference}
+                    className="btn btn-secondary btn-sm"
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <Plus size={16} /> Add Past Conference
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSavePreviousConferences}
+                    className="btn btn-primary btn-sm"
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <Save size={16} /> Save Changes
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick Info Box */}
+              <div style={{
+                backgroundColor: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                borderRadius: '10px',
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                color: '#166534',
+                fontSize: '0.84rem'
+              }}>
+                <History size={18} color="#16a34a" style={{ flexShrink: 0 }} />
+                <div>
+                  <strong>Google Drive Shared Link Support:</strong> You can paste any Google Drive link for cover images, program PDFs, conference proceedings, or shared photo folders. Ensure link sharing is set to <em>&quot;Anyone with the link can view&quot;</em>.
+                </div>
+              </div>
+
+              {/* Previous Conferences List */}
+              <div style={{ display: 'grid', gap: '20px' }}>
+                {previousConferencesList.length === 0 ? (
+                  <div style={{
+                    padding: '40px 20px',
+                    textAlign: 'center',
+                    backgroundColor: '#f8fafc',
+                    border: '2px dashed #cbd5e1',
+                    borderRadius: '12px',
+                    color: '#64748b'
+                  }}>
+                    <History size={36} color="#94a3b8" style={{ marginBottom: '8px' }} />
+                    <p style={{ fontWeight: 600, margin: '0 0 8px 0' }}>No previous conference editions added yet.</p>
+                    <button
+                      type="button"
+                      onClick={handleAddPreviousConference}
+                      className="btn btn-secondary btn-sm"
+                    >
+                      <Plus size={16} /> Add First Past Conference
+                    </button>
+                  </div>
+                ) : (
+                  previousConferencesList.map((conf, idx) => {
+                    const formattedCover = formatGoogleDriveImageUrl(conf.coverImageUrl);
+
+                    return (
+                      <div
+                        key={conf.id || idx}
+                        style={{
+                          backgroundColor: '#ffffff',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '12px',
+                          padding: '20px',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                          display: 'grid',
+                          gap: '16px'
+                        }}
+                      >
+                        {/* Header with Title & Action Controls */}
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: '8px',
+                          paddingBottom: '12px',
+                          borderBottom: '1px dashed #e2e8f0'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{
+                              backgroundColor: '#0f3d3e',
+                              color: '#ffffff',
+                              padding: '3px 10px',
+                              borderRadius: '6px',
+                              fontSize: '0.78rem',
+                              fontWeight: 700
+                            }}>
+                              #{idx + 1} {conf.edition || 'Past Edition'}
+                            </span>
+                            <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.95rem' }}>
+                              {conf.title || 'Untitled Conference'}
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleMovePreviousConference(idx, -1)}
+                              disabled={idx === 0}
+                              style={{
+                                padding: '4px 8px',
+                                backgroundColor: '#f1f5f9',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '6px',
+                                cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                                opacity: idx === 0 ? 0.4 : 1
+                              }}
+                              title="Move Up"
+                            >
+                              <ChevronUp size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleMovePreviousConference(idx, 1)}
+                              disabled={idx === previousConferencesList.length - 1}
+                              style={{
+                                padding: '4px 8px',
+                                backgroundColor: '#f1f5f9',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '6px',
+                                cursor: idx === previousConferencesList.length - 1 ? 'not-allowed' : 'pointer',
+                                opacity: idx === previousConferencesList.length - 1 ? 0.4 : 1
+                              }}
+                              title="Move Down"
+                            >
+                              <ChevronDown size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (confirm(`Are you sure you want to remove "${conf.edition || conf.title}"?`)) {
+                                  handleDeletePreviousConference(conf.id);
+                                }
+                              }}
+                              style={{
+                                padding: '4px 8px',
+                                backgroundColor: '#fee2e2',
+                                border: '1px solid #fca5a5',
+                                borderRadius: '6px',
+                                color: '#b91c1c',
+                                cursor: 'pointer'
+                              }}
+                              title="Delete Item"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Form Fields Grid */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
+                          {/* Title */}
+                          <div style={{ gridColumn: '1 / -1' }}>
+                            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                              Full Conference Title *
+                            </label>
+                            <input
+                              type="text"
+                              value={conf.title}
+                              onChange={(e) => {
+                                const updated = [...previousConferencesList];
+                                updated[idx].title = e.target.value;
+                                setPreviousConferencesList(updated);
+                              }}
+                              placeholder="e.g., The 5th International Conference on Engineering Science and Innovative Technology (ESIT 2025)"
+                              style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.88rem' }}
+                            />
+                          </div>
+
+                          {/* Edition Badge */}
+                          <div>
+                            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                              Edition Badge / Short Code *
+                            </label>
+                            <input
+                              type="text"
+                              value={conf.edition || ''}
+                              onChange={(e) => {
+                                const updated = [...previousConferencesList];
+                                updated[idx].edition = e.target.value;
+                                setPreviousConferencesList(updated);
+                              }}
+                              placeholder="e.g., ESIT 2025"
+                              style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.88rem' }}
+                            />
+                          </div>
+
+                          {/* Date Range */}
+                          <div>
+                            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                              Conference Dates
+                            </label>
+                            <input
+                              type="text"
+                              value={conf.dateRange || ''}
+                              onChange={(e) => {
+                                const updated = [...previousConferencesList];
+                                updated[idx].dateRange = e.target.value;
+                                setPreviousConferencesList(updated);
+                              }}
+                              placeholder="e.g., February 20-22, 2025"
+                              style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.88rem' }}
+                            />
+                          </div>
+
+                          {/* Location */}
+                          <div style={{ gridColumn: '1 / -1' }}>
+                            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                              Location / Host Venue
+                            </label>
+                            <input
+                              type="text"
+                              value={conf.location || ''}
+                              onChange={(e) => {
+                                const updated = [...previousConferencesList];
+                                updated[idx].location = e.target.value;
+                                setPreviousConferencesList(updated);
+                              }}
+                              placeholder="e.g., Pattaya, Thailand / Royal Cliff Grand Hotel"
+                              style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.88rem' }}
+                            />
+                          </div>
+
+                          {/* Theme */}
+                          <div style={{ gridColumn: '1 / -1' }}>
+                            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                              Conference Theme / Slogan
+                            </label>
+                            <input
+                              type="text"
+                              value={conf.theme || ''}
+                              onChange={(e) => {
+                                const updated = [...previousConferencesList];
+                                updated[idx].theme = e.target.value;
+                                setPreviousConferencesList(updated);
+                              }}
+                              placeholder="e.g., Empowering Next-Gen AI & Sustainable Green Technologies"
+                              style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.88rem' }}
+                            />
+                          </div>
+
+                          {/* Description */}
+                          <div style={{ gridColumn: '1 / -1' }}>
+                            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                              Brief Summary / Highlights
+                            </label>
+                            <textarea
+                              rows={2}
+                              value={conf.description || ''}
+                              onChange={(e) => {
+                                const updated = [...previousConferencesList];
+                                updated[idx].description = e.target.value;
+                                setPreviousConferencesList(updated);
+                              }}
+                              placeholder="e.g., Over 150 presentations across 4 tracks with keynote speakers from 8 countries."
+                              style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.88rem', resize: 'vertical' }}
+                            />
+                          </div>
+
+                          {/* Cover Image URL */}
+                          <div style={{ gridColumn: '1 / -1' }}>
+                            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                              Cover Photo URL (Supports Google Drive Shared Link or Web Image)
+                            </label>
+                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                              <input
+                                type="url"
+                                value={conf.coverImageUrl || ''}
+                                onChange={(e) => {
+                                  const updated = [...previousConferencesList];
+                                  updated[idx].coverImageUrl = e.target.value;
+                                  setPreviousConferencesList(updated);
+                                }}
+                                placeholder="https://drive.google.com/file/d/... or https://images.unsplash.com/..."
+                                style={{ flex: 1, padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.88rem' }}
+                              />
+                              {formattedCover && (
+                                <div style={{
+                                  width: '48px',
+                                  height: '48px',
+                                  borderRadius: '6px',
+                                  overflow: 'hidden',
+                                  border: '1px solid #e2e8f0',
+                                  flexShrink: 0,
+                                  backgroundColor: '#f1f5f9'
+                                }}>
+                                  <img
+                                    src={formattedCover}
+                                    alt="Preview"
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* 3 Google Drive Links Section */}
+                          <div style={{
+                            gridColumn: '1 / -1',
+                            backgroundColor: '#f8fafc',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '8px',
+                            padding: '14px',
+                            display: 'grid',
+                            gap: '12px'
+                          }}>
+                            <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#0f3d3e', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <Folder size={16} color="#0f3d3e" />
+                              <span>Action Buttons & Google Drive Links</span>
+                            </div>
+
+                            {/* Program Schedule Link */}
+                            <div>
+                              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '3px' }}>
+                                📅 Program Schedule Link (Google Drive / PDF URL)
+                              </label>
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <input
+                                  type="url"
+                                  value={conf.programScheduleUrl || ''}
+                                  onChange={(e) => {
+                                    const updated = [...previousConferencesList];
+                                    updated[idx].programScheduleUrl = e.target.value;
+                                    setPreviousConferencesList(updated);
+                                  }}
+                                  placeholder="https://drive.google.com/file/d/... or shared folder"
+                                  style={{ flex: 1, padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.84rem' }}
+                                />
+                                {conf.programScheduleUrl && (
+                                  <a
+                                    href={conf.programScheduleUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{
+                                      padding: '7px 10px',
+                                      backgroundColor: '#e0f2fe',
+                                      color: '#0369a1',
+                                      borderRadius: '6px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      textDecoration: 'none',
+                                      fontSize: '0.8rem',
+                                      fontWeight: 600
+                                    }}
+                                  >
+                                    <ExternalLink size={14} />
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Proceedings Link */}
+                            <div>
+                              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '3px' }}>
+                                📖 Conference Proceedings Link (Google Drive / Web URL)
+                              </label>
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <input
+                                  type="url"
+                                  value={conf.proceedingUrl || ''}
+                                  onChange={(e) => {
+                                    const updated = [...previousConferencesList];
+                                    updated[idx].proceedingUrl = e.target.value;
+                                    setPreviousConferencesList(updated);
+                                  }}
+                                  placeholder="https://drive.google.com/drive/folders/... or DOI link"
+                                  style={{ flex: 1, padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.84rem' }}
+                                />
+                                {conf.proceedingUrl && (
+                                  <a
+                                    href={conf.proceedingUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{
+                                      padding: '7px 10px',
+                                      backgroundColor: '#fef3c7',
+                                      color: '#b45309',
+                                      borderRadius: '6px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      textDecoration: 'none',
+                                      fontSize: '0.8rem',
+                                      fontWeight: 600
+                                    }}
+                                  >
+                                    <ExternalLink size={14} />
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Photo Gallery / Folder Link */}
+                            <div>
+                              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '3px' }}>
+                                📸 Photo Memories / Image Folder (Google Drive Folder URL)
+                              </label>
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <input
+                                  type="url"
+                                  value={conf.imageFolderUrl || ''}
+                                  onChange={(e) => {
+                                    const updated = [...previousConferencesList];
+                                    updated[idx].imageFolderUrl = e.target.value;
+                                    setPreviousConferencesList(updated);
+                                  }}
+                                  placeholder="https://drive.google.com/drive/folders/..."
+                                  style={{ flex: 1, padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.84rem' }}
+                                />
+                                {conf.imageFolderUrl && (
+                                  <a
+                                    href={conf.imageFolderUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{
+                                      padding: '7px 10px',
+                                      backgroundColor: '#ecfdf5',
+                                      color: '#047857',
+                                      borderRadius: '6px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      textDecoration: 'none',
+                                      fontSize: '0.8rem',
+                                      fontWeight: 600
+                                    }}
+                                  >
+                                    <ExternalLink size={14} />
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Bottom Sticky Action Bar */}
+              <div style={{
+                position: 'sticky',
+                bottom: 0,
+                backgroundColor: '#ffffff',
+                padding: '16px 20px',
+                borderRadius: '12px',
+                border: '1px solid #e2e8f0',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '12px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '0.85rem' }}>
+                  <CheckCircle size={16} color="#059669" />
+                  <span>Edits publish in real-time to both Firestore database and local storage.</span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={handleAddPreviousConference}
+                    className="btn btn-secondary"
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px' }}
+                  >
+                    <Plus size={18} />
+                    <span>Add New Edition</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSavePreviousConferences}
+                    className="btn btn-primary"
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px' }}
+                  >
+                    <Save size={18} />
+                    <span>Save Past Conferences</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}

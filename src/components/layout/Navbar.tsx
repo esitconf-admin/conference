@@ -139,13 +139,14 @@ export default function Navbar({
           <div style={{
             display: 'none',
             alignItems: 'center',
-            gap: '18px'
+            gap: '16px'
           }} className="desktop-menu">
             <a href="#author-guide" style={navLinkStyle}>For Author</a>
             <a href="#reviewer-guide" style={navLinkStyle}>For Reviewer</a>
             <a href="#dates" style={navLinkStyle}>Important Dates</a>
             <a href="#committee" style={navLinkStyle}>Committee</a>
             <a href="#venue" style={navLinkStyle}>Venue</a>
+            <a href="#previous-conferences" style={navLinkStyle}>Past Conferences</a>
             <a href="#news" style={navLinkStyle}>News</a>
           </div>
 
@@ -387,6 +388,7 @@ export default function Navbar({
             <a href="#dates" onClick={() => setMobileMenuOpen(false)} style={mobileNavLinkStyle}>Important Dates</a>
             <a href="#committee" onClick={() => setMobileMenuOpen(false)} style={mobileNavLinkStyle}>Committee</a>
             <a href="#venue" onClick={() => setMobileMenuOpen(false)} style={mobileNavLinkStyle}>Venue</a>
+            <a href="#previous-conferences" onClick={() => setMobileMenuOpen(false)} style={mobileNavLinkStyle}>Past Conferences</a>
             <a href="#news" onClick={() => setMobileMenuOpen(false)} style={mobileNavLinkStyle}>News</a>
           </div>
         )}

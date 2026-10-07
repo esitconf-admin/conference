@@ -28,8 +28,13 @@ service cloud.firestore {
       );
     }
 
-    // Public CMS Content: Anyone can read, only Admin can write
+    // Public CMS Content & Previous Conferences Archives: Anyone can read, only Admin can write
     match /conference_content/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /previous_conferences/{document} {
       allow read: if true;
       allow write: if isAdmin();
     }

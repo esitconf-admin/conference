@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { ConferenceContent, ImportantDateItem, NewsItem, CommitteeGroup, KeynoteSpeaker, GuidelineItem, SponsorItem } from '../types';
+import { ConferenceContent, ImportantDateItem, NewsItem, CommitteeGroup, KeynoteSpeaker, GuidelineItem, SponsorItem, PreviousConferenceItem } from '../types';
 import { initialConferenceData } from '../data/initialConferenceData';
 import { db, isFirebaseConfigured } from '../firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -22,6 +22,7 @@ interface ConferenceDataContextType {
   updateGuidelines: (guidelines: { authorGuidelines?: (string | GuidelineItem)[]; reviewerGuidelines?: (string | GuidelineItem)[] }) => Promise<boolean>;
   updateTracksAndGuidelines: (tracks: ConferenceContent['tracks'], guidelines: { authorGuidelines?: (string | GuidelineItem)[]; reviewerGuidelines?: (string | GuidelineItem)[] }) => Promise<boolean>;
   updateSponsors: (sponsors: SponsorItem[]) => Promise<boolean>;
+  updatePreviousConferences: (previousConferences: PreviousConferenceItem[]) => Promise<boolean>;
   updateContactInfo: (contactInfo: Partial<ConferenceContent['contactInfo']>) => Promise<boolean>;
   resetToDefault: () => Promise<boolean>;
 }
@@ -233,6 +234,10 @@ export function ConferenceDataProvider({ children }: { children: React.ReactNode
     return saveContent(prev => ({ ...prev, sponsors }));
   };
 
+  const updatePreviousConferences = async (previousConferences: PreviousConferenceItem[]): Promise<boolean> => {
+    return saveContent(prev => ({ ...prev, previousConferences }));
+  };
+
   const updateContactInfo = async (contactUpdates: Partial<ConferenceContent['contactInfo']>): Promise<boolean> => {
     return saveContent(prev => ({
       ...prev,
@@ -264,6 +269,7 @@ export function ConferenceDataProvider({ children }: { children: React.ReactNode
       updateGuidelines,
       updateTracksAndGuidelines,
       updateSponsors,
+      updatePreviousConferences,
       updateContactInfo,
       resetToDefault
     }}>

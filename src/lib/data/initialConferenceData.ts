@@ -377,6 +377,47 @@ Prof. Dr. David T.W. Lin (National University of Tainan, Taiwan) – Low Grade W
       description: 'Electrical Engineering/Electronics, Computer, Telecommunications and Information Technology'
     }
   ],
+  previousConferences: [
+    {
+      id: 'prev_1',
+      title: 'The 5th International Conference on Engineering Science and Innovative Technology (ESIT 2025)',
+      edition: 'ESIT 2025',
+      theme: 'Empowering Next-Gen AI & Sustainable Green Technologies',
+      location: 'Pattaya, Thailand',
+      dateRange: 'February 20-22, 2025',
+      coverImageUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80',
+      programScheduleUrl: 'https://drive.google.com/drive/folders/1A7BPBWVm812p34MAwF06r5G-g-YRP9Od',
+      proceedingUrl: 'https://drive.google.com/drive/folders/1A7BPBWVm812p34MAwF06r5G-g-YRP9Od',
+      imageFolderUrl: 'https://drive.google.com/drive/folders/1A7BPBWVm812p34MAwF06r5G-g-YRP9Od',
+      description: 'Held in hybrid mode at Royal Cliff Grand Hotel Pattaya with over 150 presentations across 4 tracks.'
+    },
+    {
+      id: 'prev_2',
+      title: 'The 4th International Conference on Engineering Science and Innovative Technology (ESIT 2023)',
+      edition: 'ESIT 2023',
+      theme: 'Innovations for Carbon Neutrality & Industry 4.0 Transformation',
+      location: 'Bangkok, Thailand',
+      dateRange: 'February 16-18, 2023',
+      coverImageUrl: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=800&q=80',
+      programScheduleUrl: 'https://drive.google.com/drive/folders/1A7BPBWVm812p34MAwF06r5G-g-YRP9Od',
+      proceedingUrl: 'https://drive.google.com/drive/folders/1A7BPBWVm812p34MAwF06r5G-g-YRP9Od',
+      imageFolderUrl: 'https://drive.google.com/drive/folders/1A7BPBWVm812p34MAwF06r5G-g-YRP9Od',
+      description: 'Organized at KMUTNB Bangkok campus with international keynote speakers from Germany, Japan, and Singapore.'
+    },
+    {
+      id: 'prev_3',
+      title: 'The 3rd International Conference on Engineering Science and Innovative Technology (ESIT 2021)',
+      edition: 'ESIT 2021',
+      theme: 'Smart Cities, Robotics & Clean Renewable Energy Integration',
+      location: 'Online Virtual Conference',
+      dateRange: 'November 18-19, 2021',
+      coverImageUrl: 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=800&q=80',
+      programScheduleUrl: 'https://drive.google.com/drive/folders/1A7BPBWVm812p34MAwF06r5G-g-YRP9Od',
+      proceedingUrl: 'https://drive.google.com/drive/folders/1A7BPBWVm812p34MAwF06r5G-g-YRP9Od',
+      imageFolderUrl: 'https://drive.google.com/drive/folders/1A7BPBWVm812p34MAwF06r5G-g-YRP9Od',
+      description: 'Successfully connected 300+ researchers globally via digital interactive sessions and Scopus-indexed proceedings.'
+    }
+  ],
   contactInfo: {
     chairperson: 'Assoc. Prof. Dr. Rattanakorn Phadungthin',
     chairpersonEmail: 'esitconf@gmail.com',

@@ -12,6 +12,7 @@ import RegistrationPricingSection from '../components/landing/RegistrationPricin
 import CommitteeSection from '../components/landing/CommitteeSection';
 import VenueSection from '../components/landing/VenueSection';
 import SponsorsSection from '../components/landing/SponsorsSection';
+import PreviousConferencesSection from '../components/landing/PreviousConferencesSection';
 import Footer from '../components/layout/Footer';
 import FloatingScrollTop from '../components/common/FloatingScrollTop';
 import AuthModal from '../components/modals/AuthModal';
@@ -101,6 +102,7 @@ export default function HomePage() {
         <CommitteeSection />
         <VenueSection />
         <SponsorsSection />
+        <PreviousConferencesSection />
       </main>
 
       {/* 3. Footer */}
