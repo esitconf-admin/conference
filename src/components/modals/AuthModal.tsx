@@ -242,49 +242,23 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onOp
   if (!isOpen) return null;
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      zIndex: 1000,
-      backgroundColor: 'rgba(15, 23, 42, 0.7)',
-      backdropFilter: 'blur(6px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '16px',
-      animation: 'fadeIn 0.2s ease'
-    }}>
-      <div style={{
-        backgroundColor: '#ffffff',
-        borderRadius: '16px',
-        maxWidth: mode === 'register' ? '580px' : '460px',
-        width: '100%',
-        maxHeight: '92vh',
-        overflowY: 'auto',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-        border: '1px solid #e2e8f0',
-        transition: 'all 0.3s ease'
-      }}>
+    <div className="modal-overlay-responsive">
+      <div 
+        className="modal-content-responsive"
+        style={{
+          maxWidth: mode === 'register' ? '580px' : '460px',
+        }}
+      >
         {/* Modal Top Banner */}
-        <div style={{
-          backgroundColor: '#0f3d3e',
-          color: '#ffffff',
-          padding: '20px 24px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          position: 'sticky',
-          top: 0,
-          zIndex: 10
-        }}>
+        <div className="modal-header-responsive">
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Shield size={20} color="#f59e0b" />
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.5px', color: '#fef3c7' }}>
-                ESIT 2025 PORTAL AUTHENTICATION
+              <Shield size={18} color="#f59e0b" />
+              <span style={{ fontSize: '0.76rem', fontWeight: 700, letterSpacing: '0.5px', color: '#fef3c7' }}>
+                ESIT PORTAL AUTHENTICATION
               </span>
             </div>
-            <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', color: '#ffffff' }}>
+            <h3 style={{ margin: '4px 0 0 0', fontSize: '1.18rem', color: '#ffffff', lineHeight: 1.2 }}>
               {mode === 'login' && 'Sign In to Account'}
               {mode === 'register' && 'Register Conference Profile'}
               {mode === 'forgot' && 'Account Recovery & Password Reset'}
@@ -293,14 +267,19 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onOp
           <button
             onClick={onClose}
             style={{
-              background: 'none',
+              background: 'rgba(255, 255, 255, 0.1)',
               border: 'none',
               color: '#ffffff',
               cursor: 'pointer',
-              padding: '6px',
-              borderRadius: '6px',
-              display: 'flex'
+              padding: '8px',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: '36px',
+              minHeight: '36px'
             }}
+            aria-label="Close modal"
           >
             <X size={20} />
           </button>
@@ -316,14 +295,14 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onOp
             onClick={() => { setMode('login'); setError(null); setSuccessMsg(null); }}
             style={{
               flex: 1,
-              padding: '14px',
+              padding: '12px 8px',
               border: 'none',
               borderBottom: mode === 'login' ? '3px solid #0f3d3e' : '3px solid transparent',
               backgroundColor: mode === 'login' ? '#ffffff' : 'transparent',
               fontWeight: mode === 'login' ? 700 : 500,
               color: mode === 'login' ? '#0f3d3e' : '#64748b',
               cursor: 'pointer',
-              fontSize: '0.92rem'
+              fontSize: '0.88rem'
             }}
           >
             Sign In
@@ -332,14 +311,14 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onOp
             onClick={() => { setMode('register'); setError(null); setSuccessMsg(null); }}
             style={{
               flex: 1,
-              padding: '14px',
+              padding: '12px 8px',
               border: 'none',
               borderBottom: mode === 'register' ? '3px solid #0f3d3e' : '3px solid transparent',
               backgroundColor: mode === 'register' ? '#ffffff' : 'transparent',
               fontWeight: mode === 'register' ? 700 : 500,
               color: mode === 'register' ? '#0f3d3e' : '#64748b',
               cursor: 'pointer',
-              fontSize: '0.92rem'
+              fontSize: '0.88rem'
             }}
           >
             Register Profile
@@ -946,7 +925,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onOp
           {/* ========================================================================= */}
           {mode === 'register' && (
             <form onSubmit={handleRegisterSubmit} style={{ display: 'grid', gap: '14px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="responsive-grid-2col">
                 <div>
                   <label style={{ display: 'block', fontSize: '0.83rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
                     First Name (Name) *
@@ -1014,7 +993,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onOp
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '12px' }}>
+              <div className="responsive-grid-2col">
                 <div>
                   <label style={{ display: 'block', fontSize: '0.83rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
                     University / Organization *

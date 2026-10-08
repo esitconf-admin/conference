@@ -75,46 +75,35 @@ export default function MySubmissionsModal({
 
   if (!currentUser) {
     return (
-      <div style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 1000,
-        backgroundColor: 'rgba(15, 23, 42, 0.7)',
-        backdropFilter: 'blur(6px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '20px'
-      }}>
-        <div style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '16px',
-          maxWidth: '460px',
-          width: '100%',
-          padding: '30px',
-          textAlign: 'center',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-        }}>
+      <div className="modal-overlay-responsive">
+        <div 
+          className="modal-content-responsive"
+          style={{
+            maxWidth: '460px',
+            padding: '24px 20px',
+            textAlign: 'center'
+          }}
+        >
           <div style={{
-            width: '60px',
-            height: '60px',
+            width: '56px',
+            height: '56px',
             borderRadius: '50%',
             backgroundColor: '#ecfdf5',
             color: '#059669',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            margin: '0 auto 16px auto'
+            margin: '0 auto 14px auto'
           }}>
             <FileText size={28} />
           </div>
-          <h3 style={{ fontSize: '1.25rem', color: '#0f3d3e', marginBottom: '8px' }}>
+          <h3 style={{ fontSize: '1.2rem', color: '#0f3d3e', marginBottom: '8px' }}>
             Author Sign-In Required
           </h3>
-          <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '24px' }}>
+          <p style={{ color: '#64748b', fontSize: '0.88rem', marginBottom: '20px', lineHeight: '1.5' }}>
             Please sign in to view your submitted manuscripts and track their peer-review evaluation progress.
           </p>
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+          <div className="responsive-btn-group" style={{ justifyContent: 'center' }}>
             <button onClick={onClose} className="btn btn-outline-primary btn-sm">
               Close
             </button>
@@ -178,48 +167,23 @@ export default function MySubmissionsModal({
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      zIndex: 1000,
-      backgroundColor: 'rgba(15, 23, 42, 0.7)',
-      backdropFilter: 'blur(6px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '20px',
-      animation: 'fadeIn 0.2s ease'
-    }}>
-      <div style={{
-        backgroundColor: '#ffffff',
-        borderRadius: '16px',
-        maxWidth: '820px',
-        width: '100%',
-        maxHeight: '90vh',
-        display: 'flex',
-        flexDirection: 'column',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-        border: '1px solid #e2e8f0',
-        overflow: 'hidden'
-      }}>
+    <div className="modal-overlay-responsive">
+      <div 
+        className="modal-content-responsive"
+        style={{
+          maxWidth: '820px',
+        }}
+      >
         {/* Header Banner */}
-        <div style={{
-          padding: '20px 24px',
-          backgroundColor: '#0f3d3e',
-          color: '#ffffff',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexShrink: 0
-        }}>
+        <div className="modal-header-responsive">
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Sparkles size={16} color="#f59e0b" />
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#fef3c7', textTransform: 'uppercase' }}>
+              <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#fef3c7', textTransform: 'uppercase' }}>
                 {content.hero.edition} Author Portal
               </span>
             </div>
-            <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', color: '#ffffff' }}>
+            <h3 style={{ margin: '4px 0 0 0', fontSize: '1.18rem', color: '#ffffff', lineHeight: 1.2 }}>
               My Manuscript Submissions
             </h3>
           </div>
@@ -235,9 +199,12 @@ export default function MySubmissionsModal({
                 color: '#ffffff',
                 cursor: 'pointer',
                 padding: '8px',
-                borderRadius: '6px',
+                borderRadius: '8px',
                 display: 'flex',
-                alignItems: 'center'
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: '36px',
+                minHeight: '36px'
               }}
             >
               <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
@@ -245,14 +212,19 @@ export default function MySubmissionsModal({
             <button
               onClick={onClose}
               style={{
-                background: 'none',
+                background: 'rgba(255, 255, 255, 0.1)',
                 border: 'none',
                 color: '#ffffff',
                 cursor: 'pointer',
-                padding: '6px',
-                borderRadius: '6px',
-                display: 'flex'
+                padding: '8px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: '36px',
+                minHeight: '36px'
               }}
+              aria-label="Close modal"
             >
               <X size={20} />
             </button>
@@ -261,7 +233,7 @@ export default function MySubmissionsModal({
 
         {/* Subheader bar with author info & Submit CTA */}
         <div style={{
-          padding: '12px 24px',
+          padding: '12px 20px',
           backgroundColor: '#f8fafc',
           borderBottom: '1px solid #e2e8f0',
           display: 'flex',
@@ -270,7 +242,7 @@ export default function MySubmissionsModal({
           flexWrap: 'wrap',
           gap: '10px'
         }}>
-          <div style={{ fontSize: '0.88rem', color: '#475569' }}>
+          <div style={{ fontSize: '0.86rem', color: '#475569' }}>
             Author Profile: <strong>{currentUser.firstName} {currentUser.lastName}</strong> ({currentUser.organization})
           </div>
 
@@ -285,7 +257,7 @@ export default function MySubmissionsModal({
         </div>
 
         {/* Modal Body */}
-        <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
+        <div className="modal-body-responsive">
           {actionSuccessMsg && (
             <div style={{
               backgroundColor: '#ecfdf5',

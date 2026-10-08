@@ -64,46 +64,35 @@ export default function SubmitManuscriptModal({ isOpen, onClose, onRequireAuth }
 
   if (!currentUser) {
     return (
-      <div style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 1000,
-        backgroundColor: 'rgba(15, 23, 42, 0.7)',
-        backdropFilter: 'blur(6px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '20px'
-      }}>
-        <div style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '16px',
-          maxWidth: '480px',
-          width: '100%',
-          padding: '30px',
-          textAlign: 'center',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-        }}>
+      <div className="modal-overlay-responsive">
+        <div 
+          className="modal-content-responsive"
+          style={{
+            maxWidth: '480px',
+            padding: '24px 20px',
+            textAlign: 'center'
+          }}
+        >
           <div style={{
-            width: '60px',
-            height: '60px',
+            width: '56px',
+            height: '56px',
             borderRadius: '50%',
             backgroundColor: '#fef3c7',
             color: '#d97706',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            margin: '0 auto 16px auto'
+            margin: '0 auto 14px auto'
           }}>
-            <FileText size={30} />
+            <FileText size={28} />
           </div>
-          <h3 style={{ fontSize: '1.3rem', color: '#0f3d3e', marginBottom: '10px' }}>
+          <h3 style={{ fontSize: '1.2rem', color: '#0f3d3e', marginBottom: '8px' }}>
             Author Sign-In Required
           </h3>
-          <p style={{ color: '#64748b', fontSize: '0.92rem', marginBottom: '24px' }}>
+          <p style={{ color: '#64748b', fontSize: '0.88rem', marginBottom: '20px', lineHeight: '1.5' }}>
             Please sign in to your registered Author account to submit your manuscript for peer review.
           </p>
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+          <div className="responsive-btn-group" style={{ justifyContent: 'center' }}>
             <button onClick={onClose} className="btn btn-outline-primary btn-sm">
               Cancel
             </button>
@@ -240,69 +229,49 @@ export default function SubmitManuscriptModal({ isOpen, onClose, onRequireAuth }
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      zIndex: 1000,
-      backgroundColor: 'rgba(15, 23, 42, 0.7)',
-      backdropFilter: 'blur(6px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '20px',
-      animation: 'fadeIn 0.2s ease'
-    }}>
-      <div style={{
-        backgroundColor: '#ffffff',
-        borderRadius: '16px',
-        maxWidth: '680px',
-        width: '100%',
-        maxHeight: '92vh',
-        overflowY: 'auto',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-        border: '1px solid #e2e8f0'
-      }}>
+    <div className="modal-overlay-responsive">
+      <div 
+        className="modal-content-responsive"
+        style={{
+          maxWidth: '680px',
+        }}
+      >
         {/* Header */}
-        <div style={{
-          padding: '20px 24px',
-          backgroundColor: '#0f3d3e',
-          color: '#ffffff',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          position: 'sticky',
-          top: 0,
-          zIndex: 10
-        }}>
+        <div className="modal-header-responsive">
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Sparkles size={18} color="#f59e0b" />
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#fef3c7' }}>
+              <Sparkles size={16} color="#f59e0b" />
+              <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#fef3c7' }}>
                 {content.hero.edition} CALL FOR PAPERS
               </span>
             </div>
-            <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', color: '#ffffff' }}>
+            <h3 style={{ margin: '4px 0 0 0', fontSize: '1.18rem', color: '#ffffff', lineHeight: 1.2 }}>
               Submit Your Manuscript
             </h3>
           </div>
           <button
             onClick={onClose}
             style={{
-              background: 'none',
+              background: 'rgba(255, 255, 255, 0.1)',
               border: 'none',
               color: '#ffffff',
               cursor: 'pointer',
-              padding: '6px',
-              borderRadius: '6px',
-              display: 'flex'
+              padding: '8px',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: '36px',
+              minHeight: '36px'
             }}
+            aria-label="Close modal"
           >
             <X size={20} />
           </button>
         </div>
 
         {/* Content */}
-        <div style={{ padding: '24px' }}>
+        <div className="modal-body-responsive">
           {submitted ? (
             <div style={{ textAlign: 'center', padding: '20px 10px' }}>
               <div style={{
@@ -631,7 +600,7 @@ export default function SubmitManuscriptModal({ isOpen, onClose, onRequireAuth }
                 ) : (
                   /* Mode B: Manual Input */
                   <div style={{ display: 'grid', gap: '8px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <div className="responsive-grid-2col">
                       <input
                         type="text"
                         value={manualName}

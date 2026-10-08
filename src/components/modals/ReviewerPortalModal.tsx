@@ -201,24 +201,24 @@ export default function ReviewerPortalModal({
   ).length;
 
   return (
-    <div style={overlayStyle}>
-      <div style={modalContainerStyle}>
+    <div className="modal-overlay-responsive">
+      <div className="modal-content-responsive" style={{ maxWidth: '880px' }}>
         
         {/* Header Banner */}
-        <div style={headerBannerStyle}>
+        <div className="modal-header-responsive">
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Sparkles size={16} color="#f59e0b" />
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#fef3c7', textTransform: 'uppercase' }}>
+              <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#fef3c7', textTransform: 'uppercase' }}>
                 {content.hero.edition} Technical Committee
               </span>
             </div>
-            <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', color: '#ffffff' }}>
+            <h3 style={{ margin: '4px 0 0 0', fontSize: '1.18rem', color: '#ffffff', lineHeight: 1.2 }}>
               Peer-Review Evaluation Portal
             </h3>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button
               onClick={fetchAssigned}
               disabled={loading}
@@ -227,7 +227,7 @@ export default function ReviewerPortalModal({
             >
               <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             </button>
-            <button onClick={onClose} style={iconButtonStyle}>
+            <button onClick={onClose} style={iconButtonStyle} aria-label="Close modal">
               <X size={20} />
             </button>
           </div>
@@ -235,19 +235,20 @@ export default function ReviewerPortalModal({
 
         {/* Subheader bar with Reviewer Info & Stats */}
         <div style={subheaderStyle}>
-          <div style={{ fontSize: '0.88rem', color: '#334155' }}>
+          <div style={{ fontSize: '0.86rem', color: '#334155' }}>
             Reviewer: <strong>{currentUser.firstName} {currentUser.lastName}</strong> ({currentUser.organization})
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.82rem', color: '#64748b' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
               Progress: <strong>{completedCount}/{assignedPapers.length}</strong> Completed
             </span>
             <div style={{
               display: 'flex',
               backgroundColor: '#e2e8f0',
               borderRadius: '6px',
-              padding: '2px'
+              padding: '2px',
+              flexWrap: 'wrap'
             }}>
               <button
                 type="button"
@@ -275,7 +276,7 @@ export default function ReviewerPortalModal({
         </div>
 
         {/* Modal Body */}
-        <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
+        <div className="modal-body-responsive">
           {successBanner && (
             <div style={successBannerStyle}>
               <CheckCircle2 size={18} color="#059669" />
