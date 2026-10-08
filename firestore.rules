@@ -71,6 +71,11 @@ service cloud.firestore {
       allow delete: if isAdmin() || (isAuthenticated() && resource.data.authorUid == request.auth.uid);
     }
 
+    // Password Reset Verification Tokens: Temporary session tokens for OTP verification
+    match /password_resets/{resetId} {
+      allow read, create, update, delete: if true;
+    }
+
     // Audit logs: Read by Admin only, append-only by authenticated users
     match /audit_logs/{logId} {
       allow read: if isAdmin();
@@ -79,3 +84,4 @@ service cloud.firestore {
     }
   }
 }
+
