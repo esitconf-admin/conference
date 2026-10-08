@@ -220,6 +220,23 @@ sequenceDiagram
 
 ---
 
+### 4.6. Responsive UI & Mobile Architecture
+
+The application implements a mobile-first responsive system tailored for smartphones, tablets, and high-resolution desktop displays:
+
+1. **Adaptive Navigation Bar (`Navbar.tsx`)**:
+   - **Dynamic Top Bar**: Automatically collapses verbose conference title text on screen widths $< 860\text{px}$ into high-contrast edition badges, venue tags, and date indicators to prevent overflow.
+   - **Responsive CTA & Buttons**: Dynamically transitions the primary button from `"Submit Your Manuscript"` on desktop to `"Submit"` on mobile screens ($\le 640\text{px}$). Consolidates login/register triggers into a single touch-optimized `"Sign In"` button.
+   - **Slide-Down Mobile Navigation Drawer**: Features an animated backdrop blur overlay with full section navigation links, quick-action manuscript submission triggers, user role badges, and authenticated workspace routing (*My Submissions*, *Reviewer Portal*, *Admin CMS*).
+   - **Outside-Click & Scroll Lock**: Automatically manages body scroll locking when the mobile drawer is open and dismisses dropdown menus upon external clicks.
+
+2. **Universal Modal Responsive System (`globals.css`)**:
+   - **Dynamic Viewport Height (`95dvh` / `95vh`)**: Prevents jumping and clipping under mobile browser URL bars (Safari iOS / Chrome Android) with smooth touch momentum scrolling (`-webkit-overflow-scrolling: touch`).
+   - **Adaptive Form Grids (`.responsive-grid-2col`)**: Automatically stacks two-column form groups (Name/Surname, Organization/Country, co-author inputs) into single columns on mobile devices ($\le 640\text{px}$).
+   - **Touch Target Accessibility**: Enforces $\ge 36\text{px}$ to $44\text{px}$ hit targets for close buttons, rating buttons, and form selectors to ensure smooth finger-tap ergonomics.
+
+---
+
 ## 5. Security & Firestore Rules
 
 [`firestore.rules`](file:///i:/WebApp/conference/firestore.rules) implements strict Role-Based Access Control (RBAC):
