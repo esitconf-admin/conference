@@ -236,6 +236,41 @@ function doPost(e) {
           <p style="font-size: 12px; color: #94a3b8; text-align: center;">ESIT Conference Secretariat, KMUTNB</p>
         </div>
       `;
+    } else if (template === "password_reset") {
+      htmlBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <div style="background-color: #0f3d3e; color: #ffffff; padding: 18px; border-radius: 6px; text-align: center;">
+            <h2 style="margin: 0; color: #ffffff;">ESIT Conference Security</h2>
+            <span style="font-size: 13px; color: #fef3c7;">Account Access & Password Reset</span>
+          </div>
+          <div style="padding: 20px 0; color: #334155; line-height: 1.6;">
+            <p>Dear <strong>${recipientName}</strong>,</p>
+            <p>We received an official request to reset the password associated with your <strong>ESIT Conference Portal</strong> account.</p>
+            <p>To proceed with setting a new password, please use the following one-time verification code:</p>
+            
+            <div style="margin: 24px 0; text-align: center;">
+              <div style="display: inline-block; background-color: #f8fafc; border: 2px dashed #0f3d3e; border-radius: 8px; padding: 14px 28px;">
+                <span style="font-size: 12px; color: #64748b; display: block; margin-bottom: 4px; font-weight: bold; letter-spacing: 1px;">VERIFICATION CODE (OTP)</span>
+                <span style="font-size: 32px; font-weight: 800; color: #0f3d3e; letter-spacing: 6px; font-family: monospace;">${data && (data.otpCode || data.otp_code) ? (data.otpCode || data.otp_code) : '------'}</span>
+              </div>
+            </div>
+
+            <p style="font-size: 13px; color: #64748b; text-align: center;">
+              ⏳ This verification code will expire in <strong>15 minutes</strong> for your security.
+            </p>
+
+            <div style="margin: 20px 0; text-align: center;">
+              <a href="${data && data.portalUrl ? data.portalUrl : '#'}" style="background-color: #f59e0b; color: #ffffff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 6px; display: inline-block;">Open Conference Portal</a>
+            </div>
+
+            <p style="font-size: 13px; color: #64748b;">
+              <em>If you did not request this password reset, you can safely disregard this email. Your password will remain unchanged.</em>
+            </p>
+          </div>
+          <hr style="border: none; border-top: 1px solid #e2e8f0;" />
+          <p style="font-size: 12px; color: #94a3b8; text-align: center;">ESIT Conference Secretariat & Security Team</p>
+        </div>
+      `;
     } else if (template === "reviewer_assigned") {
       htmlBody = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px;">

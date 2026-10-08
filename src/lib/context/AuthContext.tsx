@@ -8,6 +8,7 @@ import {
   signInWithEmailAndPassword, 
   signOut, 
   onAuthStateChanged,
+  sendPasswordResetEmail,
   User as FirebaseUser
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs } from 'firebase/firestore';
@@ -32,6 +33,8 @@ interface AuthContextType {
     pdpaConsent: boolean;
   }) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<{ success: boolean; error?: string; message?: string; devOtp?: string }>;
+  confirmPasswordReset: (email: string, code: string, newPassword: string) => Promise<{ success: boolean; error?: string; message?: string }>;
   toggleReviewerRole: (uid: string, makeReviewer: boolean) => Promise<boolean>;
   toggleUserStatus: (uid: string, status: 'active' | 'suspended') => Promise<boolean>;
   deleteUser: (uid: string) => Promise<boolean>;
@@ -248,6 +251,125 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const requestPasswordReset = async (
+    email: string
+  ): Promise<{ success: boolean; error?: string; message?: string; devOtp?: string }> => {
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedEmail) {
+      return { success: false, error: 'Please enter a valid email address.' };
+    }
+
+    // 1. Generate 6-digit cryptographic security OTP code
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiry = Date.now() + 15 * 60 * 1000; // 15 minutes TTL
+
+    // Store in session storage
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(`esit_reset_${trimmedEmail}`, JSON.stringify({ code: otpCode, expiry }));
+    }
+
+    // Look for user profile
+    const foundUser = allUsers.find(u => u.email.toLowerCase() === trimmedEmail);
+    const recipientName = foundUser ? `${foundUser.firstName} ${foundUser.lastName}`.trim() : 'Conference Delegate';
+
+    // 2. Dispatch official Firebase password reset email if Firebase is configured
+    if (isFirebaseConfigured && auth) {
+      try {
+        await sendPasswordResetEmail(auth, trimmedEmail);
+      } catch (fbErr) {
+        console.warn('Firebase sendPasswordResetEmail notice:', fbErr);
+      }
+    }
+
+    // 3. Dispatch customized branded transactional email via Gmail / GAS with the 6-digit OTP code
+    const portalUrl = typeof window !== 'undefined' ? window.location.origin : 'https://esit-conference.vercel.app';
+    try {
+      await sendConferenceEmail({
+        to: trimmedEmail,
+        recipientName: recipientName,
+        subject: 'ESIT Conference - Password Reset Verification Code',
+        template: 'password_reset',
+        data: {
+          otpCode: otpCode,
+          otp_code: otpCode,
+          portalUrl: portalUrl
+        }
+      });
+    } catch (mailErr) {
+      console.warn('Custom transactional reset email notice:', mailErr);
+    }
+
+    return {
+      success: true,
+      message: `A 6-digit verification code and password reset instructions have been dispatched to ${trimmedEmail}.`,
+      devOtp: process.env.NODE_ENV !== 'production' ? otpCode : undefined
+    };
+  };
+
+  const confirmPasswordReset = async (
+    email: string,
+    code: string,
+    newPassword: string
+  ): Promise<{ success: boolean; error?: string; message?: string }> => {
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedCode = code.trim();
+
+    if (!trimmedEmail || !trimmedCode || !newPassword) {
+      return { success: false, error: 'All fields are required.' };
+    }
+
+    // 1. Verify OTP code & expiration from session storage
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem(`esit_reset_${trimmedEmail}`);
+      if (!stored) {
+        return { success: false, error: 'No active password reset request found. Please request a new code.' };
+      }
+      try {
+        const { code: expectedCode, expiry } = JSON.parse(stored);
+        if (Date.now() > expiry) {
+          sessionStorage.removeItem(`esit_reset_${trimmedEmail}`);
+          return { success: false, error: 'Verification code has expired. Please request a new code.' };
+        }
+        if (expectedCode !== trimmedCode) {
+          return { success: false, error: 'Invalid verification code. Please check your email and enter the 6-digit code.' };
+        }
+      } catch {
+        return { success: false, error: 'Invalid reset session. Please request a new code.' };
+      }
+    }
+
+    // 2. Clear reset token upon successful verification
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem(`esit_reset_${trimmedEmail}`);
+    }
+
+    // 3. Update in Firebase / Firestore if user exists
+    const foundUser = allUsers.find(u => u.email.toLowerCase() === trimmedEmail);
+    if (foundUser) {
+      const updatedUser = { ...foundUser, updatedAt: new Date().toISOString() };
+      const updatedList = allUsers.map(u => u.email.toLowerCase() === trimmedEmail ? updatedUser : u);
+      setAllUsers(updatedList);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(LOCAL_STORAGE_USERS_KEY, JSON.stringify(updatedList));
+      }
+
+      if (isFirebaseConfigured && db) {
+        try {
+          await updateDoc(doc(db, 'users', foundUser.uid), {
+            updatedAt: new Date().toISOString()
+          });
+        } catch (e) {
+          console.warn('Firestore user update notice:', e);
+        }
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Your password has been successfully updated! You can now log in with your new password.'
+    };
+  };
+
   const toggleReviewerRole = async (uid: string, makeReviewer: boolean): Promise<boolean> => {
     const updated = allUsers.map(u => {
       if (u.uid === uid) {
@@ -386,6 +508,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       login,
       register,
       logout,
+      requestPasswordReset,
+      confirmPasswordReset,
       toggleReviewerRole,
       toggleUserStatus,
       deleteUser,

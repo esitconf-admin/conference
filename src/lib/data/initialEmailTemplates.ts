@@ -46,6 +46,24 @@ Your submission has entered the double-blind peer review process. You will recei
     footerNote: 'ESIT 2025 Technical Program Chairs.'
   },
   {
+    id: 'tmpl_reset_pwd',
+    name: 'Password Reset & Account Recovery',
+    templateKey: 'password_reset',
+    subject: 'ESIT Conference - Password Reset Verification Code',
+    headerTitle: 'Account Security & Password Reset',
+    bodyText: `Dear {name},
+
+We received a request to reset the password for your ESIT Conference account.
+
+Your 6-digit one-time verification code is: {otp_code}
+
+This code is valid for 15 minutes. Please enter it in the password reset dialog on the conference portal to set your new password.
+
+If you did not request a password reset, please ignore this email or notify the Secretariat.`,
+    buttonLabel: 'Reset Password on Portal',
+    footerNote: 'ESIT Conference Security & Secretariat.'
+  },
+  {
     id: 'tmpl_custom',
     name: 'Individual / Custom Message to Delegate',
     templateKey: 'custom_message',

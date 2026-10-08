@@ -1,7 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Lock, Mail, User, Building, Globe, CheckCircle2, AlertCircle, RefreshCw, Shield, KeyRound } from 'lucide-react';
+import { 
+  X, Lock, Mail, User, Building, Globe, CheckCircle2, AlertCircle, 
+  RefreshCw, Shield, KeyRound, ArrowLeft, Eye, EyeOff, Check, Send, Sparkles, HelpCircle 
+} from 'lucide-react';
 import { useAuth } from '../../lib/context/AuthContext';
 import { validatePasswordStrength, generateMathCaptcha, MathCaptchaChallenge } from '../../lib/security/captchaHelper';
 
@@ -13,10 +16,10 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onOpenPDPA }: AuthModalProps) {
-  const { login, register } = useAuth();
-  const [mode, setMode] = useState<'login' | 'register'>(defaultMode);
+  const { login, register, requestPasswordReset, confirmPasswordReset } = useAuth();
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot'>(defaultMode);
 
-  // Form states
+  // Form states - Login & Register
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -24,6 +27,15 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onOp
   const [organization, setOrganization] = useState('');
   const [country, setCountry] = useState('Thailand');
   const [pdpaConsent, setPdpaConsent] = useState(false);
+
+  // Form states - Forgot / Reset Password
+  const [forgotStep, setForgotStep] = useState<1 | 2>(1);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetCode, setResetCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
 
   // Security / Captcha
   const [captchaChallenge, setCaptchaChallenge] = useState<MathCaptchaChallenge>({ question: '', expectedAnswer: 0 });
@@ -42,13 +54,22 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onOp
   useEffect(() => {
     if (isOpen) {
       setMode(defaultMode);
+      setForgotStep(1);
       setError(null);
       setSuccessMsg(null);
       refreshCaptcha();
     }
   }, [isOpen, defaultMode, refreshCaptcha]);
 
-  const passwordStrength = validatePasswordStrength(password);
+  // Countdown timer for resending OTP
+  useEffect(() => {
+    if (resendTimer > 0) {
+      const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendTimer]);
+
+  const passwordStrength = validatePasswordStrength(mode === 'forgot' ? newPassword : password);
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,6 +143,102 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onOp
     }
   };
 
+  const handleRequestResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccessMsg(null);
+
+    const targetEmail = resetEmail.trim().toLowerCase();
+    if (!targetEmail) {
+      setError('Please provide your registered email address.');
+      return;
+    }
+
+    // Validate CAPTCHA
+    if (parseInt(captchaInput.trim(), 10) !== captchaChallenge.expectedAnswer) {
+      setError('Incorrect CAPTCHA answer. Please solve the math challenge to proceed.');
+      refreshCaptcha();
+      return;
+    }
+
+    setLoading(true);
+    const res = await requestPasswordReset(targetEmail);
+    setLoading(false);
+
+    if (res.success) {
+      setSuccessMsg(`We have dispatched a 6-digit verification code and reset instructions to ${targetEmail}. Please check your inbox and enter the code below.`);
+      setForgotStep(2);
+      setResendTimer(60);
+      refreshCaptcha();
+    } else {
+      setError(res.error || 'Failed to dispatch password reset request. Please try again.');
+      refreshCaptcha();
+    }
+  };
+
+  const handleConfirmResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccessMsg(null);
+
+    if (!resetCode.trim()) {
+      setError('Please enter the 6-digit verification code from your email.');
+      return;
+    }
+
+    if (!newPassword) {
+      setError('Please enter your new password.');
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setError('New passwords do not match. Please ensure both fields are identical.');
+      return;
+    }
+
+    if (!passwordStrength.isValid) {
+      setError('Password does not satisfy enterprise complexity requirements (at least 8 chars, uppercase, lowercase, number, special char).');
+      return;
+    }
+
+    setLoading(true);
+    const res = await confirmPasswordReset(resetEmail, resetCode, newPassword);
+    setLoading(false);
+
+    if (res.success) {
+      setSuccessMsg('Password successfully updated! Redirecting to login...');
+      setTimeout(() => {
+        setEmail(resetEmail);
+        setPassword(newPassword);
+        setMode('login');
+        setForgotStep(1);
+        setResetCode('');
+        setNewPassword('');
+        setConfirmNewPassword('');
+        setSuccessMsg(null);
+        refreshCaptcha();
+      }, 1400);
+    } else {
+      setError(res.error || 'Failed to reset password. Please check the verification code.');
+    }
+  };
+
+  const handleResendResetCode = async () => {
+    if (resendTimer > 0) return;
+    setError(null);
+    setSuccessMsg(null);
+    setLoading(true);
+    const res = await requestPasswordReset(resetEmail);
+    setLoading(false);
+
+    if (res.success) {
+      setSuccessMsg(`A fresh verification code has been dispatched to ${resetEmail}.`);
+      setResendTimer(60);
+    } else {
+      setError(res.error || 'Failed to resend code.');
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -168,7 +285,9 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onOp
               </span>
             </div>
             <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', color: '#ffffff' }}>
-              {mode === 'login' ? 'Sign In to Account' : 'Register Conference Profile'}
+              {mode === 'login' && 'Sign In to Account'}
+              {mode === 'register' && 'Register Conference Profile'}
+              {mode === 'forgot' && 'Account Recovery & Password Reset'}
             </h3>
           </div>
           <button
@@ -194,7 +313,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onOp
           backgroundColor: '#f8fafc'
         }}>
           <button
-            onClick={() => { setMode('login'); setError(null); }}
+            onClick={() => { setMode('login'); setError(null); setSuccessMsg(null); }}
             style={{
               flex: 1,
               padding: '14px',
@@ -204,13 +323,13 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onOp
               fontWeight: mode === 'login' ? 700 : 500,
               color: mode === 'login' ? '#0f3d3e' : '#64748b',
               cursor: 'pointer',
-              fontSize: '0.95rem'
+              fontSize: '0.92rem'
             }}
           >
-            Login
+            Sign In
           </button>
           <button
-            onClick={() => { setMode('register'); setError(null); }}
+            onClick={() => { setMode('register'); setError(null); setSuccessMsg(null); }}
             style={{
               flex: 1,
               padding: '14px',
@@ -220,11 +339,34 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onOp
               fontWeight: mode === 'register' ? 700 : 500,
               color: mode === 'register' ? '#0f3d3e' : '#64748b',
               cursor: 'pointer',
-              fontSize: '0.95rem'
+              fontSize: '0.92rem'
             }}
           >
-            New Registration (Author/Reviewer)
+            Register Profile
           </button>
+          {mode === 'forgot' && (
+            <button
+              onClick={() => { setError(null); }}
+              style={{
+                flex: 1,
+                padding: '14px',
+                border: 'none',
+                borderBottom: '3px solid #f59e0b',
+                backgroundColor: '#ffffff',
+                fontWeight: 700,
+                color: '#b45309',
+                cursor: 'default',
+                fontSize: '0.92rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+            >
+              <KeyRound size={15} color="#d97706" />
+              <span>Reset Password</span>
+            </button>
+          )}
         </div>
 
         {/* Form Body */}
@@ -265,8 +407,10 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onOp
             </div>
           )}
 
-          {mode === 'login' ? (
-            /* LOGIN FORM */
+          {/* ========================================================================= */}
+          {/* 1. LOGIN FORM                                                             */}
+          {/* ========================================================================= */}
+          {mode === 'login' && (
             <form onSubmit={handleLoginSubmit} style={{ display: 'grid', gap: '16px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
@@ -292,9 +436,39 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onOp
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                  Password
-                </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>
+                    Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode('forgot');
+                      setForgotStep(1);
+                      setResetEmail(email);
+                      setError(null);
+                      setSuccessMsg(null);
+                      refreshCaptcha();
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      color: '#0f3d3e',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    <KeyRound size={13} color="#f59e0b" />
+                    <span>Forgot password?</span>
+                  </button>
+                </div>
+
                 <div style={{ position: 'relative' }}>
                   <Lock size={18} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '12px' }} />
                   <input
@@ -381,9 +555,396 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onOp
               >
                 {loading ? 'Authenticating...' : 'Sign In'}
               </button>
+
+              <div style={{
+                marginTop: '10px',
+                padding: '12px',
+                backgroundColor: '#f0fdf9',
+                borderRadius: '8px',
+                border: '1px solid rgba(15, 61, 62, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                fontSize: '0.82rem',
+                color: '#475569'
+              }}>
+                <span>Don&apos;t have an account yet?</span>
+                <button
+                  type="button"
+                  onClick={() => { setMode('register'); setError(null); setSuccessMsg(null); }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#0f3d3e',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    textDecoration: 'underline'
+                  }}
+                >
+                  Create Profile
+                </button>
+              </div>
             </form>
-          ) : (
-            /* REGISTRATION FORM */
+          )}
+
+          {/* ========================================================================= */}
+          {/* 2. FORGOT / RESET PASSWORD FORM                                           */}
+          {/* ========================================================================= */}
+          {mode === 'forgot' && (
+            <div>
+              {/* STEP 1: REQUEST VERIFICATION CODE & RESET LINK */}
+              {forgotStep === 1 && (
+                <form onSubmit={handleRequestResetSubmit} style={{ display: 'grid', gap: '16px' }}>
+                  <div style={{
+                    backgroundColor: '#fef3c7',
+                    border: '1px solid #fde68a',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    color: '#92400e',
+                    fontSize: '0.84rem',
+                    lineHeight: '1.4'
+                  }}>
+                    <strong>Forgot your password?</strong> Enter your registered email address below. We will send a secure <strong>6-digit verification code</strong> and password recovery link to your inbox.
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                      Registered Account Email *
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <Mail size={18} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '12px' }} />
+                      <input
+                        type="email"
+                        required
+                        value={resetEmail}
+                        onChange={(e) => setResetEmail(e.target.value)}
+                        placeholder="e.g. author@university.edu"
+                        style={{
+                          width: '100%',
+                          padding: '10px 12px 10px 38px',
+                          borderRadius: '8px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '0.95rem'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Anti-Bot Security Verification */}
+                  <div style={{
+                    padding: '14px',
+                    borderRadius: '10px',
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#0f3d3e', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Shield size={16} color="#f59e0b" /> Anti-Abuse Verification:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={refreshCaptcha}
+                        title="Get new captcha"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#0f3d3e',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontSize: '0.78rem'
+                        }}
+                      >
+                        <RefreshCw size={14} /> Refresh
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                      <div style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#0f3d3e',
+                        color: '#ffffff',
+                        fontWeight: 700,
+                        borderRadius: '6px',
+                        fontSize: '1rem',
+                        letterSpacing: '1px'
+                      }}>
+                        {captchaChallenge.question}
+                      </div>
+                      <input
+                        type="number"
+                        required
+                        value={captchaInput}
+                        onChange={(e) => setCaptchaInput(e.target.value)}
+                        placeholder="Answer"
+                        style={{
+                          width: '90px',
+                          padding: '8px 12px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '0.95rem',
+                          textAlign: 'center'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn btn-primary"
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                  >
+                    {loading ? (
+                      <>
+                        <RefreshCw size={16} className="animate-spin" />
+                        <span>Sending Verification Email...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send size={16} />
+                        <span>Send Password Reset Code</span>
+                      </>
+                    )}
+                  </button>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                    <button
+                      type="button"
+                      onClick={() => { setMode('login'); setError(null); setSuccessMsg(null); }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#64748b',
+                        fontSize: '0.84rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <ArrowLeft size={14} /> Back to Sign In
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => { setForgotStep(2); setError(null); }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#0f3d3e',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        textDecoration: 'underline'
+                      }}
+                    >
+                      Already have a code? Enter it here &rarr;
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* STEP 2: ENTER CODE & SET NEW PASSWORD */}
+              {forgotStep === 2 && (
+                <form onSubmit={handleConfirmResetSubmit} style={{ display: 'grid', gap: '16px' }}>
+                  <div style={{
+                    backgroundColor: '#f0fdf4',
+                    border: '1px solid #bbf7d0',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    color: '#166534',
+                    fontSize: '0.84rem',
+                    lineHeight: '1.4'
+                  }}>
+                    <strong>Verification code dispatched!</strong> Check your email for a 6-digit code sent to <em>{resetEmail || 'your email'}</em>. Enter it below along with your new password.
+                  </div>
+
+                  {/* 6-Digit OTP Code */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                      6-Digit Verification Code (from Email) *
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <KeyRound size={18} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '12px' }} />
+                      <input
+                        type="text"
+                        required
+                        maxLength={6}
+                        value={resetCode}
+                        onChange={(e) => setResetCode(e.target.value.replace(/\D/g, ''))}
+                        placeholder="e.g. 123456"
+                        style={{
+                          width: '100%',
+                          padding: '10px 12px 10px 38px',
+                          borderRadius: '8px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '1.1rem',
+                          fontWeight: 700,
+                          letterSpacing: '4px',
+                          fontFamily: 'monospace'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* New Password */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                      New Password *
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <Lock size={18} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '12px' }} />
+                      <input
+                        type={showNewPassword ? 'text' : 'password'}
+                        required
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Create strong new password"
+                        style={{
+                          width: '100%',
+                          padding: '10px 38px 10px 38px',
+                          borderRadius: '8px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '0.95rem'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        style={{
+                          position: 'absolute',
+                          right: '12px',
+                          top: '12px',
+                          background: 'none',
+                          border: 'none',
+                          color: '#94a3b8',
+                          cursor: 'pointer',
+                          display: 'flex'
+                        }}
+                      >
+                        {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+
+                    {/* Password Strength Indicator */}
+                    {newPassword && (
+                      <div style={{ marginTop: '8px' }}>
+                        <div style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
+                          {[1, 2, 3, 4].map((step) => (
+                            <div
+                              key={step}
+                              style={{
+                                height: '4px',
+                                flex: 1,
+                                borderRadius: '2px',
+                                backgroundColor: step <= passwordStrength.score
+                                  ? passwordStrength.score < 2
+                                    ? '#ef4444'
+                                    : passwordStrength.score < 4
+                                      ? '#f59e0b'
+                                      : '#10b981'
+                                  : '#e2e8f0'
+                              }}
+                            />
+                          ))}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: passwordStrength.isValid ? '#059669' : '#dc2626' }}>
+                          {passwordStrength.isValid ? '✓ Meets enterprise security strength requirements' : passwordStrength.feedback[0]}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Confirm New Password */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                      Confirm New Password *
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <Lock size={18} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '12px' }} />
+                      <input
+                        type={showNewPassword ? 'text' : 'password'}
+                        required
+                        value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                        placeholder="Re-enter your new password"
+                        style={{
+                          width: '100%',
+                          padding: '10px 12px 10px 38px',
+                          borderRadius: '8px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '0.95rem'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn btn-primary"
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                  >
+                    {loading ? (
+                      <>
+                        <RefreshCw size={16} className="animate-spin" />
+                        <span>Updating Password...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check size={16} />
+                        <span>Update Password & Sign In</span>
+                      </>
+                    )}
+                  </button>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                    <button
+                      type="button"
+                      onClick={() => { setForgotStep(1); setError(null); }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#64748b',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <ArrowLeft size={14} /> Change Email Address
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={resendTimer > 0 || loading}
+                      onClick={handleResendResetCode}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: resendTimer > 0 ? '#94a3b8' : '#0f3d3e',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        cursor: resendTimer > 0 ? 'not-allowed' : 'pointer',
+                        textDecoration: resendTimer > 0 ? 'none' : 'underline'
+                      }}
+                    >
+                      {resendTimer > 0 ? `Resend Code (${resendTimer}s)` : 'Resend Code'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* 3. REGISTRATION FORM                                                      */}
+          {/* ========================================================================= */}
+          {mode === 'register' && (
             <form onSubmit={handleRegisterSubmit} style={{ display: 'grid', gap: '14px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
@@ -432,7 +993,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onOp
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.83rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                  Email Address *
+                  Institutional / Organization Email *
                 </label>
                 <div style={{ position: 'relative' }}>
                   <Mail size={16} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '11px' }} />
@@ -441,7 +1002,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onOp
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="somchai.p@kmutnb.ac.th"
+                    placeholder="e.g. s.prasert@kmutnb.ac.th"
                     style={{
                       width: '100%',
                       padding: '8px 10px 8px 32px',
@@ -453,10 +1014,10 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onOp
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.83rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                    Organization / University *
+                    University / Organization *
                   </label>
                   <div style={{ position: 'relative' }}>
                     <Building size={16} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '11px' }} />
@@ -465,7 +1026,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onOp
                       required
                       value={organization}
                       onChange={(e) => setOrganization(e.target.value)}
-                      placeholder="KMUTNB"
+                      placeholder="e.g. KMUTNB, CIT"
                       style={{
                         width: '100%',
                         padding: '8px 10px 8px 32px',
@@ -479,7 +1040,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onOp
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.83rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                    Country *
+                    Country / Region *
                   </label>
                   <div style={{ position: 'relative' }}>
                     <Globe size={16} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '11px' }} />
@@ -501,69 +1062,95 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onOp
                 </div>
               </div>
 
-              {/* Password Creation with Security Standards Validator */}
               <div>
                 <label style={{ display: 'block', fontSize: '0.83rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                  Create Secure Password * (Encrypted in Firebase)
+                  Password *
                 </label>
                 <div style={{ position: 'relative' }}>
-                  <KeyRound size={16} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '11px' }} />
+                  <Lock size={16} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '11px' }} />
                   <input
                     type="password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Create a strong standard password"
+                    placeholder="Create a strong, secure password"
                     style={{
                       width: '100%',
                       padding: '8px 10px 8px 32px',
                       borderRadius: '6px',
-                      border: password ? (passwordStrength.isValid ? '1px solid #10b981' : '1px solid #f59e0b') : '1px solid #cbd5e1',
+                      border: '1px solid #cbd5e1',
                       fontSize: '0.9rem'
                     }}
                   />
                 </div>
 
+                {/* Password Strength Indicator */}
                 {password && (
-                  <div style={{
-                    marginTop: '8px',
-                    padding: '10px',
-                    backgroundColor: '#f8fafc',
-                    borderRadius: '6px',
-                    border: '1px solid #e2e8f0',
-                    fontSize: '0.78rem'
-                  }}>
-                    <span style={{ fontWeight: 600, color: passwordStrength.isValid ? '#059669' : '#d97706', display: 'block', marginBottom: '4px' }}>
-                      {passwordStrength.isValid ? '✓ Strong Password Criteria Met' : 'Password Standards Requirements:'}
-                    </span>
-                    <ul style={{ paddingLeft: '18px', margin: 0, color: '#64748b' }}>
-                      <li style={{ color: password.length >= 8 ? '#059669' : '#64748b' }}>At least 8 characters</li>
-                      <li style={{ color: /[A-Z]/.test(password) ? '#059669' : '#64748b' }}>At least 1 uppercase letter (A-Z)</li>
-                      <li style={{ color: /[a-z]/.test(password) ? '#059669' : '#64748b' }}>At least 1 lowercase letter (a-z)</li>
-                      <li style={{ color: /[0-9]/.test(password) ? '#059669' : '#64748b' }}>At least 1 number (0-9)</li>
-                      <li style={{ color: /[!@#$%^&*]/.test(password) ? '#059669' : '#64748b' }}>At least 1 symbol (!@#$%^&*)</li>
-                    </ul>
+                  <div style={{ marginTop: '8px' }}>
+                    <div style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
+                      {[1, 2, 3, 4].map((step) => (
+                        <div
+                          key={step}
+                          style={{
+                            height: '4px',
+                            flex: 1,
+                            borderRadius: '2px',
+                            backgroundColor: step <= passwordStrength.score
+                              ? passwordStrength.score < 2
+                                ? '#ef4444'
+                                : passwordStrength.score < 4
+                                  ? '#f59e0b'
+                                  : '#10b981'
+                              : '#e2e8f0'
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: passwordStrength.isValid ? '#059669' : '#dc2626' }}>
+                      {passwordStrength.isValid ? '✓ Strong password' : passwordStrength.feedback[0]}
+                    </div>
                   </div>
                 )}
               </div>
 
-              {/* CAPTCHA */}
+              {/* Bot Protection CAPTCHA */}
               <div style={{
-                padding: '10px 14px',
+                padding: '12px',
                 borderRadius: '8px',
                 backgroundColor: '#f8fafc',
                 border: '1px solid #e2e8f0'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#0f3d3e' }}>
-                    Security CAPTCHA:
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#0f3d3e', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Shield size={14} color="#f59e0b" /> Security Verification:
                   </span>
-                  <button type="button" onClick={refreshCaptcha} style={{ background: 'none', border: 'none', color: '#0f3d3e', cursor: 'pointer', fontSize: '0.75rem' }}>
-                    <RefreshCw size={12} /> New
+                  <button
+                    type="button"
+                    onClick={refreshCaptcha}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#0f3d3e',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.75rem'
+                    }}
+                  >
+                    <RefreshCw size={12} /> Refresh
                   </button>
                 </div>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <div style={{ padding: '6px 12px', backgroundColor: '#0f3d3e', color: '#fff', fontWeight: 700, borderRadius: '4px', fontSize: '0.9rem' }}>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <div style={{
+                    padding: '6px 14px',
+                    backgroundColor: '#0f3d3e',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    borderRadius: '6px',
+                    fontSize: '0.9rem',
+                    letterSpacing: '1px'
+                  }}>
                     {captchaChallenge.question}
                   </div>
                   <input
@@ -572,7 +1159,14 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onOp
                     value={captchaInput}
                     onChange={(e) => setCaptchaInput(e.target.value)}
                     placeholder="Answer"
-                    style={{ width: '80px', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1', textAlign: 'center' }}
+                    style={{
+                      width: '80px',
+                      padding: '6px 10px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.9rem',
+                      textAlign: 'center'
+                    }}
                   />
                 </div>
               </div>
