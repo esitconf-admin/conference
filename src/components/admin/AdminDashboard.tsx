@@ -516,14 +516,40 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
   };
 
   const handleSaveTracksAndGuidelines = async () => {
-    const success = await updateTracksAndGuidelines(tracksList, {
-      authorGuidelines: authorGuidelinesList,
-      reviewerGuidelines: reviewerGuidelinesList
+    // Deeply sanitize tracks: trim category strings, trim topic items, and discard empty topic lines
+    const cleanTracks = tracksList.map(t => ({
+      category: (t.category || '').trim(),
+      topics: (t.topics || [])
+        .map(topic => (topic || '').trim())
+        .filter(topic => topic.length > 0)
+    })).filter(t => t.category.length > 0 || t.topics.length > 0);
+
+    // Deeply sanitize author guidelines
+    const cleanAuthorGuidelines = authorGuidelinesList.map(g => ({
+      text: (g.text || '').trim(),
+      linkUrl: (g.linkUrl || '').trim(),
+      linkLabel: (g.linkLabel || '').trim()
+    })).filter(g => g.text.length > 0);
+
+    // Deeply sanitize reviewer guidelines
+    const cleanReviewerGuidelines = reviewerGuidelinesList.map(g => ({
+      text: (g.text || '').trim(),
+      linkUrl: (g.linkUrl || '').trim(),
+      linkLabel: (g.linkLabel || '').trim()
+    })).filter(g => g.text.length > 0);
+
+    setTracksList(cleanTracks);
+    setAuthorGuidelinesList(cleanAuthorGuidelines);
+    setReviewerGuidelinesList(cleanReviewerGuidelines);
+
+    const success = await updateTracksAndGuidelines(cleanTracks, {
+      authorGuidelines: cleanAuthorGuidelines,
+      reviewerGuidelines: cleanReviewerGuidelines
     });
     if (success) {
-      showSuccess('Conference tracks, Author guidelines, and Reviewer guidelines updated successfully!');
+      showSuccess('Conference tracks, Author guidelines, and Reviewer guidelines saved & recorded in live database successfully!');
     } else {
-      showError('Saved locally, but failed to write to live cloud database. Please verify your admin login.');
+      showError('Saved locally in browser, but failed to write to live cloud database. Please verify your Firebase admin login.');
     }
   };
 
@@ -542,6 +568,15 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     setTracksList(tracksList.filter((_, i) => i !== idx));
   };
 
+  const handleMoveTrack = (idx: number, dir: -1 | 1) => {
+    const targetIdx = idx + dir;
+    if (targetIdx < 0 || targetIdx >= tracksList.length) return;
+    const reordered = [...tracksList];
+    const [moved] = reordered.splice(idx, 1);
+    reordered.splice(targetIdx, 0, moved);
+    setTracksList(reordered);
+  };
+
   // Author guideline handlers
   const handleAddAuthorGuideline = () => {
     setAuthorGuidelinesList([
@@ -558,6 +593,15 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
     setAuthorGuidelinesList(authorGuidelinesList.filter((_, i) => i !== idx));
   };
 
+  const handleMoveAuthorGuideline = (idx: number, dir: -1 | 1) => {
+    const targetIdx = idx + dir;
+    if (targetIdx < 0 || targetIdx >= authorGuidelinesList.length) return;
+    const reordered = [...authorGuidelinesList];
+    const [moved] = reordered.splice(idx, 1);
+    reordered.splice(targetIdx, 0, moved);
+    setAuthorGuidelinesList(reordered);
+  };
+
   // Reviewer guideline handlers
   const handleAddReviewerGuideline = () => {
     setReviewerGuidelinesList([
@@ -572,6 +616,15 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
 
   const handleDeleteReviewerGuideline = (idx: number) => {
     setReviewerGuidelinesList(reviewerGuidelinesList.filter((_, i) => i !== idx));
+  };
+
+  const handleMoveReviewerGuideline = (idx: number, dir: -1 | 1) => {
+    const targetIdx = idx + dir;
+    if (targetIdx < 0 || targetIdx >= reviewerGuidelinesList.length) return;
+    const reordered = [...reviewerGuidelinesList];
+    const [moved] = reordered.splice(idx, 1);
+    reordered.splice(targetIdx, 0, moved);
+    setReviewerGuidelinesList(reordered);
   };
 
   // Date handlers
@@ -3622,25 +3675,85 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                         }}>
                           Track #{idx + 1}
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteTrack(idx)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#ef4444',
-                            cursor: 'pointer',
-                            padding: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            fontSize: '0.78rem'
-                          }}
-                          title="Delete Track"
-                        >
-                          <Trash2 size={16} />
-                          <span>Delete</span>
-                        </button>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {/* Move Track Up */}
+                          <button
+                            type="button"
+                            onClick={() => handleMoveTrack(idx, -1)}
+                            disabled={idx === 0}
+                            style={{
+                              background: '#ffffff',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: '6px',
+                              padding: '3px 8px',
+                              cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                              opacity: idx === 0 ? 0.35 : 1,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                              fontSize: '0.74rem',
+                              fontWeight: 600,
+                              color: '#334155'
+                            }}
+                            title="Move Track Up"
+                          >
+                            <ChevronUp size={13} />
+                            <span>Up</span>
+                          </button>
+
+                          {/* Move Track Down */}
+                          <button
+                            type="button"
+                            onClick={() => handleMoveTrack(idx, 1)}
+                            disabled={idx === tracksList.length - 1}
+                            style={{
+                              background: '#ffffff',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: '6px',
+                              padding: '3px 8px',
+                              cursor: idx === tracksList.length - 1 ? 'not-allowed' : 'pointer',
+                              opacity: idx === tracksList.length - 1 ? 0.35 : 1,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                              fontSize: '0.74rem',
+                              fontWeight: 600,
+                              color: '#334155'
+                            }}
+                            title="Move Track Down"
+                          >
+                            <ChevronDown size={13} />
+                            <span>Down</span>
+                          </button>
+
+                          {/* Delete Track */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm(`Are you sure you want to delete Track #${idx + 1}: "${track.category}"?`)) {
+                                handleDeleteTrack(idx);
+                              }
+                            }}
+                            style={{
+                              background: '#fef2f2',
+                              border: '1px solid #fecaca',
+                              borderRadius: '6px',
+                              color: '#ef4444',
+                              cursor: 'pointer',
+                              padding: '3px 8px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontSize: '0.74rem',
+                              fontWeight: 600
+                            }}
+                            title="Delete Track"
+                          >
+                            <Trash2 size={13} />
+                            <span>Delete</span>
+                          </button>
+                        </div>
                       </div>
 
                       <div>
@@ -3662,12 +3775,12 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                           <label style={labelStyle}>Research Topics (One per line)</label>
                           <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                            {track.topics.length} topics
+                            {(track.topics || []).length} topics
                           </span>
                         </div>
                         <textarea
                           rows={6}
-                          value={track.topics.join('\n')}
+                          value={(track.topics || []).join('\n')}
                           onChange={(e) => {
                             const lines = e.target.value.split('\n');
                             const updated = [...tracksList];
@@ -3761,21 +3874,66 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                             lineHeight: '1.5'
                           }}
                         />
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteAuthorGuideline(idx)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#ef4444',
-                            cursor: 'pointer',
-                            padding: '6px',
-                            marginTop: '4px'
-                          }}
-                          title="Delete Guideline"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '2px' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveAuthorGuideline(idx, -1)}
+                            disabled={idx === 0}
+                            style={{
+                              background: '#ffffff',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: '4px',
+                              color: idx === 0 ? '#cbd5e1' : '#475569',
+                              cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                              padding: '2px 4px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              opacity: idx === 0 ? 0.35 : 1
+                            }}
+                            title="Move Guideline Up"
+                          >
+                            <ChevronUp size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveAuthorGuideline(idx, 1)}
+                            disabled={idx === authorGuidelinesList.length - 1}
+                            style={{
+                              background: '#ffffff',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: '4px',
+                              color: idx === authorGuidelinesList.length - 1 ? '#cbd5e1' : '#475569',
+                              cursor: idx === authorGuidelinesList.length - 1 ? 'not-allowed' : 'pointer',
+                              padding: '2px 4px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              opacity: idx === authorGuidelinesList.length - 1 ? 0.35 : 1
+                            }}
+                            title="Move Guideline Down"
+                          >
+                            <ChevronDown size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteAuthorGuideline(idx)}
+                            style={{
+                              background: '#fef2f2',
+                              border: '1px solid #fecaca',
+                              borderRadius: '4px',
+                              color: '#ef4444',
+                              cursor: 'pointer',
+                              padding: '2px 4px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                            title="Delete Guideline"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </div>
 
                       {/* Attached URL Link & Button Label */}
@@ -3903,21 +4061,66 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                             lineHeight: '1.5'
                           }}
                         />
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteReviewerGuideline(idx)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#ef4444',
-                            cursor: 'pointer',
-                            padding: '6px',
-                            marginTop: '4px'
-                          }}
-                          title="Delete Guideline"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '2px' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveReviewerGuideline(idx, -1)}
+                            disabled={idx === 0}
+                            style={{
+                              background: '#ffffff',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: '4px',
+                              color: idx === 0 ? '#cbd5e1' : '#475569',
+                              cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                              padding: '2px 4px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              opacity: idx === 0 ? 0.35 : 1
+                            }}
+                            title="Move Guideline Up"
+                          >
+                            <ChevronUp size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveReviewerGuideline(idx, 1)}
+                            disabled={idx === reviewerGuidelinesList.length - 1}
+                            style={{
+                              background: '#ffffff',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: '4px',
+                              color: idx === reviewerGuidelinesList.length - 1 ? '#cbd5e1' : '#475569',
+                              cursor: idx === reviewerGuidelinesList.length - 1 ? 'not-allowed' : 'pointer',
+                              padding: '2px 4px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              opacity: idx === reviewerGuidelinesList.length - 1 ? 0.35 : 1
+                            }}
+                            title="Move Guideline Down"
+                          >
+                            <ChevronDown size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteReviewerGuideline(idx)}
+                            style={{
+                              background: '#fef2f2',
+                              border: '1px solid #fecaca',
+                              borderRadius: '4px',
+                              color: '#ef4444',
+                              cursor: 'pointer',
+                              padding: '2px 4px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                            title="Delete Guideline"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </div>
 
                       {/* Attached URL Link & Button Label */}

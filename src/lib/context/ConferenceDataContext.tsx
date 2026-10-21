@@ -80,6 +80,8 @@ export function ConferenceDataProvider({ children }: { children: React.ReactNode
               pricing: (data.pricing && data.pricing.length > 0) ? data.pricing : (initialConferenceData.pricing || []),
               sponsors: (data.sponsors && data.sponsors.length > 0) ? data.sponsors : (initialConferenceData.sponsors || []),
               previousConferences: (data.previousConferences && data.previousConferences.length > 0) ? data.previousConferences : (initialConferenceData.previousConferences || []),
+              authorGuidelines: (data.authorGuidelines && data.authorGuidelines.length > 0) ? data.authorGuidelines : (initialConferenceData.authorGuidelines || []),
+              reviewerGuidelines: (data.reviewerGuidelines && data.reviewerGuidelines.length > 0) ? data.reviewerGuidelines : (initialConferenceData.reviewerGuidelines || []),
             };
 
             setContent(mergedContent);

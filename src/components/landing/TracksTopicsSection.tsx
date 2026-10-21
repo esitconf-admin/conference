@@ -29,7 +29,7 @@ export default function TracksTopicsSection() {
           gap: '24px',
           marginBottom: '50px'
         }}>
-          {tracks.map((track, idx) => (
+          {(tracks || []).map((track, idx) => (
             <div
               key={idx}
               className="card"
@@ -50,7 +50,7 @@ export default function TracksTopicsSection() {
               </h3>
 
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: '10px' }}>
-                {track.topics.map((topic, tIdx) => (
+                {(track.topics || []).filter(t => Boolean(t && t.trim())).map((topic, tIdx) => (
                   <li key={tIdx} style={{
                     display: 'flex',
                     alignItems: 'flex-start',

@@ -207,7 +207,7 @@ sequenceDiagram
   2. `Important Dates`: Add, edit, reorder, or extend milestone deadlines.
   3. `News & Updates`: Publish news items with downloadable PDF attachments.
   4. `Keynotes`: Manage speakers, titles, bios, Google Drive photos, and presentation sequence (reorder via Up/Down buttons, position selector, or drag-and-drop cards).
-  5. `Tracks & Guidelines`: Configure categories, topics, and IEEE guidelines.
+  5. `Tracks & Guidelines`: Configure conference research tracks, dynamic topic lists (one per line with automatic blank-line sanitation), and IEEE author/reviewer submission guidelines with optional external links/labels. Supports track and guideline reordering (Up/Down) with live Firestore cloud persistence (`conference_content/main`) and immediate UI synchronization across landing page Call for Papers and the Manuscript Submission wizard.
   6. `Pricing & Bank`: Registration fees, bank name, account number, SWIFT code.
   7. `Committees`: Organize leadership, scientific, and organizing committees.
   8. `Venue & Travel`: Map URL, hotel info, airport transit instructions.
@@ -272,12 +272,12 @@ service cloud.firestore {
     }
 
     // 1. Public Content (Landing, Sponsors, Past Conferences)
-    match /conference_content/{document} {
+    match /conference_content/{document=**} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    match /previous_conferences/{document} {
+    match /previous_conferences/{document=**} {
       allow read: if true;
       allow write: if isAdmin();
     }
