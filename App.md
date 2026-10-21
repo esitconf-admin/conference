@@ -206,7 +206,7 @@ sequenceDiagram
   1. `Hero & Colors`: Title, dates, venue, and background color picker.
   2. `Important Dates`: Add, edit, reorder, or extend milestone deadlines.
   3. `News & Updates`: Publish news items with downloadable PDF attachments.
-  4. `Keynotes`: Manage speakers, titles, bios, and Google Drive photos.
+  4. `Keynotes`: Manage speakers, titles, bios, Google Drive photos, and presentation sequence (reorder via Up/Down buttons, position selector, or drag-and-drop cards).
   5. `Tracks & Guidelines`: Configure categories, topics, and IEEE guidelines.
   6. `Pricing & Bank`: Registration fees, bank name, account number, SWIFT code.
   7. `Committees`: Organize leadership, scientific, and organizing committees.

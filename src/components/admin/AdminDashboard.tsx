@@ -8,7 +8,7 @@ import {
   Globe, Share2, Copy, CheckCheck, ExternalLink, BarChart3, Activity,
   ArrowUpRight, CheckCircle, Clock, Folder, Star, Award, Layers, FileCheck, Check, Link as LinkIcon,
   Download, CreditCard, Building2, MapPin, Hotel, Plane, DollarSign, Navigation, Image as ImageIcon,
-  Ban, Unlock, Lock, UserX, Palette, ChevronUp, ChevronDown, History, BookOpen
+  Ban, Unlock, Lock, UserX, Palette, ChevronUp, ChevronDown, History, BookOpen, GripVertical
 } from 'lucide-react';
 import { useAuth } from '../../lib/context/AuthContext';
 import { useConferenceData } from '../../lib/context/ConferenceDataContext';
@@ -71,6 +71,8 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
   const [datesList, setDatesList] = useState<ImportantDateItem[]>(content.dates);
   const [newsList, setNewsList] = useState<NewsItem[]>(content.news);
   const [keynotesList, setKeynotesList] = useState<KeynoteSpeaker[]>(content.keynotes);
+  const [draggedKeynoteIdx, setDraggedKeynoteIdx] = useState<number | null>(null);
+  const [dragOverKeynoteIdx, setDragOverKeynoteIdx] = useState<number | null>(null);
   const [tracksList, setTracksList] = useState(content.tracks || []);
   const [pricingList, setPricingList] = useState<PricingTier[]>(content.pricing || []);
   const [bankForm, setBankForm] = useState<BankPaymentInfo>(content.bankInfo || {
@@ -587,6 +589,24 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
 
   const handleDeleteKeynote = (id: string) => {
     setKeynotesList(keynotesList.filter(k => k.id !== id));
+  };
+
+  const handleMoveKeynote = (idx: number, dir: -1 | 1) => {
+    const targetIdx = idx + dir;
+    if (targetIdx < 0 || targetIdx >= keynotesList.length) return;
+    const updated = [...keynotesList];
+    const temp = updated[idx];
+    updated[idx] = updated[targetIdx];
+    updated[targetIdx] = temp;
+    setKeynotesList(updated);
+  };
+
+  const handleReorderKeynote = (fromIdx: number, toIdx: number) => {
+    if (fromIdx === toIdx || fromIdx < 0 || fromIdx >= keynotesList.length || toIdx < 0 || toIdx >= keynotesList.length) return;
+    const updated = [...keynotesList];
+    const [movedItem] = updated.splice(fromIdx, 1);
+    updated.splice(toIdx, 0, movedItem);
+    setKeynotesList(updated);
   };
 
   // Pricing Handlers
@@ -2927,11 +2947,26 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
           {/* TAB 5: KEYNOTES */}
           {activeTab === 'keynotes' && (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>
-                  Manage keynote speakers, affiliations, research topics, and photos.
-                </p>
-                <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>
+                    Manage keynote speakers, affiliations, research topics, and presentation order.
+                  </p>
+                  <p style={{ margin: '4px 0 0 0', color: '#0f3d3e', fontSize: '0.8rem', fontWeight: 600 }}>
+                    💡 Tip: Reorder speakers using the <strong>Up / Down</strong> buttons, position dropdown, or drag cards via the handle. Remember to click <strong>Save Keynotes</strong>.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <span style={{
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    backgroundColor: '#e2e8f0',
+                    color: '#334155'
+                  }}>
+                    {keynotesList.length} {keynotesList.length === 1 ? 'Speaker' : 'Speakers'}
+                  </span>
                   <button onClick={handleAddKeynote} className="btn btn-outline-primary btn-sm">
                     <Plus size={16} /> Add Speaker
                   </button>
@@ -2942,213 +2977,431 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
               </div>
 
               <div style={{ display: 'grid', gap: '20px' }}>
-                {keynotesList.map((speaker, idx) => (
-                  <div
-                    key={speaker.id}
-                    style={{
-                      padding: '22px',
-                      borderRadius: '14px',
-                      border: '1px solid #cbd5e1',
-                      backgroundColor: '#ffffff',
-                      display: 'grid',
-                      gap: '14px',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
-                    }}
-                  >
-                    {/* Top Row: Name, Title/Role, Affiliation, Country & Delete */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1.1fr 1.3fr 0.9fr auto', gap: '12px', alignItems: 'flex-start' }}>
-                      <div>
-                        <label style={labelStyle}>Speaker Full Name & Title *</label>
-                        <input
-                          type="text"
-                          required
-                          value={speaker.name}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setKeynotesList(prev => prev.map((k, i) => i === idx ? { ...k, name: val } : k));
-                          }}
-                          style={inputStyle}
-                          placeholder="e.g. Prof. Dr. Jane Doe"
-                        />
-                      </div>
+                {keynotesList.length === 0 ? (
+                  <div style={{
+                    padding: '40px 20px',
+                    textAlign: 'center',
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '12px',
+                    border: '2px dashed #cbd5e1'
+                  }}>
+                    <Users size={36} color="#94a3b8" style={{ margin: '0 auto 12px' }} />
+                    <h4 style={{ margin: '0 0 6px 0', color: '#334155', fontSize: '1.05rem' }}>No Keynote Speakers Configured</h4>
+                    <p style={{ margin: '0 0 16px 0', color: '#64748b', fontSize: '0.88rem' }}>
+                      Click &ldquo;Add Speaker&rdquo; above to add your first keynote or invited speaker.
+                    </p>
+                    <button onClick={handleAddKeynote} className="btn btn-primary btn-sm">
+                      <Plus size={16} /> Add First Speaker
+                    </button>
+                  </div>
+                ) : (
+                  keynotesList.map((speaker, idx) => {
+                    const isDragging = draggedKeynoteIdx === idx;
+                    const isDragOver = dragOverKeynoteIdx === idx && draggedKeynoteIdx !== idx;
 
-                      <div>
-                        <label style={labelStyle}>Role / Position</label>
-                        <input
-                          type="text"
-                          value={speaker.title || ''}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setKeynotesList(prev => prev.map((k, i) => i === idx ? { ...k, title: val } : k));
-                          }}
-                          style={inputStyle}
-                          placeholder="e.g. Professor & Chair"
-                        />
-                      </div>
-
-                      <div>
-                        <label style={labelStyle}>Affiliation / University *</label>
-                        <input
-                          type="text"
-                          required
-                          value={speaker.affiliation}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setKeynotesList(prev => prev.map((k, i) => i === idx ? { ...k, affiliation: val } : k));
-                          }}
-                          style={inputStyle}
-                          placeholder="e.g. Technical University of Munich"
-                        />
-                      </div>
-
-                      <div>
-                        <label style={labelStyle}>Country *</label>
-                        <input
-                          type="text"
-                          required
-                          value={speaker.country}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setKeynotesList(prev => prev.map((k, i) => i === idx ? { ...k, country: val } : k));
-                          }}
-                          style={inputStyle}
-                          placeholder="e.g. Germany"
-                        />
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteKeynote(speaker.id)}
+                    return (
+                      <div
+                        key={speaker.id}
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('text/plain', idx.toString());
+                          e.dataTransfer.effectAllowed = 'move';
+                          setDraggedKeynoteIdx(idx);
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = 'move';
+                          if (dragOverKeynoteIdx !== idx) {
+                            setDragOverKeynoteIdx(idx);
+                          }
+                        }}
+                        onDragLeave={() => {
+                          if (dragOverKeynoteIdx === idx) {
+                            setDragOverKeynoteIdx(null);
+                          }
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const fromIdxStr = e.dataTransfer.getData('text/plain');
+                          const fromIdx = parseInt(fromIdxStr, 10);
+                          if (!isNaN(fromIdx) && fromIdx !== idx) {
+                            handleReorderKeynote(fromIdx, idx);
+                          }
+                          setDraggedKeynoteIdx(null);
+                          setDragOverKeynoteIdx(null);
+                        }}
+                        onDragEnd={() => {
+                          setDraggedKeynoteIdx(null);
+                          setDragOverKeynoteIdx(null);
+                        }}
                         style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#ef4444',
-                          cursor: 'pointer',
-                          padding: '6px',
-                          marginTop: '22px'
+                          padding: '20px 22px',
+                          borderRadius: '14px',
+                          border: isDragOver
+                            ? '2px dashed #0f3d3e'
+                            : isDragging
+                            ? '1px dashed #94a3b8'
+                            : '1px solid #cbd5e1',
+                          backgroundColor: isDragOver ? '#f0fdfa' : '#ffffff',
+                          opacity: isDragging ? 0.5 : 1,
+                          display: 'grid',
+                          gap: '14px',
+                          boxShadow: isDragOver
+                            ? '0 6px 16px rgba(15, 61, 62, 0.15)'
+                            : '0 2px 8px rgba(0,0,0,0.04)',
+                          transition: 'border 0.2s, background-color 0.2s, box-shadow 0.2s'
                         }}
-                        title="Delete Speaker"
                       >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-
-                    {/* Presentation Topic */}
-                    <div>
-                      <label style={labelStyle}>Presentation Topic / Keynote Title *</label>
-                      <input
-                        type="text"
-                        required
-                        value={speaker.topic}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setKeynotesList(prev => prev.map((k, i) => i === idx ? { ...k, topic: val } : k));
-                        }}
-                        style={inputStyle}
-                        placeholder="e.g. AI-Driven Sustainable Smart Grids and Green Power Systems"
-                      />
-                    </div>
-
-                    {/* Abstract & Bio */}
-                    <div>
-                      <label style={labelStyle}>Speech Abstract / Speaker Bio (Optional)</label>
-                      <textarea
-                        rows={2}
-                        value={speaker.abstract || ''}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setKeynotesList(prev => prev.map((k, i) => i === idx ? { ...k, abstract: val } : k));
-                        }}
-                        style={{ ...inputStyle, fontFamily: 'inherit' }}
-                        placeholder="Brief summary of the keynote speech or speaker's biographical background..."
-                      />
-                    </div>
-
-                    {/* Speaker Profile Picture URL & Google Drive Image Box */}
-                    <div style={{
-                      padding: '14px',
-                      backgroundColor: '#f8fafc',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '10px',
-                      display: 'grid',
-                      gap: '10px'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                        <label style={{ ...labelStyle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <ImageIcon size={15} color="#0f3d3e" />
-                          <span>Speaker Profile Picture URL (Google Drive Supported)</span>
-                        </label>
-                        {isGoogleDriveUrl(speaker.imageUrl) && (
-                          <span style={{
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            backgroundColor: '#ecfdf5',
-                            color: '#047857',
-                            padding: '2px 8px',
-                            borderRadius: '4px',
-                            border: '1px solid #a7f3d0'
-                          }}>
-                            ✨ Google Drive Link Detected & Auto-Converted
-                          </span>
-                        )}
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '14px', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <div style={{ flex: 1, minWidth: '260px' }}>
-                          <input
-                            type="text"
-                            value={speaker.imageUrl || ''}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setKeynotesList(prev => prev.map((k, i) => i === idx ? { ...k, imageUrl: val } : k));
-                            }}
-                            style={inputStyle}
-                            placeholder="Paste direct photo URL or Google Drive sharing link (e.g. https://drive.google.com/file/d/.../view)"
-                          />
-                          <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
-                            💡 Paste any Google Drive link directly (ensure sharing is set to <em>&quot;Anyone with the link can view&quot;</em>).
-                          </span>
-                        </div>
-
-                        {/* Live Photo Thumbnail Preview */}
+                        {/* Card Header Bar with Reordering & Actions */}
                         <div style={{
                           display: 'flex',
+                          justifyContent: 'space-between',
                           alignItems: 'center',
-                          gap: '10px',
-                          padding: '6px 10px',
-                          backgroundColor: '#ffffff',
-                          borderRadius: '8px',
-                          border: '1px solid #cbd5e1'
+                          paddingBottom: '12px',
+                          borderBottom: '1px solid #f1f5f9',
+                          flexWrap: 'wrap',
+                          gap: '10px'
                         }}>
-                          <div style={{
-                            position: 'relative',
-                            width: '46px',
-                            height: '46px',
-                            borderRadius: '50%',
-                            overflow: 'hidden',
-                            backgroundColor: '#092c2c',
-                            border: '2px solid #f59e0b',
-                            flexShrink: 0
-                          }}>
-                            <Image
-                              src={formatGoogleDriveImageUrl(speaker.imageUrl) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'}
-                              alt={speaker.name || 'Keynote Speaker'}
-                              fill
-                              style={{ objectFit: 'cover' }}
-                              unoptimized
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            {/* Drag handle */}
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                cursor: 'grab',
+                                color: '#94a3b8',
+                                padding: '2px'
+                              }}
+                              title="Drag to reorder speaker"
+                            >
+                              <GripVertical size={18} />
+                            </div>
+
+                            {/* Order Badge */}
+                            <span style={{
+                              backgroundColor: '#0f3d3e',
+                              color: '#ffffff',
+                              minWidth: '26px',
+                              height: '26px',
+                              padding: '0 6px',
+                              borderRadius: '6px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '0.78rem',
+                              fontWeight: 700
+                            }}>
+                              #{idx + 1}
+                            </span>
+
+                            <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.98rem' }}>
+                              {speaker.name || `Keynote Speaker #${idx + 1}`}
+                            </span>
+
+                            {speaker.country && (
+                              <span style={{
+                                backgroundColor: '#f1f5f9',
+                                color: '#475569',
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                fontSize: '0.74rem',
+                                fontWeight: 600
+                              }}>
+                                {speaker.country}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Reorder and Delete Controls */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            {/* Quick Position Selector */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Pos:</span>
+                              <select
+                                value={idx}
+                                onChange={(e) => {
+                                  const targetPos = parseInt(e.target.value, 10);
+                                  handleReorderKeynote(idx, targetPos);
+                                }}
+                                style={{
+                                  padding: '4px 8px',
+                                  fontSize: '0.78rem',
+                                  borderRadius: '6px',
+                                  border: '1px solid #cbd5e1',
+                                  backgroundColor: '#f8fafc',
+                                  color: '#1e293b',
+                                  cursor: 'pointer',
+                                  fontWeight: 700
+                                }}
+                                title="Jump to position"
+                              >
+                                {keynotesList.map((_, pIdx) => (
+                                  <option key={pIdx} value={pIdx}>
+                                    #{pIdx + 1}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {/* Move Up */}
+                            <button
+                              type="button"
+                              onClick={() => handleMoveKeynote(idx, -1)}
+                              disabled={idx === 0}
+                              style={{
+                                background: '#f8fafc',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '6px',
+                                padding: '5px 10px',
+                                cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                                opacity: idx === 0 ? 0.35 : 1,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontSize: '0.78rem',
+                                fontWeight: 600,
+                                color: '#334155'
+                              }}
+                              title="Move Speaker Up"
+                            >
+                              <ChevronUp size={14} />
+                              <span>Up</span>
+                            </button>
+
+                            {/* Move Down */}
+                            <button
+                              type="button"
+                              onClick={() => handleMoveKeynote(idx, 1)}
+                              disabled={idx === keynotesList.length - 1}
+                              style={{
+                                background: '#f8fafc',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '6px',
+                                padding: '5px 10px',
+                                cursor: idx === keynotesList.length - 1 ? 'not-allowed' : 'pointer',
+                                opacity: idx === keynotesList.length - 1 ? 0.35 : 1,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontSize: '0.78rem',
+                                fontWeight: 600,
+                                color: '#334155'
+                              }}
+                              title="Move Speaker Down"
+                            >
+                              <ChevronDown size={14} />
+                              <span>Down</span>
+                            </button>
+
+                            {/* Delete Speaker */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (confirm(`Are you sure you want to remove keynote speaker "${speaker.name}"?`)) {
+                                  handleDeleteKeynote(speaker.id);
+                                }
+                              }}
+                              style={{
+                                background: '#fef2f2',
+                                border: '1px solid #fecaca',
+                                borderRadius: '6px',
+                                color: '#ef4444',
+                                padding: '5px 10px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontSize: '0.78rem',
+                                fontWeight: 600
+                              }}
+                              title="Delete Speaker"
+                            >
+                              <Trash2 size={14} />
+                              <span>Delete</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Top Row: Name, Title/Role, Affiliation, Country */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', alignItems: 'flex-start' }}>
+                          <div>
+                            <label style={labelStyle}>Speaker Full Name & Title *</label>
+                            <input
+                              type="text"
+                              required
+                              value={speaker.name}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setKeynotesList(prev => prev.map((k, i) => i === idx ? { ...k, name: val } : k));
+                              }}
+                              style={inputStyle}
+                              placeholder="e.g. Prof. Dr. Jane Doe"
                             />
                           </div>
-                          <div style={{ fontSize: '0.75rem' }}>
-                            <div style={{ fontWeight: 700, color: '#0f3d3e' }}>Live Photo Preview</div>
-                            <div style={{ color: '#64748b', fontSize: '0.7rem' }}>
-                              {speaker.imageUrl ? 'Active Stream' : 'Default Avatar'}
+
+                          <div>
+                            <label style={labelStyle}>Role / Position</label>
+                            <input
+                              type="text"
+                              value={speaker.title || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setKeynotesList(prev => prev.map((k, i) => i === idx ? { ...k, title: val } : k));
+                              }}
+                              style={inputStyle}
+                              placeholder="e.g. Professor & Chair"
+                            />
+                          </div>
+
+                          <div>
+                            <label style={labelStyle}>Affiliation / University *</label>
+                            <input
+                              type="text"
+                              required
+                              value={speaker.affiliation}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setKeynotesList(prev => prev.map((k, i) => i === idx ? { ...k, affiliation: val } : k));
+                              }}
+                              style={inputStyle}
+                              placeholder="e.g. Technical University of Munich"
+                            />
+                          </div>
+
+                          <div>
+                            <label style={labelStyle}>Country *</label>
+                            <input
+                              type="text"
+                              required
+                              value={speaker.country}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setKeynotesList(prev => prev.map((k, i) => i === idx ? { ...k, country: val } : k));
+                              }}
+                              style={inputStyle}
+                              placeholder="e.g. Germany"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Presentation Topic */}
+                        <div>
+                          <label style={labelStyle}>Presentation Topic / Keynote Title *</label>
+                          <input
+                            type="text"
+                            required
+                            value={speaker.topic}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setKeynotesList(prev => prev.map((k, i) => i === idx ? { ...k, topic: val } : k));
+                            }}
+                            style={inputStyle}
+                            placeholder="e.g. AI-Driven Sustainable Smart Grids and Green Power Systems"
+                          />
+                        </div>
+
+                        {/* Abstract & Bio */}
+                        <div>
+                          <label style={labelStyle}>Speech Abstract / Speaker Bio (Optional)</label>
+                          <textarea
+                            rows={2}
+                            value={speaker.abstract || ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setKeynotesList(prev => prev.map((k, i) => i === idx ? { ...k, abstract: val } : k));
+                            }}
+                            style={{ ...inputStyle, fontFamily: 'inherit' }}
+                            placeholder="Brief summary of the keynote speech or speaker's biographical background..."
+                          />
+                        </div>
+
+                        {/* Speaker Profile Picture URL & Google Drive Image Box */}
+                        <div style={{
+                          padding: '14px',
+                          backgroundColor: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '10px',
+                          display: 'grid',
+                          gap: '10px'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                            <label style={{ ...labelStyle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <ImageIcon size={15} color="#0f3d3e" />
+                              <span>Speaker Profile Picture URL (Google Drive Supported)</span>
+                            </label>
+                            {isGoogleDriveUrl(speaker.imageUrl) && (
+                              <span style={{
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                backgroundColor: '#ecfdf5',
+                                color: '#047857',
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                border: '1px solid #a7f3d0'
+                              }}>
+                                ✨ Google Drive Link Detected & Auto-Converted
+                              </span>
+                            )}
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '14px', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <div style={{ flex: 1, minWidth: '260px' }}>
+                              <input
+                                type="text"
+                                value={speaker.imageUrl || ''}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setKeynotesList(prev => prev.map((k, i) => i === idx ? { ...k, imageUrl: val } : k));
+                                }}
+                                style={inputStyle}
+                                placeholder="Paste direct photo URL or Google Drive sharing link (e.g. https://drive.google.com/file/d/.../view)"
+                              />
+                              <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
+                                💡 Paste any Google Drive link directly (ensure sharing is set to <em>&quot;Anyone with the link can view&quot;</em>).
+                              </span>
+                            </div>
+
+                            {/* Live Photo Thumbnail Preview */}
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              padding: '6px 10px',
+                              backgroundColor: '#ffffff',
+                              borderRadius: '8px',
+                              border: '1px solid #cbd5e1'
+                            }}>
+                              <div style={{
+                                position: 'relative',
+                                width: '46px',
+                                height: '46px',
+                                borderRadius: '50%',
+                                overflow: 'hidden',
+                                backgroundColor: '#092c2c',
+                                border: '2px solid #f59e0b',
+                                flexShrink: 0
+                              }}>
+                                <Image
+                                  src={formatGoogleDriveImageUrl(speaker.imageUrl) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'}
+                                  alt={speaker.name || 'Keynote Speaker'}
+                                  fill
+                                  style={{ objectFit: 'cover' }}
+                                  unoptimized
+                                />
+                              </div>
+                              <div style={{ fontSize: '0.75rem' }}>
+                                <div style={{ fontWeight: 700, color: '#0f3d3e' }}>Live Photo Preview</div>
+                                <div style={{ color: '#64748b', fontSize: '0.7rem' }}>
+                                  {speaker.imageUrl ? 'Active Stream' : 'Default Avatar'}
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    );
+                  })
+                )}
               </div>
             </div>
           )}
