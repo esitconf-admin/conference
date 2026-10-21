@@ -155,6 +155,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             localStorage.setItem(LOCAL_STORAGE_CURRENT_KEY, JSON.stringify(profile));
           }
           return { success: true };
+        } else {
+          // Auto-create user profile in Firestore if created directly in Auth console
+          const isSeedAdmin = trimmedEmail === 'admin@conference.org' || trimmedEmail === 'esitconf@gmail.com' || trimmedEmail.startsWith('admin@');
+          const newProfile: UserProfile = {
+            uid: cred.user.uid,
+            firstName: cred.user.displayName ? cred.user.displayName.split(' ')[0] : 'Admin',
+            lastName: cred.user.displayName ? cred.user.displayName.split(' ').slice(1).join(' ') : 'User',
+            email: trimmedEmail,
+            organization: 'Conference Secretariat',
+            country: 'Thailand',
+            roles: isSeedAdmin ? ['admin', 'author'] : ['author'],
+            status: 'active',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            pdpaConsent: true,
+            pdpaConsentDate: new Date().toISOString()
+          };
+          try {
+            await setDoc(doc(db, 'users', cred.user.uid), newProfile);
+          } catch (docErr) {
+            console.warn('Could not auto-create user document in Firestore:', docErr);
+          }
+          setCurrentUser(newProfile);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(LOCAL_STORAGE_CURRENT_KEY, JSON.stringify(newProfile));
+          }
+          return { success: true };
         }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Invalid credentials';

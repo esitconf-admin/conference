@@ -66,13 +66,29 @@ export function ConferenceDataProvider({ children }: { children: React.ReactNode
           const snap = await getDoc(docRef);
           if (snap.exists()) {
             const data = snap.data() as ConferenceContent;
-            setContent(data);
+
+            // Critical merge: Ensure fallback to initial data if database arrays are empty or missing
+            const mergedContent: ConferenceContent = {
+              ...initialConferenceData,
+              ...data,
+              hero: { ...initialConferenceData.hero, ...(data.hero || {}) },
+              dates: (data.dates && data.dates.length > 0) ? data.dates : initialConferenceData.dates,
+              news: (data.news && data.news.length > 0) ? data.news : initialConferenceData.news,
+              keynotes: (data.keynotes && data.keynotes.length > 0) ? data.keynotes : initialConferenceData.keynotes,
+              tracks: (data.tracks && data.tracks.length > 0) ? data.tracks : initialConferenceData.tracks,
+              committees: (data.committees && data.committees.length > 0) ? data.committees : initialConferenceData.committees,
+              pricing: (data.pricing && data.pricing.length > 0) ? data.pricing : (initialConferenceData.pricing || []),
+              sponsors: (data.sponsors && data.sponsors.length > 0) ? data.sponsors : (initialConferenceData.sponsors || []),
+              previousConferences: (data.previousConferences && data.previousConferences.length > 0) ? data.previousConferences : (initialConferenceData.previousConferences || []),
+            };
+
+            setContent(mergedContent);
             if (typeof window !== 'undefined') {
-              localStorage.setItem(LOCAL_STORAGE_CMS_KEY, JSON.stringify(data));
+              localStorage.setItem(LOCAL_STORAGE_CMS_KEY, JSON.stringify(mergedContent));
             }
           } else {
             // Seed Firestore with initial data
-            await setDoc(docRef, initialConferenceData);
+            await setDoc(docRef, JSON.parse(JSON.stringify(initialConferenceData)));
           }
         } catch (e) {
           console.warn('Firestore load failed, using local content:', e);
@@ -87,27 +103,31 @@ export function ConferenceDataProvider({ children }: { children: React.ReactNode
   const saveContent = async (
     updater: ConferenceContent | ((prev: ConferenceContent) => ConferenceContent)
   ): Promise<boolean> => {
-    return new Promise<boolean>((resolve) => {
-      setContent(prev => {
-        const next = typeof updater === 'function' ? updater(prev) : updater;
-        const updated: ConferenceContent = {
-          ...next,
-          updatedAt: new Date().toISOString()
-        };
-
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(LOCAL_STORAGE_CMS_KEY, JSON.stringify(updated));
-        }
-
-        if (isFirebaseConfigured && db) {
-          setDoc(doc(db, 'conference_content', 'main'), updated, { merge: true })
-            .catch(err => console.error('Error writing to Firestore:', err));
-        }
-
-        resolve(true);
-        return updated;
-      });
+    let updatedContent: ConferenceContent;
+    setContent(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      updatedContent = {
+        ...next,
+        updatedAt: new Date().toISOString()
+      };
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(LOCAL_STORAGE_CMS_KEY, JSON.stringify(updatedContent));
+      }
+      return updatedContent;
     });
+
+    if (isFirebaseConfigured && db) {
+      try {
+        const sanitized = JSON.parse(JSON.stringify(updatedContent!));
+        await setDoc(doc(db, 'conference_content', 'main'), sanitized, { merge: true });
+        return true;
+      } catch (err: unknown) {
+        console.error('Error writing to Firestore:', err);
+        return false;
+      }
+    }
+
+    return true;
   };
 
   const updateHero = async (

@@ -36,7 +36,7 @@ const LOCAL_STORAGE_TEMPLATES_KEY = 'esit_conference_email_templates';
 const ESIT_DRIVE_FOLDER_URL = 'https://drive.google.com/drive/folders/1A7BPBWVm812p34MAwF06r5G-g-YRP9Od';
 
 export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: AdminDashboardProps) {
-  const { currentUser, isAdmin, allUsers, toggleReviewerRole, toggleUserStatus, deleteUser, fetchAllUsers } = useAuth();
+  const { currentUser, firebaseUser, isAdmin, allUsers, toggleReviewerRole, toggleUserStatus, deleteUser, fetchAllUsers } = useAuth();
   const {
     content,
     updateHero,
@@ -58,6 +58,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
 
   const [activeTab, setActiveTab] = useState<'overview' | 'hero' | 'dates' | 'news' | 'keynotes' | 'tracks' | 'pricing' | 'bank' | 'committees' | 'venue' | 'sponsors' | 'previousConferences' | 'submissions' | 'users' | 'templates' | 'seo' | 'email'>('overview');
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Submissions State (Firestore & Google Drive)
   const [submissionsList, setSubmissionsList] = useState<ManuscriptSubmission[]>([]);
@@ -371,7 +372,14 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
 
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);
-    setTimeout(() => setSuccessMsg(null), 3500);
+    setErrorMsg(null);
+    setTimeout(() => setSuccessMsg(null), 4000);
+  };
+
+  const showError = (msg: string) => {
+    setErrorMsg(msg);
+    setSuccessMsg(null);
+    setTimeout(() => setErrorMsg(null), 7000);
   };
 
   if (!isOpen) return null;
@@ -446,8 +454,12 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
       posterContainerBgColor: heroForm.posterContainerBgColor || '#092c2c'
     };
     setHeroForm(cleanHero);
-    await updateHero(cleanHero, contactForm);
-    showSuccess('Hero banner, background colors, poster image, and contact info updated successfully!');
+    const success = await updateHero(cleanHero, contactForm);
+    if (success) {
+      showSuccess('Hero banner, background colors, poster image, and contact info updated successfully!');
+    } else {
+      showError('Saved locally, but failed to write to live cloud database. Please verify your admin login.');
+    }
   };
 
   const handleSaveSEO = async (e: React.FormEvent) => {
@@ -457,36 +469,62 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
       ogImageUrl: formatGoogleDriveImageUrl(seoForm.ogImageUrl)
     };
     setSeoForm(cleanSEO);
-    await updateSEO(cleanSEO);
-    showSuccess('SEO & Social Share Preview metadata updated successfully!');
+    const success = await updateSEO(cleanSEO);
+    if (success) {
+      showSuccess('SEO & Social Share Preview metadata updated successfully!');
+    } else {
+      showError('Saved locally, but failed to write to live cloud database. Please verify your admin login.');
+    }
   };
 
   const handleSaveDates = async () => {
-    await updateImportantDates(datesList);
-    showSuccess('Important dates timeline updated successfully!');
+    const success = await updateImportantDates(datesList);
+    if (success) {
+      showSuccess('Important dates timeline updated successfully!');
+    } else {
+      showError('Saved locally, but failed to write to live cloud database. Please verify your admin login.');
+    }
   };
 
   const handleSaveNews = async () => {
-    await updateNewsList(newsList);
-    showSuccess('News and announcements updated successfully!');
+    const success = await updateNewsList(newsList);
+    if (success) {
+      showSuccess('News and announcements updated successfully!');
+    } else {
+      showError('Saved locally, but failed to write to live cloud database. Please verify your admin login.');
+    }
   };
 
   const handleSaveKeynotes = async () => {
     const cleanKeynotes = keynotesList.map(k => ({
       ...k,
+      name: k.name?.trim() || '',
+      title: k.title?.trim() || '',
+      affiliation: k.affiliation?.trim() || '',
+      country: k.country?.trim() || '',
+      topic: k.topic?.trim() || '',
+      abstract: k.abstract?.trim() || '',
       imageUrl: formatGoogleDriveImageUrl(k.imageUrl)
     }));
     setKeynotesList(cleanKeynotes);
-    await updateKeynotes(cleanKeynotes);
-    showSuccess('Keynote speakers updated successfully!');
+    const success = await updateKeynotes(cleanKeynotes);
+    if (success) {
+      showSuccess('Keynote speakers saved & recorded in live database successfully!');
+    } else {
+      showError('Saved locally in browser, but failed to write to live cloud database. Please verify your Firebase admin login.');
+    }
   };
 
   const handleSaveTracksAndGuidelines = async () => {
-    await updateTracksAndGuidelines(tracksList, {
+    const success = await updateTracksAndGuidelines(tracksList, {
       authorGuidelines: authorGuidelinesList,
       reviewerGuidelines: reviewerGuidelinesList
     });
-    showSuccess('Conference tracks, Author guidelines, and Reviewer guidelines updated successfully!');
+    if (success) {
+      showSuccess('Conference tracks, Author guidelines, and Reviewer guidelines updated successfully!');
+    } else {
+      showError('Saved locally, but failed to write to live cloud database. Please verify your admin login.');
+    }
   };
 
   // Track handlers
@@ -612,8 +650,12 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
   // Pricing Handlers
   const handleSavePricing = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    await updatePricing(pricingList);
-    showSuccess('Registration pricing tiers updated successfully!');
+    const success = await updatePricing(pricingList);
+    if (success) {
+      showSuccess('Registration pricing tiers updated & recorded in database successfully!');
+    } else {
+      showError('Saved locally in browser, but failed to write to live cloud database. Please verify your admin login.');
+    }
   };
 
   const handleAddPricingTier = () => {
@@ -641,15 +683,33 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
   // Bank Payment Info Handlers
   const handleSaveBankInfo = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    await updateBankInfo(bankForm);
-    showSuccess('Bank transfer and payment details updated successfully!');
+    const success = await updateBankInfo(bankForm);
+    if (success) {
+      showSuccess('Bank transfer and payment details updated & recorded in database successfully!');
+    } else {
+      showError('Saved locally in browser, but failed to write to live cloud database. Please verify your admin login.');
+    }
   };
 
   // Committee Handlers
   const handleSaveCommittees = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    await updateCommittees(committeesList);
-    showSuccess('Conference committee groups and members updated successfully!');
+    const cleanCommittees = committeesList.map(group => ({
+      ...group,
+      subtitle: group.subtitle?.trim() || '',
+      members: (group.members || []).map(m => ({
+        name: m.name?.trim() || '',
+        affiliation: m.affiliation?.trim() || '',
+        role: m.role?.trim() || ''
+      }))
+    }));
+    setCommitteesList(cleanCommittees);
+    const success = await updateCommittees(cleanCommittees);
+    if (success) {
+      showSuccess('Conference committee groups and members saved & recorded in live database successfully!');
+    } else {
+      showError('Saved locally in browser, but failed to write to live cloud database. Please verify your Firebase admin login.');
+    }
   };
 
   const handleAddCommitteeGroup = () => {
@@ -700,8 +760,12 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
       imageUrl: formatGoogleDriveImageUrl(venueForm.imageUrl)
     };
     setVenueForm(cleanVenue);
-    await updateVenue(cleanVenue);
-    showSuccess('Conference venue, travel, accommodation, and map details updated successfully!');
+    const success = await updateVenue(cleanVenue);
+    if (success) {
+      showSuccess('Conference venue, travel, accommodation, and map details updated successfully!');
+    } else {
+      showError('Saved locally in browser, but failed to write to live cloud database.');
+    }
   };
 
   // Sponsor Handlers
@@ -712,8 +776,12 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
       logoUrl: formatGoogleDriveImageUrl(s.logoUrl)
     }));
     setSponsorsList(cleanSponsors);
-    await updateSponsors(cleanSponsors);
-    showSuccess('Sponsors, organizers, and partner logos updated successfully!');
+    const success = await updateSponsors(cleanSponsors);
+    if (success) {
+      showSuccess('Sponsors, organizers, and partner logos updated successfully!');
+    } else {
+      showError('Saved locally in browser, but failed to write to live cloud database.');
+    }
   };
 
   const handleAddSponsor = () => {
@@ -753,8 +821,12 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
       imageFolderUrl: c.imageFolderUrl?.trim() || ''
     }));
     setPreviousConferencesList(cleanList);
-    await updatePreviousConferences(cleanList);
-    showSuccess('Previous conferences and proceedings archive updated successfully!');
+    const success = await updatePreviousConferences(cleanList);
+    if (success) {
+      showSuccess('Previous conferences and proceedings archive updated successfully!');
+    } else {
+      showError('Saved locally in browser, but failed to write to live cloud database.');
+    }
   };
 
   const handleAddPreviousConference = () => {
@@ -1233,6 +1305,48 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
           </button>
         </div>
 
+        {/* Offline / Local Simulation Mode Warning Banner */}
+        {!firebaseUser && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            padding: '10px 24px',
+            backgroundColor: '#fffbeb',
+            color: '#92400e',
+            borderBottom: '1px solid #fde68a',
+            fontSize: '0.84rem',
+            fontWeight: 600,
+            flexShrink: 0,
+            flexWrap: 'wrap'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <AlertCircle size={18} color="#d97706" />
+              <span>
+                <strong>Offline Simulation Mode:</strong> You are not signed into Firebase Cloud Auth. Edits will only persist in your local browser cache and cannot be written to the live cloud database.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={onRequireAuth}
+              style={{
+                backgroundColor: '#b45309',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '6px 12px',
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                fontWeight: 700,
+                whiteSpace: 'nowrap'
+              }}
+            >
+              Sign In to Cloud Database
+            </button>
+          </div>
+        )}
+
         {/* Success Alert Banner */}
         {successMsg && (
           <div style={{
@@ -1249,6 +1363,25 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
           }}>
             <CheckCircle2 size={18} />
             <span>{successMsg}</span>
+          </div>
+        )}
+
+        {/* Error Alert Banner */}
+        {errorMsg && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 24px',
+            backgroundColor: '#fef2f2',
+            color: '#b91c1c',
+            borderBottom: '1px solid #fecaca',
+            fontSize: '0.88rem',
+            fontWeight: 600,
+            flexShrink: 0
+          }}>
+            <AlertCircle size={18} />
+            <span>{errorMsg}</span>
           </div>
         )}
 
