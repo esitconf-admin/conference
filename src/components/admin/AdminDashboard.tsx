@@ -6059,7 +6059,7 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
               ? Math.round((acceptedCount / totalSubmissions) * 100)
               : 0;
 
-            const trackCounts = content.tracks.map(t => ({
+            const trackCounts = (content.tracks || []).map(t => ({
               category: t.category,
               count: submissionsList.filter(s => s.track === t.category).length
             }));

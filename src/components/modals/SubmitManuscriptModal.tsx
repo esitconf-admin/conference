@@ -401,16 +401,20 @@ export default function SubmitManuscriptModal({ isOpen, onClose, onRequireAuth }
                     color: '#0f3d3e'
                   }}
                 >
-                  {content.tracks.map((t, idx) => (
-                    <option key={idx} value={t.category}>
-                      Track {idx + 1}: {t.category}
-                    </option>
-                  ))}
+                  {(content.tracks || []).map((t, idx) => {
+                    const cleanTitle = (t.category || '').replace(/^track\s*\d+[:\s-]*/i, '').trim();
+                    const displayText = cleanTitle ? `Track ${idx + 1}: ${cleanTitle}` : (t.category || `Track ${idx + 1}`);
+                    return (
+                      <option key={idx} value={t.category}>
+                        {displayText}
+                      </option>
+                    );
+                  })}
                 </select>
 
                 {/* Sub-topics helper preview */}
                 {(() => {
-                  const currentTrackObj = content.tracks.find(t => t.category === track) || content.tracks[0];
+                  const currentTrackObj = (content.tracks || []).find(t => t.category === track) || (content.tracks || [])[0];
                   if (!currentTrackObj || !currentTrackObj.topics || currentTrackObj.topics.length === 0) return null;
                   return (
                     <div style={{
