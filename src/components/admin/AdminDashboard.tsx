@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X, Shield, Edit3, Calendar, Bell, Users, Save, CheckCircle2,
   Trash2, Plus, RefreshCw, Send, Mail, AlertCircle, FileText,
@@ -8,7 +8,8 @@ import {
   Globe, Share2, Copy, CheckCheck, ExternalLink, BarChart3, Activity,
   ArrowUpRight, CheckCircle, Clock, Folder, Star, Award, Layers, FileCheck, Check, Link as LinkIcon,
   Download, CreditCard, Building2, MapPin, Hotel, Plane, DollarSign, Navigation, Image as ImageIcon,
-  Ban, Unlock, Lock, UserX, Palette, ChevronUp, ChevronDown, History, BookOpen, GripVertical
+  Ban, Unlock, Lock, UserX, Palette, ChevronUp, ChevronDown, History, BookOpen, GripVertical,
+  ChevronLeft, ChevronRight, LayoutGrid
 } from 'lucide-react';
 import { useAuth } from '../../lib/context/AuthContext';
 import { useConferenceData } from '../../lib/context/ConferenceDataContext';
@@ -57,8 +58,35 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
   } = useConferenceData();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'hero' | 'dates' | 'news' | 'keynotes' | 'tracks' | 'pricing' | 'bank' | 'committees' | 'venue' | 'sponsors' | 'previousConferences' | 'submissions' | 'users' | 'templates' | 'seo' | 'email'>('overview');
+  const [tabsExpanded, setTabsExpanded] = useState<boolean>(false);
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const scrollTabs = (direction: 'left' | 'right') => {
+    if (tabsContainerRef.current) {
+      tabsContainerRef.current.scrollBy({
+        left: direction === 'left' ? -240 : 240,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (tabsContainerRef.current) {
+      const activeEl = tabsContainerRef.current.querySelector<HTMLElement>(`[data-tab-id="${activeTab}"]`);
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }
+  }, [activeTab]);
+
+  const handleTabSelect = (tabId: typeof activeTab) => {
+    setActiveTab(tabId);
+    if (tabId === 'submissions') {
+      loadSubmissions();
+    }
+  };
 
   // Submissions State (Firestore & Google Drive)
   const [submissionsList, setSubmissionsList] = useState<ManuscriptSubmission[]>([]);
@@ -1127,6 +1155,26 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
 
   const currentTemplate = emailTemplates[selectedTemplateIndex] || emailTemplates[0];
 
+  const adminTabsList = [
+    { id: 'overview' as const, label: 'Overview & Summary', icon: BarChart3 },
+    { id: 'hero' as const, label: 'Hero & Poster', icon: Edit3 },
+    { id: 'seo' as const, label: 'SEO & Social Share Preview', icon: Globe },
+    { id: 'dates' as const, label: 'Important Dates', icon: Calendar, badge: datesList.length },
+    { id: 'news' as const, label: 'News & Updates', icon: Bell, badge: newsList.length },
+    { id: 'keynotes' as const, label: 'Keynotes', icon: Users, badge: keynotesList.length },
+    { id: 'tracks' as const, label: 'Tracks & Guidelines', icon: Layers, badge: tracksList.length },
+    { id: 'pricing' as const, label: 'Registration Fees', icon: CreditCard, badge: pricingList.length },
+    { id: 'bank' as const, label: 'Bank & Payment', icon: Building2 },
+    { id: 'committees' as const, label: 'Committees', icon: Users, badge: committeesList.length },
+    { id: 'venue' as const, label: 'Venue & Travel', icon: MapPin },
+    { id: 'sponsors' as const, label: 'Sponsors & Partners', icon: Award, badge: sponsorsList.length },
+    { id: 'previousConferences' as const, label: 'Past Conferences', icon: History, badge: previousConferencesList.length },
+    { id: 'submissions' as const, label: 'Submissions', icon: FileText, badge: submissionsList.length },
+    { id: 'users' as const, label: 'User & Reviewer Roles', icon: UserCheck, badge: allUsers.length },
+    { id: 'templates' as const, label: 'Email Templates', icon: LayoutTemplate },
+    { id: 'email' as const, label: 'Email API Tester', icon: Mail }
+  ];
+
   return (
     <div style={{
       position: 'fixed',
@@ -1156,27 +1204,27 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
         <div style={{
           backgroundColor: '#0f3d3e',
           color: '#ffffff',
-          padding: '16px 24px',
+          padding: '10px 20px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexShrink: 0
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
-              padding: '8px',
+              padding: '6px',
               backgroundColor: '#f59e0b',
               color: '#ffffff',
-              borderRadius: '10px',
+              borderRadius: '8px',
               display: 'flex'
             }}>
-              <Shield size={22} />
+              <Shield size={18} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#ffffff' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#ffffff', fontWeight: 700 }}>
                 ESIT Admin CMS & Portal Control
               </h3>
-              <span style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>
+              <span style={{ fontSize: '0.75rem', color: '#cbd5e1' }}>
                 Online Content Management, SEO & Social Share Preview, and Email Notification System
               </span>
             </div>
@@ -1195,166 +1243,186 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
                 display: 'flex'
               }}
             >
-              <X size={22} />
+              <X size={20} />
             </button>
           </div>
         </div>
 
-        {/* PROMINENT BUTTON-STYLE TAB NAVIGATION BAR */}
+        {/* COMPACT STREAMLINED TAB NAVIGATION BAR */}
         <div style={{
-          display: 'flex',
-          gap: '8px',
-          padding: '12px 20px',
-          backgroundColor: '#f1f5f9',
+          backgroundColor: '#f8fafc',
           borderBottom: '1px solid #cbd5e1',
-          overflowX: 'auto',
+          padding: '6px 14px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
           flexShrink: 0,
-          flexWrap: 'wrap'
+          position: 'relative'
         }}>
-          <button
-            onClick={() => setActiveTab('overview')}
-            style={getButtonTabStyle(activeTab === 'overview')}
-          >
-            <BarChart3 size={15} />
-            <span>Overview & Summary</span>
-          </button>
+          {/* Quick-Jump Dropdown */}
+          <div style={{ display: 'flex', alignItems: 'center', position: 'relative', flexShrink: 0 }}>
+            <select
+              aria-label="Jump to admin section"
+              value={activeTab}
+              onChange={(e) => handleTabSelect(e.target.value as any)}
+              style={{
+                appearance: 'none',
+                WebkitAppearance: 'none',
+                backgroundColor: '#ffffff',
+                border: '1px solid #cbd5e1',
+                borderRadius: '6px',
+                padding: '4px 26px 4px 10px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                color: '#1e293b',
+                cursor: 'pointer',
+                outline: 'none',
+                height: '32px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+              }}
+            >
+              <optgroup label="Overview">
+                <option value="overview">Overview & Summary</option>
+              </optgroup>
+              <optgroup label="Conference Content">
+                <option value="hero">Hero & Poster</option>
+                <option value="seo">SEO & Social Share Preview</option>
+                <option value="dates">Important Dates ({datesList.length})</option>
+                <option value="news">News & Updates ({newsList.length})</option>
+                <option value="keynotes">Keynotes ({keynotesList.length})</option>
+                <option value="tracks">Tracks & Guidelines ({tracksList.length})</option>
+                <option value="pricing">Registration Fees ({pricingList.length})</option>
+                <option value="bank">Bank & Payment</option>
+                <option value="committees">Committees ({committeesList.length})</option>
+                <option value="venue">Venue & Travel</option>
+                <option value="sponsors">Sponsors & Partners ({sponsorsList.length})</option>
+                <option value="previousConferences">Past Conferences ({previousConferencesList.length})</option>
+              </optgroup>
+              <optgroup label="Submissions & Review">
+                <option value="submissions">Submissions ({submissionsList.length})</option>
+                <option value="users">User & Reviewer Roles ({allUsers.length})</option>
+              </optgroup>
+              <optgroup label="Communications">
+                <option value="templates">Email Templates</option>
+                <option value="email">Email API Tester</option>
+              </optgroup>
+            </select>
+            <ChevronDown size={14} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#64748b' }} />
+          </div>
 
-          <button
-            onClick={() => setActiveTab('hero')}
-            style={getButtonTabStyle(activeTab === 'hero')}
-          >
-            <Edit3 size={15} />
-            <span>Hero & Poster</span>
-          </button>
+          <div style={{ width: '1px', height: '20px', backgroundColor: '#cbd5e1', flexShrink: 0 }} />
 
-          <button
-            onClick={() => setActiveTab('seo')}
-            style={getButtonTabStyle(activeTab === 'seo')}
-          >
-            <Globe size={15} />
-            <span>SEO & Social Share Preview</span>
-          </button>
+          {/* Left Scroll Button */}
+          {!tabsExpanded && (
+            <button
+              type="button"
+              onClick={() => scrollTabs('left')}
+              title="Scroll tabs left"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '28px',
+                height: '28px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#ffffff',
+                color: '#475569',
+                cursor: 'pointer',
+                flexShrink: 0,
+                padding: 0
+              }}
+            >
+              <ChevronLeft size={16} />
+            </button>
+          )}
 
-          <button
-            onClick={() => setActiveTab('dates')}
-            style={getButtonTabStyle(activeTab === 'dates')}
+          {/* Scrollable Tab Strip OR Expanded Multi-Row */}
+          <div
+            ref={tabsContainerRef}
+            className="admin-tab-strip"
+            style={{
+              display: 'flex',
+              gap: '6px',
+              alignItems: 'center',
+              flex: 1,
+              overflowX: tabsExpanded ? 'visible' : 'auto',
+              flexWrap: tabsExpanded ? 'wrap' : 'nowrap',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+              scrollBehavior: 'smooth'
+            }}
           >
-            <Calendar size={15} />
-            <span>Important Dates</span>
-            <span style={getTabBadgeStyle(activeTab === 'dates')}>{datesList.length}</span>
-          </button>
+            {adminTabsList.map((tab) => {
+              const TabIcon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  data-tab-id={tab.id}
+                  type="button"
+                  onClick={() => handleTabSelect(tab.id)}
+                  style={getButtonTabStyle(isActive)}
+                  title={tab.label}
+                >
+                  <TabIcon size={14} />
+                  <span>{tab.label}</span>
+                  {tab.badge !== undefined && (
+                    <span style={getTabBadgeStyle(isActive)}>{tab.badge}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
 
-          <button
-            onClick={() => setActiveTab('news')}
-            style={getButtonTabStyle(activeTab === 'news')}
-          >
-            <Bell size={15} />
-            <span>News & Updates</span>
-            <span style={getTabBadgeStyle(activeTab === 'news')}>{newsList.length}</span>
-          </button>
+          {/* Right Scroll Button */}
+          {!tabsExpanded && (
+            <button
+              type="button"
+              onClick={() => scrollTabs('right')}
+              title="Scroll tabs right"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '28px',
+                height: '28px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#ffffff',
+                color: '#475569',
+                cursor: 'pointer',
+                flexShrink: 0,
+                padding: 0
+              }}
+            >
+              <ChevronRight size={16} />
+            </button>
+          )}
 
+          {/* Toggle Expand / Single-line compact view */}
           <button
-            onClick={() => setActiveTab('keynotes')}
-            style={getButtonTabStyle(activeTab === 'keynotes')}
+            type="button"
+            onClick={() => setTabsExpanded(!tabsExpanded)}
+            title={tabsExpanded ? "Switch to single-line compact tab strip" : "Expand all tabs (show all buttons)"}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '4px 8px',
+              height: '28px',
+              borderRadius: '6px',
+              border: '1px solid #cbd5e1',
+              backgroundColor: tabsExpanded ? '#0f3d3e' : '#ffffff',
+              color: tabsExpanded ? '#ffffff' : '#475569',
+              cursor: 'pointer',
+              fontSize: '0.72rem',
+              fontWeight: 600,
+              flexShrink: 0
+            }}
           >
-            <Users size={15} />
-            <span>Keynotes</span>
-            <span style={getTabBadgeStyle(activeTab === 'keynotes')}>{keynotesList.length}</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('tracks')}
-            style={getButtonTabStyle(activeTab === 'tracks')}
-          >
-            <Layers size={15} />
-            <span>Tracks & Guidelines</span>
-            <span style={getTabBadgeStyle(activeTab === 'tracks')}>{tracksList.length}</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('pricing')}
-            style={getButtonTabStyle(activeTab === 'pricing')}
-          >
-            <CreditCard size={15} />
-            <span>Registration Fees</span>
-            <span style={getTabBadgeStyle(activeTab === 'pricing')}>{pricingList.length}</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('bank')}
-            style={getButtonTabStyle(activeTab === 'bank')}
-          >
-            <Building2 size={15} />
-            <span>Bank & Payment</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('committees')}
-            style={getButtonTabStyle(activeTab === 'committees')}
-          >
-            <Users size={15} />
-            <span>Committees</span>
-            <span style={getTabBadgeStyle(activeTab === 'committees')}>{committeesList.length}</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('venue')}
-            style={getButtonTabStyle(activeTab === 'venue')}
-          >
-            <MapPin size={15} />
-            <span>Venue & Travel</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('sponsors')}
-            style={getButtonTabStyle(activeTab === 'sponsors')}
-          >
-            <Award size={15} />
-            <span>Sponsors & Partners</span>
-            <span style={getTabBadgeStyle(activeTab === 'sponsors')}>{sponsorsList.length}</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('previousConferences')}
-            style={getButtonTabStyle(activeTab === 'previousConferences')}
-          >
-            <History size={15} />
-            <span>Past Conferences</span>
-            <span style={getTabBadgeStyle(activeTab === 'previousConferences')}>{previousConferencesList.length}</span>
-          </button>
-
-          <button
-            onClick={() => { setActiveTab('submissions'); loadSubmissions(); }}
-            style={getButtonTabStyle(activeTab === 'submissions')}
-          >
-            <FileText size={15} />
-            <span>Submissions</span>
-            <span style={getTabBadgeStyle(activeTab === 'submissions')}>{submissionsList.length}</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('users')}
-            style={getButtonTabStyle(activeTab === 'users')}
-          >
-            <UserCheck size={15} />
-            <span>User & Reviewer Roles</span>
-            <span style={getTabBadgeStyle(activeTab === 'users')}>{allUsers.length}</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('templates')}
-            style={getButtonTabStyle(activeTab === 'templates')}
-          >
-            <LayoutTemplate size={15} />
-            <span>Email Templates</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('email')}
-            style={getButtonTabStyle(activeTab === 'email')}
-          >
-            <Mail size={15} />
-            <span>Email API Tester</span>
+            <LayoutGrid size={13} />
+            <span className="hidden-mobile">{tabsExpanded ? '1-Line' : 'All'}</span>
           </button>
         </div>
 
@@ -7803,6 +7871,14 @@ export default function AdminDashboard({ isOpen, onClose, onRequireAuth }: Admin
             grid-template-columns: 1.1fr 0.9fr !important;
           }
         }
+        .admin-tab-strip::-webkit-scrollbar {
+          display: none;
+        }
+        @media (max-width: 640px) {
+          .hidden-mobile {
+            display: none;
+          }
+        }
       `}</style>
     </div>
   );
@@ -7827,25 +7903,30 @@ const inputStyle: React.CSSProperties = {
 const getButtonTabStyle = (active: boolean): React.CSSProperties => ({
   display: 'inline-flex',
   alignItems: 'center',
-  gap: '8px',
-  padding: '9px 16px',
-  borderRadius: '8px',
-  border: active ? '2px solid #0f3d3e' : '1px solid #cbd5e1',
+  gap: '6px',
+  padding: '4px 10px',
+  borderRadius: '6px',
+  border: active ? '1px solid #0f3d3e' : '1px solid #cbd5e1',
   backgroundColor: active ? '#0f3d3e' : '#ffffff',
-  color: active ? '#ffffff' : '#334155',
-  fontWeight: active ? 700 : 600,
+  color: active ? '#ffffff' : '#475569',
+  fontWeight: active ? 700 : 500,
   cursor: 'pointer',
-  fontSize: '0.88rem',
+  fontSize: '0.78rem',
   whiteSpace: 'nowrap',
   transition: 'all 0.15s ease',
-  boxShadow: active ? '0 4px 10px rgba(15, 61, 62, 0.25)' : '0 1px 3px rgba(0,0,0,0.05)'
+  flexShrink: 0,
+  height: '32px',
+  boxShadow: active ? '0 2px 4px rgba(15, 61, 62, 0.2)' : '0 1px 2px rgba(0,0,0,0.03)'
 });
 
 const getTabBadgeStyle = (active: boolean): React.CSSProperties => ({
   backgroundColor: active ? '#f59e0b' : '#f1f5f9',
   color: active ? '#ffffff' : '#64748b',
-  padding: '1px 6px',
+  padding: '0 5px',
   borderRadius: '9999px',
-  fontSize: '0.72rem',
-  fontWeight: 700
+  fontSize: '0.66rem',
+  fontWeight: 700,
+  lineHeight: '16px',
+  minWidth: '16px',
+  textAlign: 'center'
 });
